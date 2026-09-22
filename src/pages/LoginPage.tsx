@@ -1,0 +1,7 @@
+import { Archive, LockKeyhole, Mail } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
+
+export function LoginPage(){const nav=useNavigate();const [email,setEmail]=useState('admin@example.co.th');const [password,setPassword]=useState('demo1234');const [error,setError]=useState('');const login=async()=>{if(isSupabaseConfigured&&supabase){const {error}=await supabase.auth.signInWithPassword({email,password});if(error){setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');return}}nav('/')}
+ return <div className="login-page"><div className="login-brand"><div className="brand-mark large"><Archive/></div><div><h1>OFFICE STOCK</h1><p>จัดการวัสดุสำนักงานได้ง่าย ครบ และตรวจสอบได้</p></div></div><section className="login-card"><h2>เข้าสู่ระบบ</h2><p>ใช้บัญชีพนักงานของคุณเพื่อดำเนินการต่อ</p><label>อีเมล<div className="input-icon"><Mail size={18}/><input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></div></label><label>รหัสผ่าน<div className="input-icon"><LockKeyhole size={18}/><input type="password" value={password} onChange={e=>setPassword(e.target.value)}/></div></label>{error&&<p className="form-error">{error}</p>}<button className="btn primary" onClick={login}>เข้าสู่ระบบ</button>{!isSupabaseConfigured&&<small className="demo-note">โหมดทดลอง: กดเข้าสู่ระบบได้ทันที</small>}</section></div>}
