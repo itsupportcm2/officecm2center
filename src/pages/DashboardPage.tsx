@@ -1,12 +1,46 @@
-import { ArrowDownToLine, ArrowUpFromLine, Boxes, CircleAlert, PackageCheck, PackageX, TrendingUp } from 'lucide-react'
+import { AlertTriangle, ArrowDownToLine, ArrowRight, ArrowRightLeft, ArrowUpFromLine, Boxes, ClipboardList, Clock3, FileText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useStock } from '../store/StockContext'
-import { StatusBadge, TxBadge } from '../components/ui'
+import { useAuth } from '../store/AuthContext'
+import { formatThaiDate } from '../utils/date'
 
-export function DashboardPage(){const {items,categories,locations,transactions,loading}=useStock();const low=items.filter(i=>i.quantity>0&&i.quantity<=i.minStock);const out=items.filter(i=>i.quantity===0);const total=items.reduce((s,i)=>s+i.quantity,0);const todayOut=transactions.filter(t=>t.type==='OUT'&&t.createdAt.startsWith('2026-09-22')).reduce((s,t)=>s+t.quantity,0)
- const cards=[['รายการทั้งหมด',items.length,'รายการ',Boxes,'navy'],['จำนวนคงเหลือ',total,'หน่วย',PackageCheck,'teal'],['สินค้าใกล้หมด',low.length,'รายการ',CircleAlert,'amber'],['สินค้าหมด',out.length,'รายการ',PackageX,'red'],['เบิกออกวันนี้',todayOut,'หน่วย',ArrowUpFromLine,'blue']] as const
- return <div className="page-stack"><section className="metric-grid">{cards.map(([label,value,unit,Icon,tone])=><article className="metric-card" key={label}><div className={`metric-icon ${tone}`}><Icon size={22}/></div><div><span>{label}</span><strong>{loading?'—':value.toLocaleString('th-TH')} <small>{unit}</small></strong></div></article>)}</section>
- <div className="dashboard-grid"><section className="card span-2"><div className="card-head"><div><h2>แจ้งเตือนสินค้าใกล้หมด</h2><p>รายการที่ควรสั่งซื้อหรือเติมสต็อก</p></div><Link to="/low-stock">ดูทั้งหมด</Link></div><div className="table-wrap"><table><thead><tr><th>สินค้า</th><th>รหัส</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>สถานะ</th></tr></thead><tbody>{[...out,...low].slice(0,5).map(i=><tr key={i.id}><td><b>{i.name}</b></td><td className="mono">{i.sku}</td><td><b>{i.quantity}</b> {i.unit}</td><td>{i.minStock} {i.unit}</td><td><StatusBadge item={i}/></td></tr>)}</tbody></table></div></section>
- <section className="card category-card"><div className="card-head"><div><h2>สต็อกตามหมวดหมู่</h2><p>สัดส่วนจำนวนคงเหลือ</p></div></div><div className="category-bars">{categories.map((c,n)=>{const amount=items.filter(i=>i.categoryId===c.id).reduce((s,i)=>s+i.quantity,0);const pct=Math.max(5,Math.round(amount/Math.max(total,1)*100));return <div key={c.id}><div><span><i className={`dot d${n}`}/>{c.name}</span><b>{amount}</b></div><div className="bar"><i className={`fill d${n}`} style={{width:`${pct}%`}}/></div></div>})}</div><div className="stock-note"><TrendingUp size={17}/><span>วัสดุสำนักงานมีสต็อกสูงสุดในขณะนี้</span></div></section>
- </div><section className="card"><div className="card-head"><div><h2>ความเคลื่อนไหวล่าสุด</h2><p>รายการรับเข้า เบิกออก และปรับยอดล่าสุด</p></div><Link to="/history">ดูประวัติทั้งหมด</Link></div><div className="table-wrap"><table><thead><tr><th>วันและเวลา</th><th>สินค้า</th><th>รายการ</th><th>จำนวน</th><th>ผู้ดำเนินการ</th><th>ตำแหน่ง</th></tr></thead><tbody>{transactions.slice(0,5).map(t=>{const i=items.find(x=>x.id===t.itemId);return <tr key={t.id}><td>{new Intl.DateTimeFormat('th-TH',{dateStyle:'short',timeStyle:'short'}).format(new Date(t.createdAt))}</td><td><b>{i?.name}</b></td><td><TxBadge type={t.type}/></td><td className={t.type==='IN'?'positive':'negative'}>{t.type==='IN'?'+':'−'}{t.quantity} {i?.unit}</td><td>{t.user}</td><td>{locations.find(x=>x.id===t.locationId)?.name}</td></tr>})}</tbody></table></div></section>
- <div className="quick-actions"><Link to="/stock-in"><ArrowDownToLine/>รับสินค้าเข้า</Link><Link to="/stock-out"><ArrowUpFromLine/>เบิกสินค้าออก</Link></div></div>}
+export function DashboardPage(){
+ const {items,locations,transactions}=useStock()
+ const {user}=useAuth()
+ const low=items.filter(item=>item.quantity>0&&item.quantity<=item.minStock)
+ const out=items.filter(item=>item.quantity===0)
+ const urgent=[...out,...low]
+ const normal=Math.max(0,items.length-urgent.length)
+ const time=(date:string)=>new Intl.DateTimeFormat('th-TH',{hour:'2-digit',minute:'2-digit'}).format(new Date(date))
+ const locationName=(id:string)=>locations.find(location=>location.id===id)?.name
+
+ return <div className="essential-dashboard">
+  <section className={`essential-top-grid ${user?.role==='viewer'?'viewer':''}`}>
+   {user?.role!=='viewer'&&<div className="essential-actions">
+    <Link className="essential-action receive" to="/stock-in"><span><ArrowDownToLine/></span><div><strong>รับสินค้าเข้า</strong><small>บันทึกรับสินค้าเข้าคลัง</small></div><ArrowRight/></Link>
+    <Link className="essential-action issue" to="/stock-out"><span><ArrowUpFromLine/></span><div><strong>เบิกสินค้าออก</strong><small>บันทึกการเบิกสินค้า</small></div><ArrowRight/></Link>
+   </div>}
+   <article className="stock-health">
+    <header><div><Boxes/><h2>สถานะสต็อกโดยรวม</h2></div><small>ข้อมูลล่าสุด {formatThaiDate(new Date(),{day:'numeric',month:'short',year:'numeric'})}</small></header>
+    <div className="health-bar" aria-label={`ต้องสั่งซื้อ ${out.length} ใกล้หมด ${low.length} ปกติ ${normal}`}><i className="out" style={{flex:out.length||.3}}/><i className="low" style={{flex:low.length||.3}}/><i className="normal" style={{flex:normal||.3}}/></div>
+    <div className="health-numbers"><div className="danger"><span>ต้องสั่งซื้อ</span><strong>{out.length}</strong><small>รายการ</small></div><div className="warning"><span>ใกล้หมด</span><strong>{low.length}</strong><small>รายการ</small></div><div className="healthy"><span>ปกติ</span><strong>{normal}</strong><small>รายการ</small></div></div>
+    <p className="health-total">ประเมินสถานะเป็นรายสินค้า โดยไม่รวมจำนวนสินค้าที่ต่างหน่วยกัน</p>
+   </article>
+  </section>
+
+  <section className="essential-content-grid">
+   <article className="essential-panel urgent-worklist">
+    <header><div className="essential-panel-title"><AlertTriangle/><div><h2>รายการที่ต้องดำเนินการด่วน</h2><p>สินค้าที่ต่ำกว่าระดับขั้นต่ำ ควรสั่งซื้อโดยเร็ว</p></div></div><Link to="/low-stock">ดูสินค้าทั้งหมด <ArrowRight/></Link></header>
+    <div className="table-wrap"><table className="essential-table"><thead><tr><th>สินค้า</th><th>รหัส</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>ตำแหน่งจัดเก็บ</th><th>การดำเนินการ</th></tr></thead><tbody>
+     {urgent.slice(0,5).map(item=><tr key={item.id}><td><b>{item.name}</b></td><td className="mono">{item.sku}</td><td><strong className="negative">{item.quantity} {item.unit}</strong></td><td>{item.minStock} {item.unit}</td><td>{locationName(item.locationId)??'-'}</td><td>{user?.role==='viewer'?<Link className="order-btn" to={`/inventory/${item.id}`}>ดูรายละเอียด</Link>:<Link className="order-btn" to="/low-stock"><FileText/>สร้างใบขอซื้อ</Link>}</td></tr>)}
+     {urgent.length===0&&<tr><td className="essential-empty" colSpan={6}>สต็อกทุกรายการอยู่ในระดับปกติ</td></tr>}
+    </tbody></table></div>
+   </article>
+
+   <article className="essential-panel compact-activity">
+    <header><div className="essential-panel-title"><Clock3/><div><h2>ความเคลื่อนไหวล่าสุด</h2><p>รายการล่าสุดของวันนี้ ({formatThaiDate(new Date(),{day:'numeric',month:'short',year:'numeric'})})</p></div></div><Link to="/history">ดูทั้งหมด <ArrowRight/></Link></header>
+    <div className="essential-activity-list">{transactions.slice(0,5).map(transaction=>{const item=items.find(candidate=>candidate.id===transaction.itemId);const incoming=transaction.type==='IN';const adjusting=transaction.type==='ADJUST';const transferring=transaction.type==='TRANSFER';const label=incoming?'รับสินค้าเข้า':transaction.type==='OUT'?'เบิกสินค้าออก':adjusting?'ปรับยอดสินค้า':'โอนย้ายสินค้า';return <div className="essential-activity" key={transaction.id}><i className={incoming?'in':adjusting||transferring?'edit':'out'}/><span className={`essential-activity-icon ${incoming?'in':adjusting||transferring?'edit':'out'}`}>{incoming?<ArrowDownToLine/>:adjusting?<ClipboardList/>:transferring?<ArrowRightLeft/>:<ArrowUpFromLine/>}</span><div><b>{label}</b><p>{item?.name} {transaction.quantity} {item?.unit}</p><small>โดย {transaction.user}</small></div><time>{time(transaction.createdAt)}</time></div>})}</div>
+   </article>
+  </section>
+ </div>
+}

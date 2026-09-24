@@ -1,29 +1,52 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { categories as initialCategories, items as initialItems, locations as initialLocations, transactions as initialTransactions } from '../data/mockData'
+import { isSupabaseConfigured } from '../lib/supabase'
 import { inventoryService } from '../services/inventoryService'
 import { stockService } from '../services/stockService'
-import type { Category, Item, Location, StockChangeInput, StockTransaction, TransactionType } from '../types'
+import type { Category, Item, Location, StockAdjustmentInput, StockChangeInput, StockTransaction, StockTransferInput, TransactionType } from '../types'
+import { useAudit } from './AuditContext'
+import { useAuth } from './AuthContext'
 
-interface Store {
-  items: Item[]; categories: Category[]; locations: Location[]; transactions: StockTransaction[]; loading: boolean;
-  addItem: (item: Omit<Item,'id'|'createdAt'|'quantity'>) => void; updateItem: (item: Item) => void; deleteItem: (id: string) => void;
-  applyStock: (type: Extract<TransactionType,'IN'|'OUT'>, input: StockChangeInput) => Promise<void>;
-  addCategory: (name:string, description:string) => void; deleteCategory:(id:string)=>void;
-  addLocation: (name:string, description:string) => void; deleteLocation:(id:string)=>void;
+const KEYS={items:'cm-office-items-v2',categories:'cm-office-categories-v2',locations:'cm-office-locations-v2',transactions:'cm-office-transactions-v2',balances:'cm-office-balances-v1'}
+type LocationBalances=Record<string,Record<string,number>>
+const readLocal=<T,>(key:string,fallback:T):T=>{try{const saved=localStorage.getItem(key);return saved?JSON.parse(saved):fallback}catch{return fallback}}
+const initialBalances=(items:Item[]):LocationBalances=>Object.fromEntries(items.map(item=>[item.id,{[item.locationId]:item.quantity}]))
+
+interface Store{
+ items:Item[];categories:Category[];locations:Location[];transactions:StockTransaction[];balances:LocationBalances;loading:boolean
+ getLocationQuantity:(itemId:string,locationId:string)=>number
+ addItem:(item:Omit<Item,'id'|'createdAt'|'quantity'>)=>Promise<void>;updateItem:(item:Item)=>Promise<void>;deleteItem:(id:string)=>Promise<void>
+ applyStock:(type:Extract<TransactionType,'IN'|'OUT'>,input:StockChangeInput)=>Promise<void>
+ adjustStock:(input:StockAdjustmentInput)=>Promise<void>;transferStock:(input:StockTransferInput)=>Promise<void>
+ addCategory:(name:string,description:string)=>Promise<void>;deleteCategory:(id:string)=>Promise<void>
+ addLocation:(name:string,description:string)=>Promise<void>;deleteLocation:(id:string)=>Promise<void>
 }
-const Context = createContext<Store | null>(null)
-export const StockProvider = ({ children }: { children: ReactNode }) => {
-  const [items,setItems]=useState(initialItems); const [categories,setCategories]=useState(initialCategories)
-  const [locations,setLocations]=useState(initialLocations); const [transactions,setTransactions]=useState(initialTransactions)
-  const [loading,setLoading]=useState(true)
-  useEffect(()=>{ inventoryService.load().then(d=>{setItems(d.items);setCategories(d.categories);setLocations(d.locations)}).finally(()=>setLoading(false)) },[])
-  const value=useMemo<Store>(()=>({ items,categories,locations,transactions,loading,
-    addItem:(item)=>setItems(v=>[{...item,id:crypto.randomUUID(),createdAt:new Date().toISOString(),quantity:0},...v]),
-    updateItem:(item)=>setItems(v=>v.map(x=>x.id===item.id?item:x)), deleteItem:(id)=>setItems(v=>v.filter(x=>x.id!==id)),
-    applyStock:async(type,input)=>{ const current=items.find(i=>i.id===input.itemId); if(!current) throw new Error('ไม่พบรายการสินค้า'); if(type==='OUT'&&input.quantity>current.quantity) throw new Error('จำนวนที่เบิกมากกว่าสต็อกคงเหลือ'); await stockService.apply(type,input); const after=type==='IN'?current.quantity+input.quantity:current.quantity-input.quantity; setItems(v=>v.map(i=>i.id===current.id?{...i,quantity:after}:i)); setTransactions(v=>[{ id:`TX-${Date.now()}`, itemId:current.id, locationId:input.locationId, type, quantity:input.quantity, before:current.quantity, after, referenceNo:input.referenceNo, employeeName:input.employeeName, department:input.department, purpose:input.purpose, note:input.note, user:'ณัฐพล', createdAt:new Date().toISOString() },...v]) },
-    addCategory:(name,description)=>setCategories(v=>[...v,{id:crypto.randomUUID(),name,description}]), deleteCategory:id=>setCategories(v=>v.filter(x=>x.id!==id)),
-    addLocation:(name,description)=>setLocations(v=>[...v,{id:crypto.randomUUID(),name,description}]), deleteLocation:id=>setLocations(v=>v.filter(x=>x.id!==id)),
-  }),[items,categories,locations,transactions,loading])
-  return <Context.Provider value={value}>{children}</Context.Provider>
+const Context=createContext<Store|null>(null)
+
+export const StockProvider=({children}:{children:ReactNode})=>{
+ const {user}=useAuth();const {record}=useAudit();const localMode=!isSupabaseConfigured
+ const [items,setItems]=useState(()=>localMode?readLocal(KEYS.items,initialItems):initialItems)
+ const [categories,setCategories]=useState(()=>localMode?readLocal(KEYS.categories,initialCategories):initialCategories)
+ const [locations,setLocations]=useState(()=>localMode?readLocal(KEYS.locations,initialLocations):initialLocations)
+ const [transactions,setTransactions]=useState(()=>localMode?readLocal(KEYS.transactions,initialTransactions):initialTransactions)
+ const [balances,setBalances]=useState<LocationBalances>(()=>localMode?readLocal(KEYS.balances,initialBalances(readLocal(KEYS.items,initialItems))):initialBalances(initialItems))
+ const [loading,setLoading]=useState(!localMode)
+ useEffect(()=>{if(localMode){setLoading(false);return}Promise.all([inventoryService.load(),stockService.history()]).then(([inventory,history])=>{setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setTransactions(history);setBalances(initialBalances(inventory.items))}).finally(()=>setLoading(false))},[localMode])
+ useEffect(()=>{if(!localMode||loading)return;localStorage.setItem(KEYS.items,JSON.stringify(items));localStorage.setItem(KEYS.categories,JSON.stringify(categories));localStorage.setItem(KEYS.locations,JSON.stringify(locations));localStorage.setItem(KEYS.transactions,JSON.stringify(transactions));localStorage.setItem(KEYS.balances,JSON.stringify(balances))},[items,categories,locations,transactions,balances,localMode,loading])
+ const getLocationQuantity=(itemId:string,locationId:string)=>balances[itemId]?.[locationId]??0
+ const makeTransaction=(data:Omit<StockTransaction,'id'|'user'|'createdAt'>):StockTransaction=>({...data,id:`TX-${Date.now()}-${crypto.randomUUID().slice(0,6)}`,user:user?.name??'ผู้ใช้งาน',createdAt:new Date().toISOString()})
+ const value=useMemo<Store>(()=>({items,categories,locations,transactions,balances,loading,getLocationQuantity,
+  addItem:async input=>{const item=await inventoryService.createItem(input);setItems(current=>[item,...current]);setBalances(current=>({...current,[item.id]:{[item.locationId]:0}}));record({action:'CREATE',entity:'item',entityId:item.id,title:item.name,detail:`เพิ่มสินค้า SKU ${item.sku}`})},
+  updateItem:async item=>{await inventoryService.updateItem(item);setItems(current=>current.map(row=>row.id===item.id?item:row));setBalances(current=>current[item.id]?current:{...current,[item.id]:{[item.locationId]:item.quantity}});record({action:'UPDATE',entity:'item',entityId:item.id,title:item.name,detail:`แก้ไขข้อมูลสินค้า SKU ${item.sku}`})},
+  deleteItem:async id=>{if(transactions.some(transaction=>transaction.itemId===id))throw new Error('ไม่สามารถลบสินค้าที่มีประวัติการเคลื่อนไหวได้');const item=items.find(row=>row.id===id);await inventoryService.deleteItem(id);setItems(current=>current.filter(row=>row.id!==id));setBalances(current=>{const next={...current};delete next[id];return next});record({action:'DELETE',entity:'item',entityId:id,title:item?.name??id,detail:`ลบสินค้า SKU ${item?.sku??'-'}`})},
+  applyStock:async(type,input)=>{const current=items.find(item=>item.id===input.itemId);if(!current)throw new Error('ไม่พบรายการสินค้า');const locationBefore=getLocationQuantity(current.id,input.locationId);if(type==='OUT'&&input.quantity>locationBefore)throw new Error('จำนวนที่เบิกมากกว่าสต็อกในตำแหน่งนี้');await stockService.apply(type,input);const locationAfter=type==='IN'?locationBefore+input.quantity:locationBefore-input.quantity;const totalAfter=type==='IN'?current.quantity+input.quantity:current.quantity-input.quantity;setBalances(rows=>({...rows,[current.id]:{...rows[current.id],[input.locationId]:locationAfter}}));setItems(rows=>rows.map(item=>item.id===current.id?{...item,quantity:totalAfter}:item));setTransactions(rows=>[makeTransaction({itemId:current.id,locationId:input.locationId,type,quantity:input.quantity,before:locationBefore,after:locationAfter,referenceNo:input.referenceNo,employeeName:input.employeeName,department:input.department,approvedBy:input.approvedBy,purpose:input.purpose,note:[input.supplier?`ผู้จำหน่าย: ${input.supplier}`:'',input.approvedBy?`ผู้อนุมัติ: ${input.approvedBy}`:'',input.note??''].filter(Boolean).join(' | ')||undefined}),...rows]);record({action:type==='IN'?'STOCK_IN':'STOCK_OUT',entity:'stock',entityId:current.id,title:current.name,detail:`${type==='IN'?'รับเข้า':'เบิกออก'} ${input.quantity} ${current.unit} · คงเหลือรวม ${totalAfter} ${current.unit} · อ้างอิง ${input.referenceNo??'-'}`})},
+  adjustStock:async input=>{const current=items.find(item=>item.id===input.itemId);if(!current)throw new Error('ไม่พบรายการสินค้า');const before=getLocationQuantity(current.id,input.locationId);if(input.countedQuantity===before)throw new Error('ยอดตรวจนับเท่ากับยอดในระบบ ไม่จำเป็นต้องปรับ');await stockService.adjust(input);const difference=input.countedQuantity-before;const totalAfter=current.quantity+difference;if(totalAfter<0)throw new Error('ยอดรวมหลังปรับต้องไม่ติดลบ');setBalances(rows=>({...rows,[current.id]:{...rows[current.id],[input.locationId]:input.countedQuantity}}));setItems(rows=>rows.map(item=>item.id===current.id?{...item,quantity:totalAfter}:item));setTransactions(rows=>[makeTransaction({itemId:current.id,locationId:input.locationId,type:'ADJUST',quantity:Math.abs(difference),before,after:input.countedQuantity,referenceNo:input.referenceNo,purpose:input.reason,note:input.note}),...rows]);record({action:'STOCK_ADJUST',entity:'stock',entityId:current.id,title:current.name,detail:`ปรับยอดตำแหน่งจาก ${before} เป็น ${input.countedQuantity} ${current.unit} · อ้างอิง ${input.referenceNo}`})},
+  transferStock:async input=>{const current=items.find(item=>item.id===input.itemId);if(!current)throw new Error('ไม่พบรายการสินค้า');if(input.sourceLocationId===input.destinationLocationId)throw new Error('ตำแหน่งต้นทางและปลายทางต้องไม่ซ้ำกัน');const sourceBefore=getLocationQuantity(current.id,input.sourceLocationId);const destinationBefore=getLocationQuantity(current.id,input.destinationLocationId);if(input.quantity<=0||input.quantity>sourceBefore)throw new Error('จำนวนโอนมากกว่ายอดคงเหลือที่ต้นทาง');await stockService.transfer(input);setBalances(rows=>({...rows,[current.id]:{...rows[current.id],[input.sourceLocationId]:sourceBefore-input.quantity,[input.destinationLocationId]:destinationBefore+input.quantity}}));const sourceName=locations.find(location=>location.id===input.sourceLocationId)?.name??'-';const destinationName=locations.find(location=>location.id===input.destinationLocationId)?.name??'-';setTransactions(rows=>[makeTransaction({itemId:current.id,locationId:input.sourceLocationId,destinationLocationId:input.destinationLocationId,type:'TRANSFER',quantity:input.quantity,before:sourceBefore,after:sourceBefore-input.quantity,referenceNo:input.referenceNo,purpose:input.reason,note:[`โอนจาก ${sourceName} ไป ${destinationName}`,input.note??''].filter(Boolean).join(' | ')}),...rows]);record({action:'STOCK_TRANSFER',entity:'stock',entityId:current.id,title:current.name,detail:`โอน ${input.quantity} ${current.unit} จาก ${sourceName} ไป ${destinationName} · ยอดรวม ${current.quantity} ${current.unit}`})},
+  addCategory:async(name,description)=>{const category=await inventoryService.createCategory(name,description);setCategories(rows=>[...rows,category]);record({action:'CREATE',entity:'category',entityId:category.id,title:name,detail:'เพิ่มหมวดหมู่สินค้า'})},
+  deleteCategory:async id=>{if(items.some(item=>item.categoryId===id))throw new Error('ไม่สามารถลบหมวดหมู่ที่ยังมีสินค้าใช้งานอยู่');const category=categories.find(row=>row.id===id);await inventoryService.deleteCategory(id);setCategories(rows=>rows.filter(row=>row.id!==id));record({action:'DELETE',entity:'category',entityId:id,title:category?.name??id,detail:'ลบหมวดหมู่สินค้า'})},
+  addLocation:async(name,description)=>{const location=await inventoryService.createLocation(name,description);setLocations(rows=>[...rows,location]);record({action:'CREATE',entity:'location',entityId:location.id,title:name,detail:'เพิ่มตำแหน่งจัดเก็บ'})},
+  deleteLocation:async id=>{if(Object.values(balances).some(row=>(row[id]??0)>0))throw new Error('ไม่สามารถลบตำแหน่งที่ยังมีสต็อกคงเหลือ');const location=locations.find(row=>row.id===id);await inventoryService.deleteLocation(id);setLocations(rows=>rows.filter(row=>row.id!==id));record({action:'DELETE',entity:'location',entityId:id,title:location?.name??id,detail:'ลบตำแหน่งจัดเก็บ'})},
+ }),[items,categories,locations,transactions,balances,loading,user,record])
+ return <Context.Provider value={value}>{children}</Context.Provider>
 }
-export const useStock=()=>{const v=useContext(Context);if(!v)throw new Error('StockProvider missing');return v}
+export const useStock=()=>{const value=useContext(Context);if(!value)throw new Error('StockProvider missing');return value}

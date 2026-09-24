@@ -1,0 +1,19 @@
+import { Download, FileText, PackageCheck } from 'lucide-react'
+import { useState } from 'react'
+import { Empty, Toast } from '../components/ui'
+import { usePurchases } from '../store/PurchaseContext'
+import { useAuth } from '../store/AuthContext'
+import type { PurchaseRequest } from '../types'
+import { formatThaiDateTime } from '../utils/date'
+
+const statusLabel:Record<PurchaseRequest['status'],string>={DRAFT:'ฉบับร่าง',SUBMITTED:'ส่งอนุมัติ',ORDERED:'สั่งซื้อแล้ว',CANCELLED:'ยกเลิก'}
+const csvCell=(value:unknown)=>`"${String(value??'').replaceAll('"','""')}"`
+
+export function PurchaseRequestsPage(){
+ const {requests,updateStatus,updateLine,updateNote}=usePurchases();const {user}=useAuth();const [selectedId,setSelectedId]=useState(requests[0]?.id??'');const [toast,setToast]=useState('');const selected=requests.find(request=>request.id===selectedId)??requests[0]
+ const flash=(message:string)=>{setToast(message);setTimeout(()=>setToast(''),2500)}
+ const exportRequest=()=>{if(!selected)return;const rows=[['เลขที่ใบขอซื้อ',selected.requestNo],['ผู้ขอ',selected.requestedBy],['วันที่',formatThaiDateTime(selected.createdAt)],[],['SKU','สินค้า','จำนวน','หน่วย'],...selected.lines.map(line=>[line.sku,line.name,line.quantity,line.unit]),[],['หมายเหตุ',selected.note]];const url=URL.createObjectURL(new Blob(['\ufeff'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`${selected.requestNo}.csv`;link.click();URL.revokeObjectURL(url)}
+ return <div className="purchase-layout"><aside className="card purchase-list"><div className="card-head"><div><h2>ใบขอซื้อ</h2><p>{requests.length} เอกสาร</p></div></div>{requests.map(request=><button key={request.id} className={request.id===selected?.id?'active':''} onClick={()=>setSelectedId(request.id)}><span><FileText/></span><div><b>{request.requestNo}</b><small>{formatThaiDateTime(request.createdAt)} · {request.lines.length} รายการ</small></div><em className={`purchase-status ${request.status.toLowerCase()}`}>{statusLabel[request.status]}</em></button>)}{!requests.length&&<Empty text="ยังไม่มีใบขอซื้อ"/>}</aside>
+  <section className="card purchase-detail">{selected?<><header><div><span>ใบขอซื้อ</span><h2>{selected.requestNo}</h2><p>ผู้ขอ: {selected.requestedBy} · สร้างเมื่อ {formatThaiDateTime(selected.createdAt)}</p></div><button className="btn secondary" onClick={exportRequest}><Download size={18}/>ส่งออก CSV</button></header><div className="purchase-workflow"><label>สถานะ<select value={selected.status} disabled={user?.role==='staff'&&selected.status!=='DRAFT'} onChange={event=>{updateStatus(selected.id,event.target.value as PurchaseRequest['status']);flash('อัปเดตสถานะแล้ว')}}><option value="DRAFT">ฉบับร่าง</option><option value="SUBMITTED">ส่งอนุมัติ</option>{user?.role==='admin'&&<><option value="ORDERED">สั่งซื้อแล้ว</option><option value="CANCELLED">ยกเลิก</option></>}</select></label><span><PackageCheck/>เจ้าหน้าที่ส่งอนุมัติได้ และผู้ดูแลระบบเป็นผู้ยืนยันการสั่งซื้อ</span></div><div className="table-wrap"><table><thead><tr><th>SKU</th><th>สินค้า</th><th>จำนวนที่ขอซื้อ</th><th>หน่วย</th></tr></thead><tbody>{selected.lines.map(line=><tr key={line.itemId}><td className="mono">{line.sku}</td><td><b>{line.name}</b></td><td><input className="quantity-input" type="number" min="1" value={line.quantity} disabled={selected.status!=='DRAFT'} onChange={event=>updateLine(selected.id,line.itemId,Number(event.target.value))}/></td><td>{line.unit}</td></tr>)}</tbody></table></div><label className="purchase-note">หมายเหตุ<textarea value={selected.note} disabled={selected.status!=='DRAFT'} onChange={event=>updateNote(selected.id,event.target.value)}/></label></>:<Empty text="สร้างใบขอซื้อจากหน้าสินค้าใกล้หมด"/>}</section>{toast&&<Toast message={toast}/>}
+ </div>
+}

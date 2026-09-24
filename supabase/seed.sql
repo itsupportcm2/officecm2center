@@ -29,3 +29,12 @@ insert into public.stock_balances(item_id,location_id,quantity) values
 ('30000000-0000-0000-0000-000000000008','20000000-0000-0000-0000-000000000001',0),
 ('30000000-0000-0000-0000-000000000009','20000000-0000-0000-0000-000000000001',27),
 ('30000000-0000-0000-0000-000000000010','20000000-0000-0000-0000-000000000002',31);
+
+update public.items i
+set primary_location_id = chosen.location_id
+from (
+  select distinct on (item_id) item_id, location_id
+  from public.stock_balances
+  order by item_id, quantity desc, location_id
+) chosen
+where chosen.item_id = i.id and i.primary_location_id is null;

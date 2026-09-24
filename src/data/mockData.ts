@@ -24,9 +24,9 @@ export const items: Item[] = [
   { id:'i10', sku:'CL-001', name:'กระดาษทิชชูทำความสะอาด', description:'ชนิดม้วนใหญ่', categoryId:'cat-cleaning', unit:'แพ็ก', minStock:12, barcode:'885000400001', isActive:true, locationId:'loc-office', quantity:31, createdAt:'2026-04-02' },
 ]
 export const transactions: StockTransaction[] = [
-  { id:'TX-260922-001', itemId:'i1', locationId:'loc-office', type:'OUT', quantity:4, before:90, after:86, employeeName:'สุภาวดี', department:'บัญชี', purpose:'งานเอกสารประจำเดือน', user:'ณัฐพล', createdAt:'2026-09-22T09:42:00+07:00' },
+  { id:'TX-260922-001', itemId:'i1', locationId:'loc-office', type:'OUT', quantity:4, before:90, after:86, employeeName:'สุภาวดี', department:'AC', purpose:'งานเอกสารประจำเดือน', user:'ณัฐพล', createdAt:'2026-09-22T09:42:00+07:00' },
   { id:'TX-260922-002', itemId:'i5', locationId:'loc-it', type:'IN', quantity:10, before:8, after:18, referenceNo:'PO-2609-18', user:'ณัฐพล', createdAt:'2026-09-22T08:15:00+07:00' },
-  { id:'TX-260921-008', itemId:'i4', locationId:'loc-office', type:'OUT', quantity:2, before:6, after:4, employeeName:'วีรพล', department:'การตลาด', user:'กมลชนก', createdAt:'2026-09-21T15:20:00+07:00' },
+  { id:'TX-260921-008', itemId:'i4', locationId:'loc-office', type:'OUT', quantity:2, before:6, after:4, employeeName:'วีรพล', department:'EC', user:'กมลชนก', createdAt:'2026-09-21T15:20:00+07:00' },
   { id:'TX-260921-005', itemId:'i7', locationId:'loc-it', type:'ADJUST', quantity:1, before:13, after:12, note:'ตรวจนับสต็อกประจำสัปดาห์', user:'ณัฐพล', createdAt:'2026-09-21T11:05:00+07:00' },
-  { id:'TX-260920-012', itemId:'i2', locationId:'loc-admin', type:'OUT', quantity:6, before:30, after:24, employeeName:'รัชนี', department:'บุคคล', user:'กมลชนก', createdAt:'2026-09-20T13:30:00+07:00' },
+  { id:'TX-260920-012', itemId:'i2', locationId:'loc-admin', type:'OUT', quantity:6, before:30, after:24, employeeName:'รัชนี', department:'HR', user:'กมลชนก', createdAt:'2026-09-20T13:30:00+07:00' },
 ]
