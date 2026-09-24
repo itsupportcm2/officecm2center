@@ -5,6 +5,7 @@ import { downloadLocalBackup, parseLocalBackup, restoreLocalBackup, type LocalBa
 import { AUDIT_STORAGE_KEY, useAudit, type AuditEntry } from '../store/AuditContext'
 import { useAuth } from '../store/AuthContext'
 import { formatThaiDateTime } from '../utils/date'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 export function DataToolsPage(){
  const inputRef=useRef<HTMLInputElement>(null)
@@ -15,6 +16,7 @@ export function DataToolsPage(){
  const backup=()=>{record({action:'BACKUP',entity:'system',title:'สำรองข้อมูลภายในเครื่อง',detail:'ส่งออกข้อมูลระบบเป็นไฟล์ JSON'});const file=downloadLocalBackup();flash(`สำรองข้อมูลแล้ว ${formatThaiDateTime(file.exportedAt)}`)}
  const selectFile=async(event:ChangeEvent<HTMLInputElement>)=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;try{setPending(parseLocalBackup(await file.text()))}catch(error){flash(error instanceof Error?error.message:'ไม่สามารถอ่านไฟล์ได้')}}
  const restore=()=>{if(!pending)return;restoreLocalBackup(pending);const existing:AuditEntry[]=(()=>{try{return JSON.parse(localStorage.getItem(AUDIT_STORAGE_KEY)??'[]')}catch{return []}})();const entry:AuditEntry={id:crypto.randomUUID(),action:'RESTORE',entity:'system',title:'กู้คืนข้อมูลภายในเครื่อง',detail:`กู้คืนจากไฟล์สำรองวันที่ ${formatThaiDateTime(pending.exportedAt)}`,actor:user?.name??'ผู้ใช้งาน',createdAt:new Date().toISOString()};localStorage.setItem(AUDIT_STORAGE_KEY,JSON.stringify([entry,...existing].slice(0,1000)));window.location.reload()}
+ if(isSupabaseConfigured)return <div className="page-stack"><section className="data-hero"><span><DatabaseBackup/></span><div><h2>สำรองข้อมูลออนไลน์</h2><p>ระบบกำลังใช้ฐานข้อมูลกลาง การสำรองและกู้คืนต้องทำจาก Supabase Dashboard โดยผู้ดูแลที่ได้รับสิทธิ์</p></div><span className="local-badge"><ShieldCheck/>โหมดฐานข้อมูลกลาง</span></section><section className="data-note"><b>ปิดการกู้คืนจากไฟล์ในเบราว์เซอร์</b><p>เพื่อป้องกันข้อมูลส่วนกลางถูกแทนที่ เครื่องมือนำเข้าไฟล์สำรองแบบ local จะไม่ทำงานเมื่อเชื่อม Supabase</p></section></div>
  return <div className="page-stack">
   <section className="data-hero"><span><DatabaseBackup/></span><div><h2>สำรองและกู้คืนข้อมูล</h2><p>ใช้สำหรับโหมดทดสอบภายในเครื่อง ก่อนเชื่อมต่อฐานข้อมูลกลาง</p></div><span className="local-badge"><ShieldCheck/>ข้อมูลอยู่ในเครื่องนี้</span></section>
   <div className="data-tool-grid"><section className="card data-tool-card"><span className="data-tool-icon backup"><HardDriveDownload/></span><div><h3>สำรองข้อมูลทั้งหมด</h3><p>ดาวน์โหลดสินค้า ประวัติสต็อก รายการต่ออายุ ผู้ใช้ การตั้งค่า และบันทึกกิจกรรมเป็นไฟล์ JSON</p><ul><li>ควรสำรองก่อนทดสอบฟังก์ชันสำคัญ</li><li>เก็บไฟล์ไว้ในโฟลเดอร์ที่เข้าถึงได้เฉพาะผู้ดูแล</li></ul></div><button className="btn primary" onClick={backup}><HardDriveDownload size={18}/>ดาวน์โหลดไฟล์สำรอง</button></section>

@@ -21,7 +21,8 @@
 1. `supabase/migrations/202609220001_initial_schema.sql`
 2. `supabase/migrations/202609230001_hardening.sql`
 3. `supabase/migrations/202609240001_online_readiness.sql`
-4. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
+4. `supabase/migrations/202609240002_online_contexts.sql`
+5. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
 
 จากนั้นสร้างผู้ใช้คนแรกใน Supabase Authentication แล้วเปลี่ยน profile ของบัญชีนั้นเป็น admin ด้วย SQL Editor ที่เชื่อถือได้:
 
@@ -59,4 +60,4 @@ where id = 'AUTH_USER_UUID';
 
 ## งานที่ยังไม่ควรถือว่าออนไลน์สมบูรณ์
 
-หน้าสต็อกและข้อมูลหลักมี service สำหรับ Supabase แล้ว แต่ข้อมูลต่ออายุ ใบขอซื้อ ตั้งค่า และ Audit Log ในหน้าจอยังใช้ local storage ระหว่างการทดสอบ ขั้นเชื่อมจริงต้องเปลี่ยน context เหล่านี้ให้เรียกตาราง/RPC ที่เตรียมไว้ และทำการทดสอบ end-to-end กับโปรเจกต์ Supabase ทดสอบก่อนเปิดให้พนักงานใช้
+หน้าสต็อก รายการต่ออายุ ใบขอซื้อ ตั้งค่า และ Audit Log รองรับ Supabase แล้ว แต่ยังต้องรัน migration และทดสอบ end-to-end กับโปรเจกต์ Supabase ทดสอบก่อนเปิดให้พนักงานใช้ หน้าจัดการผู้ใช้ยังไม่สร้างบัญชี Authentication จาก frontend เพราะต้องใช้คำเชิญจากระบบฝั่งเซิร์ฟเวอร์หรือ Supabase Dashboard เพื่อไม่ให้ service-role key รั่วไหล

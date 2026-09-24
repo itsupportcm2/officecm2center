@@ -1,12 +1,14 @@
 import { Edit3, Save, Search, ShieldCheck, UserPlus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal, Toast } from '../components/ui'
 import { useAudit } from '../store/AuditContext'
 import { DEPARTMENTS } from '../constants/departments'
 import type { Role } from '../types'
+import { isSupabaseConfigured } from '../lib/supabase'
+import { defaultSettings, settingsService, type AppSettings } from '../services/settingsService'
 
 interface AdminUser{id:string;name:string;code:string;department:string;role:Role;active:boolean}
-interface Settings{companyName:string;systemName:string;adminEmail:string;lowStock:boolean;outOfStock:boolean;renewals:boolean;weekly:boolean}
+type Settings=AppSettings
 
 const USER_KEY='cm-office-users-v1'
 const SETTINGS_KEY='cm-office-settings-v1'
@@ -16,7 +18,7 @@ const seedUsers:AdminUser[]=[
  {id:'u3',name:'สุภาวดี มีสุข',code:'EMP-027',department:'AC',role:'viewer',active:true},
  {id:'u4',name:'วีรพล ตั้งมั่น',code:'EMP-031',department:'EC',role:'staff',active:true},
 ]
-const defaults:Settings={companyName:'บริษัท เชียงใหม่โฟรเซ่นฟูดส์ จำกัด',systemName:'ระบบจัดการสำนักงาน เชียงใหม่โฟรเซ่นฟูดส์',adminEmail:'admin@example.co.th',lowStock:true,outOfStock:true,renewals:true,weekly:false}
+const defaults:Settings=defaultSettings
 const read=<T,>(key:string,fallback:T):T=>{try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback}catch{return fallback}}
 const roleLabel:Record<Role,string>={admin:'ผู้ดูแลระบบ',staff:'เจ้าหน้าที่',viewer:'ผู้ดูข้อมูล'}
 
@@ -47,8 +49,9 @@ export function UsersPage(){
 
 export function SettingsPage(){
  const {record}=useAudit()
- const [settings,setSettings]=useState<Settings>(()=>({...defaults,...read<Partial<Settings>>(SETTINGS_KEY,{})}));const [toast,setToast]=useState('')
- const save=()=>{if(!settings.companyName.trim()||!settings.systemName.trim()||!settings.adminEmail.trim()){setToast('กรุณากรอกข้อมูลบริษัทให้ครบ');return}localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));record({action:'SETTINGS',entity:'settings',title:'การตั้งค่าระบบ',detail:'บันทึกข้อมูลบริษัทและการแจ้งเตือน'});setToast('บันทึกการตั้งค่าแล้ว');setTimeout(()=>setToast(''),2500)}
+ const [settings,setSettings]=useState<Settings>(()=>isSupabaseConfigured?defaults:{...defaults,...read<Partial<Settings>>(SETTINGS_KEY,{})});const [toast,setToast]=useState('')
+ useEffect(()=>{if(isSupabaseConfigured)settingsService.load().then(setSettings).catch(error=>setToast(error instanceof Error?error.message:'โหลดการตั้งค่าไม่สำเร็จ'))},[])
+ const save=async()=>{if(!settings.companyName.trim()||!settings.systemName.trim()||!settings.adminEmail.trim()){setToast('กรุณากรอกข้อมูลบริษัทให้ครบ');return}try{if(isSupabaseConfigured)await settingsService.save(settings);else localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));record({action:'SETTINGS',entity:'settings',title:'การตั้งค่าระบบ',detail:'บันทึกข้อมูลบริษัทและการแจ้งเตือน'});setToast('บันทึกการตั้งค่าแล้ว')}catch(error){setToast(error instanceof Error?error.message:'บันทึกการตั้งค่าไม่สำเร็จ')}setTimeout(()=>setToast(''),2500)}
  return <div className="settings-grid">
   <section className="card"><div className="card-head"><div><h2>ข้อมูลบริษัท</h2><p>ข้อมูลที่แสดงในระบบและรายงาน</p></div></div><div className="form-stack settings-form"><label>ชื่อบริษัท<input value={settings.companyName} onChange={event=>setSettings({...settings,companyName:event.target.value})}/></label><label>ชื่อระบบ<input value={settings.systemName} onChange={event=>setSettings({...settings,systemName:event.target.value})}/></label><label>อีเมลผู้ดูแล<input value={settings.adminEmail} onChange={event=>setSettings({...settings,adminEmail:event.target.value})} type="email"/></label><button className="btn primary" onClick={save}><Save size={18}/>บันทึกการเปลี่ยนแปลง</button></div></section>
   <section className="card"><div className="card-head"><div><h2>การแจ้งเตือน</h2><p>เลือกเหตุการณ์ที่ต้องการรับการแจ้งเตือน</p></div></div><div className="toggle-list"><label><span><b>สินค้าใกล้หมด</b><small>แจ้งเมื่อจำนวนเท่ากับหรือต่ำกว่าสต็อกขั้นต่ำ</small></span><input type="checkbox" role="switch" checked={settings.lowStock} onChange={event=>setSettings({...settings,lowStock:event.target.checked})}/></label><label><span><b>สินค้าหมด</b><small>แจ้งทันทีเมื่อจำนวนคงเหลือเป็นศูนย์</small></span><input type="checkbox" role="switch" checked={settings.outOfStock} onChange={event=>setSettings({...settings,outOfStock:event.target.checked})}/></label><label><span><b>รายการต่ออายุ</b><small>แสดงป๊อปอัปเมื่อรายการเข้าเงื่อนไข</small></span><input type="checkbox" role="switch" checked={settings.renewals} onChange={event=>setSettings({...settings,renewals:event.target.checked})}/></label><label><span><b>สรุปรายสัปดาห์</b><small>เตรียมรายงานสรุปทุกเช้าวันจันทร์</small></span><input type="checkbox" role="switch" checked={settings.weekly} onChange={event=>setSettings({...settings,weekly:event.target.checked})}/></label><button className="btn secondary settings-test" onClick={()=>{setToast('ทดสอบการแจ้งเตือนสำเร็จ');setTimeout(()=>setToast(''),2500)}}>ทดสอบการแจ้งเตือน</button></div></section>

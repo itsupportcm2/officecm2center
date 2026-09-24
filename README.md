@@ -20,6 +20,7 @@ npm run dev
    - `supabase/migrations/202609220001_initial_schema.sql`
    - `supabase/migrations/202609230001_hardening.sql`
    - `supabase/migrations/202609240001_online_readiness.sql`
+   - `supabase/migrations/202609240002_online_contexts.sql`
 5. รัน `supabase/seed.sql` เพื่อเพิ่มข้อมูลตัวอย่าง
 6. สร้างผู้ใช้ใน Supabase Authentication และเพิ่มข้อมูลผู้ใช้ในตาราง `profiles`
 
