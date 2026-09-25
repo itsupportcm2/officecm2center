@@ -14,7 +14,6 @@ export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
   const [qty,setQty]=useState(1)
   const [locationId,setLocationId]=useState(item?.locationId??locations[0]?.id??'')
   const [totalPurchaseCost,setTotalPurchaseCost]=useState('')
-  const [employeeChoice,setEmployeeChoice]=useState('')
   const [employeeName,setEmployeeName]=useState('')
   const [department,setDepartment]=useState('')
   const [approvedBy,setApprovedBy]=useState('')
@@ -56,7 +55,6 @@ export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
       setError('')
       setQty(1)
       setTotalPurchaseCost('')
-      setEmployeeChoice('')
       setEmployeeName('')
       setDepartment('')
       setApprovedBy('')
@@ -83,8 +81,7 @@ export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
           <label>ตำแหน่งจัดเก็บ *<select value={locationId} onChange={event=>setLocationId(event.target.value)}>{locations.map(location=><option value={location.id} key={location.id}>{location.name}</option>)}</select></label>
           <label>จำนวน *<input type="number" min="0.01" step="0.01" max={mode==='OUT'?locationQuantity:undefined} value={qty} onChange={event=>setQty(Number(event.target.value))}/></label>
           {mode==='IN'?<label>ราคารวมที่ซื้อ (บาท) *<input type="number" min="0" step="0.01" value={totalPurchaseCost} onChange={event=>setTotalPurchaseCost(event.target.value)} placeholder="เช่น 1250.00"/></label>:<>
-            <label>ผู้รับสินค้า *<select value={employeeChoice} onChange={event=>{const value=event.target.value;setEmployeeChoice(value);setEmployeeName(value==='OTHER'?'':value)}}><option value="">เลือกพนักงาน</option>{EMPLOYEES.map(value=><option value={value} key={value}>{value}</option>)}<option value="OTHER">บุคคลอื่น</option></select></label>
-            {employeeChoice==='OTHER'&&<label>ระบุชื่อผู้รับ *<input value={employeeName} onChange={event=>setEmployeeName(event.target.value)} placeholder="ชื่อ–นามสกุล"/></label>}
+            <label>ผู้รับสินค้า *<input value={employeeName} onChange={event=>setEmployeeName(event.target.value)} placeholder="กรอกชื่อ–นามสกุลผู้รับ"/></label>
             <label>แผนก *<select value={department} onChange={event=>setDepartment(event.target.value)}><option value="">เลือกแผนก</option>{DEPARTMENTS.map(value=><option value={value} key={value}>{value}</option>)}</select></label>
             <label>ผู้อนุมัติ *<select value={approvedBy} onChange={event=>setApprovedBy(event.target.value)}><option value="">เลือกผู้อนุมัติ</option>{EMPLOYEES.map(value=><option value={value} key={value}>{value}</option>)}</select></label>
           </>}
