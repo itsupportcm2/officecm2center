@@ -22,8 +22,12 @@ npm run dev
    - `supabase/migrations/202609240001_online_readiness.sql`
    - `supabase/migrations/202609240002_online_contexts.sql`
    - `supabase/migrations/202609240003_fix_audit_trigger.sql`
-5. รัน `supabase/seed.sql` เพื่อเพิ่มข้อมูลตัวอย่าง
-6. สร้างผู้ใช้ใน Supabase Authentication และเพิ่มข้อมูลผู้ใช้ในตาราง `profiles`
+   - `supabase/migrations/202609250001_user_management.sql`
+5. Deploy Edge Function `supabase/functions/manage-users` สำหรับหน้าจัดการผู้ใช้
+6. รัน `supabase/seed.sql` เพื่อเพิ่มข้อมูลตัวอย่าง
+7. สร้างผู้ใช้ Admin คนแรกใน Supabase Authentication และกำหนด role เป็น `admin` ในตาราง `profiles`
+
+Edge Function ใช้ `SUPABASE_SERVICE_ROLE_KEY` ที่ Supabase จัดเตรียมไว้ฝั่งเซิร์ฟเวอร์ ห้ามคัดลอกคีย์นี้มาใส่ `.env.local` หรือโค้ด frontend
 
 สคีมามี RLS, ดัชนี, foreign keys, constraints และฟังก์ชัน `stock_in` / `stock_out` ที่ล็อกแถวและบันทึกธุรกรรมก่อนอัปเดตยอด จึงป้องกันยอดติดลบและความไม่สอดคล้องของข้อมูล
 

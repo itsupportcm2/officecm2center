@@ -10,6 +10,7 @@
 - จำกัดชื่อแผนกตามรายการที่กำหนดไว้ในหน้าจอ
 - ปิดช่องทางที่ผู้ใช้ทั่วไปสามารถแก้ role ของตัวเอง
 - ผู้ใช้ใหม่จะถูกสร้าง profile เป็น `viewer` โดยอัตโนมัติ
+- หน้า Admin จัดการบัญชี Authentication จริงผ่าน Edge Function และระงับผู้ใช้ได้
 - คุมสถานะใบขอซื้อ: staff สร้าง/แก้ draft และส่งอนุมัติได้ แต่สั่งซื้อหรือยกเลิกต้องเป็น admin
 - การต่ออายุพร้อมประวัติทำแบบ atomic ผ่าน RPC
 - ฟังก์ชันภายในถูกถอนสิทธิ์เรียกตรง และเปิดเฉพาะ RPC ที่จำเป็น
@@ -23,7 +24,9 @@
 3. `supabase/migrations/202609240001_online_readiness.sql`
 4. `supabase/migrations/202609240002_online_contexts.sql`
 5. `supabase/migrations/202609240003_fix_audit_trigger.sql`
-6. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
+6. `supabase/migrations/202609250001_user_management.sql`
+7. Deploy `supabase/functions/manage-users`
+8. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
 
 จากนั้นสร้างผู้ใช้คนแรกใน Supabase Authentication แล้วเปลี่ยน profile ของบัญชีนั้นเป็น admin ด้วย SQL Editor ที่เชื่อถือได้:
 
@@ -61,4 +64,4 @@ where id = 'AUTH_USER_UUID';
 
 ## งานที่ยังไม่ควรถือว่าออนไลน์สมบูรณ์
 
-หน้าสต็อก รายการต่ออายุ ใบขอซื้อ ตั้งค่า และ Audit Log รองรับ Supabase แล้ว แต่ยังต้องรัน migration และทดสอบ end-to-end กับโปรเจกต์ Supabase ทดสอบก่อนเปิดให้พนักงานใช้ หน้าจัดการผู้ใช้ยังไม่สร้างบัญชี Authentication จาก frontend เพราะต้องใช้คำเชิญจากระบบฝั่งเซิร์ฟเวอร์หรือ Supabase Dashboard เพื่อไม่ให้ service-role key รั่วไหล
+หน้าสต็อก รายการต่ออายุ ใบขอซื้อ ตั้งค่า Audit Log และการจัดการผู้ใช้รองรับ Supabase แล้ว แต่ยังต้องรัน migration, deploy Edge Function และทดสอบ end-to-end ด้วยบัญชี admin, staff และ viewer ในโปรเจกต์ทดสอบก่อนเปิดให้พนักงานใช้

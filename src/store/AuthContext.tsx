@@ -17,8 +17,9 @@ const readDemoUser=():AuthUser|null=>{const saved=sessionStorage.getItem(DEMO_KE
 
 async function profileFromSession(session:Session|null):Promise<AuthUser|null>{
  if(!session||!supabase)return null
- const {data}=await supabase.from('profiles').select('full_name,role').eq('id',session.user.id).maybeSingle()
- return {id:session.user.id,name:data?.full_name??session.user.email??'ผู้ใช้งาน',email:session.user.email??'',role:(data?.role??'viewer') as Role}
+ const {data}=await supabase.from('profiles').select('full_name,role,is_active').eq('id',session.user.id).maybeSingle()
+ if(!data||data.is_active===false)return null
+ return {id:session.user.id,name:data.full_name??session.user.email??'ผู้ใช้งาน',email:session.user.email??'',role:(data.role??'viewer') as Role}
 }
 
 export function AuthProvider({children}:{children:ReactNode}){
@@ -26,7 +27,7 @@ export function AuthProvider({children}:{children:ReactNode}){
  const [loading,setLoading]=useState(isSupabaseConfigured)
  useEffect(()=>{if(!supabase){setLoading(false);return}supabase.auth.getSession().then(async({data})=>{setUser(await profileFromSession(data.session));setLoading(false)});const {data}=supabase.auth.onAuthStateChange(async(_event,session)=>{setUser(await profileFromSession(session));setLoading(false)});return()=>data.subscription.unsubscribe()},[])
  const value=useMemo<AuthStore>(()=>({user,loading,
-  signIn:async(email,password)=>{if(!supabase){const normalized=email.trim().toLowerCase();const role:Role=normalized.startsWith('viewer')?'viewer':normalized.startsWith('staff')?'staff':'admin';const demo={...demoProfiles[role],email:normalized||demoProfiles[role].email};sessionStorage.setItem(DEMO_KEY,JSON.stringify(demo));setUser(demo);return}const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;setUser(await profileFromSession(data.session))},
+  signIn:async(email,password)=>{if(!supabase){const normalized=email.trim().toLowerCase();const role:Role=normalized.startsWith('viewer')?'viewer':normalized.startsWith('staff')?'staff':'admin';const demo={...demoProfiles[role],email:normalized||demoProfiles[role].email};sessionStorage.setItem(DEMO_KEY,JSON.stringify(demo));setUser(demo);return}const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;const profile=await profileFromSession(data.session);if(!profile){await supabase.auth.signOut();throw new Error('บัญชีนี้ถูกระงับหรือยังไม่มีข้อมูลผู้ใช้งาน')}setUser(profile)},
   signOut:async()=>{if(supabase)await supabase.auth.signOut();sessionStorage.setItem(DEMO_KEY,'signed-out');setUser(null)},
  }),[user,loading])
  return <Context.Provider value={value}>{children}</Context.Provider>
