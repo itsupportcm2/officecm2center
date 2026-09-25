@@ -4,19 +4,20 @@
 
 begin;
 
--- ลบตารางลูกก่อน เพื่อไม่ให้ชน foreign key
-delete from public.purchase_request_lines;
-delete from public.purchase_requests;
-delete from public.renewal_history;
-delete from public.renewals;
-delete from public.stock_transactions;
-delete from public.stock_balances;
-delete from public.items;
-delete from public.categories;
-delete from public.locations;
-
--- ลบเป็นลำดับสุดท้าย เพราะ trigger ด้านบนอาจสร้าง audit ระหว่างการล้างข้อมูล
-delete from public.audit_logs;
+-- ระบุตารางที่ต้องล้างทั้งหมดในคำสั่งเดียวเพื่อรักษา foreign key
+-- TRUNCATE ไม่เรียก DELETE trigger จึงใช้สำหรับงานดูแลระบบครั้งนี้เท่านั้น
+truncate table
+  public.purchase_request_lines,
+  public.purchase_requests,
+  public.renewal_history,
+  public.renewals,
+  public.stock_transactions,
+  public.stock_balances,
+  public.items,
+  public.categories,
+  public.locations,
+  public.audit_logs
+restart identity;
 
 commit;
 
