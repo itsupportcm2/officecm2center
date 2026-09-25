@@ -113,3 +113,4 @@ html,body,#root{max-width:100%;overflow-x:hidden}
  .department-report-list{grid-template-columns:minmax(0,1fr)}.issue-detail-card{width:100%}.issue-report-table{min-width:720px}
  .page-actions{align-items:stretch}.admin-search{width:100%}.settings-grid{grid-template-columns:minmax(0,1fr)}
 }
+.renewal-actions .renewal-button{width:auto;display:inline-flex;grid-auto-flow:column;gap:6px;padding:0 10px;background:#e7f0ff;color:#175cd3;font-weight:700;font-size:.7rem}

@@ -25,6 +25,7 @@ npm run dev
    - `supabase/migrations/202609250001_user_management.sql`
    - `supabase/migrations/202609250002_staff_create_items.sql`
    - `supabase/migrations/202609250003_staff_manage_items.sql`
+   - `supabase/migrations/202609250004_renewal_form.sql`
 5. Deploy Edge Function `supabase/functions/manage-users` สำหรับหน้าจัดการผู้ใช้
 6. รัน `supabase/seed.sql` เพื่อเพิ่มข้อมูลตัวอย่าง
 7. สร้างผู้ใช้ Admin คนแรกใน Supabase Authentication และกำหนด role เป็น `admin` ในตาราง `profiles`

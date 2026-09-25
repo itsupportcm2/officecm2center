@@ -29,6 +29,7 @@ export interface RenewalHistoryEntry {
   id:string; renewalId:string; itemName:string; previousExpiryDate:string; newExpiryDate:string;
   cost:number; documentUrl?:string; renewedBy:string; renewedAt:string;
 }
+export interface RenewalActionInput { newExpiryDate:string; cost:number; documentUrl?:string; note?:string }
 export interface PurchaseRequestLine { itemId:string; sku:string; name:string; quantity:number; unit:string }
 export interface PurchaseRequest {
   id:string; requestNo:string; status:'DRAFT'|'SUBMITTED'|'ORDERED'|'CANCELLED'; lines:PurchaseRequestLine[];

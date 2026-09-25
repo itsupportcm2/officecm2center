@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { RenewalHistoryEntry, RenewalItem } from '../types'
+import type { RenewalActionInput, RenewalHistoryEntry, RenewalItem } from '../types'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { renewalService } from '../services/renewalService'
 import { useAudit } from './AuditContext'
@@ -20,7 +20,7 @@ export const daysUntil=(date:string)=>{const today=new Date();today.setHours(0,0
 interface RenewalStore {
  items:RenewalItem[]; dueItems:RenewalItem[]; history:RenewalHistoryEntry[];
  addItem:(item:Omit<RenewalItem,'id'|'updatedAt'>)=>Promise<void>;
- updateItem:(item:RenewalItem)=>Promise<void>; removeItem:(id:string)=>Promise<void>; renewItem:(id:string)=>Promise<void>;
+ updateItem:(item:RenewalItem)=>Promise<void>; removeItem:(id:string)=>Promise<void>; renewItem:(id:string,input:RenewalActionInput)=>Promise<void>;
 }
 const RenewalContext=createContext<RenewalStore|null>(null)
 
@@ -37,7 +37,7 @@ export function RenewalProvider({children}:{children:ReactNode}){
   addItem:async item=>{if(isSupabaseConfigured){await renewalService.create(item);await reload();record({action:'CREATE',entity:'renewal',title:item.name,detail:`เพิ่มรายการต่ออายุ กำหนด ${item.expiryDate}`});return}const id=crypto.randomUUID();setItems(current=>[{...item,id,updatedAt:new Date().toISOString()},...current]);record({action:'CREATE',entity:'renewal',entityId:id,title:item.name,detail:`เพิ่มรายการต่ออายุ กำหนด ${item.expiryDate}`})},
   updateItem:async item=>{if(isSupabaseConfigured){await renewalService.update(item);await reload();record({action:'UPDATE',entity:'renewal',entityId:item.id,title:item.name,detail:`แก้ไขรายการต่ออายุ กำหนด ${item.expiryDate}`});return}setItems(current=>current.map(row=>row.id===item.id?{...item,updatedAt:new Date().toISOString()}:row));record({action:'UPDATE',entity:'renewal',entityId:item.id,title:item.name,detail:`แก้ไขรายการต่ออายุ กำหนด ${item.expiryDate}`})},
   removeItem:async id=>{const item=items.find(row=>row.id===id);if(isSupabaseConfigured){await renewalService.remove(id);await reload();record({action:'DELETE',entity:'renewal',entityId:id,title:item?.name??id,detail:'ลบรายการต่ออายุ'});return}setItems(current=>current.filter(row=>row.id!==id));record({action:'DELETE',entity:'renewal',entityId:id,title:item?.name??id,detail:'ลบรายการต่ออายุ'})},
-  renewItem:async id=>{const item=items.find(row=>row.id===id);if(!item)return;if(isSupabaseConfigured){await renewalService.renew(item);await reload();record({action:'RENEW',entity:'renewal',entityId:id,title:item.name,detail:'บันทึกการต่ออายุ'});return}const next=new Date(`${item.expiryDate}T12:00:00`);if(item.cycleUnit==='month')next.setMonth(next.getMonth()+item.cycleCount);else next.setFullYear(next.getFullYear()+item.cycleCount);const expiryDate=next.toISOString().slice(0,10);const now=new Date().toISOString();const entry:RenewalHistoryEntry={id:crypto.randomUUID(),renewalId:id,itemName:item.name,previousExpiryDate:item.expiryDate,newExpiryDate:expiryDate,cost:item.cost??0,documentUrl:item.documentUrl,renewedBy:user?.name??'ผู้ใช้งาน',renewedAt:now};setHistory(current=>[entry,...current]);setItems(current=>current.map(row=>row.id===id?{...row,expiryDate,lastRenewedAt:now,updatedAt:now}:row));record({action:'RENEW',entity:'renewal',entityId:id,title:item.name,detail:`ต่ออายุจาก ${item.expiryDate} เป็น ${expiryDate}`})},
+  renewItem:async(id,input)=>{const item=items.find(row=>row.id===id);if(!item)return;if(isSupabaseConfigured){await renewalService.renew(item,input);await reload();record({action:'RENEW',entity:'renewal',entityId:id,title:item.name,detail:`ต่ออายุจาก ${item.expiryDate} เป็น ${input.newExpiryDate}`});return}const now=new Date().toISOString();const entry:RenewalHistoryEntry={id:crypto.randomUUID(),renewalId:id,itemName:item.name,previousExpiryDate:item.expiryDate,newExpiryDate:input.newExpiryDate,cost:input.cost,documentUrl:input.documentUrl,renewedBy:user?.name??'ผู้ใช้งาน',renewedAt:now};setHistory(current=>[entry,...current]);setItems(current=>current.map(row=>row.id===id?{...row,expiryDate:input.newExpiryDate,lastRenewedAt:now,updatedAt:now}:row));record({action:'RENEW',entity:'renewal',entityId:id,title:item.name,detail:`ต่ออายุจาก ${item.expiryDate} เป็น ${input.newExpiryDate}`})},
  }),[items,dueItems,history,record,user])
  return <RenewalContext.Provider value={value}>{children}</RenewalContext.Provider>
 }

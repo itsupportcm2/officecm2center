@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import type { RenewalHistoryEntry, RenewalItem } from '../types'
+import type { RenewalActionInput, RenewalHistoryEntry, RenewalItem } from '../types'
 
 const toItem=(row:any):RenewalItem=>({
  id:String(row.id),name:String(row.name),category:String(row.category),expiryDate:String(row.expiry_date),remindDays:Number(row.remind_days),
@@ -24,5 +24,5 @@ export const renewalService={
  async create(item:Omit<RenewalItem,'id'|'updatedAt'>){if(!supabase)throw new Error('Supabase is not configured');const {error}=await supabase.from('renewals').insert({name:item.name,category:item.category,expiry_date:item.expiryDate,remind_days:item.remindDays,cycle_count:item.cycleCount,cycle_unit:item.cycleUnit,owner:item.owner,estimated_cost:item.cost??0,document_url:item.documentUrl||null,note:item.note,is_active:item.isActive});if(error)throw error},
  async update(item:RenewalItem){if(!supabase)throw new Error('Supabase is not configured');const {error}=await supabase.from('renewals').update({name:item.name,category:item.category,expiry_date:item.expiryDate,remind_days:item.remindDays,cycle_count:item.cycleCount,cycle_unit:item.cycleUnit,owner:item.owner,estimated_cost:item.cost??0,document_url:item.documentUrl||null,note:item.note,is_active:item.isActive}).eq('id',item.id);if(error)throw error},
  async remove(id:string){if(!supabase)throw new Error('Supabase is not configured');const {error}=await supabase.from('renewals').delete().eq('id',id);if(error)throw error},
- async renew(item:RenewalItem){if(!supabase)throw new Error('Supabase is not configured');const {error}=await supabase.rpc('renew_renewal',{p_renewal_id:item.id,p_cost:item.cost??0,p_evidence_url:item.documentUrl??null,p_note:item.note||null});if(error)throw error},
+ async renew(item:RenewalItem,input:RenewalActionInput){if(!supabase)throw new Error('Supabase is not configured');const {error}=await supabase.rpc('renew_renewal_v2',{p_renewal_id:item.id,p_new_expiry_date:input.newExpiryDate,p_cost:input.cost,p_evidence_url:input.documentUrl||null,p_note:input.note||null});if(error)throw error},
 }

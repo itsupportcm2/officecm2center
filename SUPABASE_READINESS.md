@@ -27,8 +27,9 @@
 6. `supabase/migrations/202609250001_user_management.sql`
 7. `supabase/migrations/202609250002_staff_create_items.sql`
 8. `supabase/migrations/202609250003_staff_manage_items.sql`
-9. Deploy `supabase/functions/manage-users`
-10. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
+9. `supabase/migrations/202609250004_renewal_form.sql`
+10. Deploy `supabase/functions/manage-users`
+11. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
 
 จากนั้นสร้างผู้ใช้คนแรกใน Supabase Authentication แล้วเปลี่ยน profile ของบัญชีนั้นเป็น admin ด้วย SQL Editor ที่เชื่อถือได้:
 
