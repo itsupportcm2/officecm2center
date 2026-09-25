@@ -115,4 +115,22 @@ html,body,#root{max-width:100%;overflow-x:hidden}
  .department-report-list{grid-template-columns:minmax(0,1fr)}.issue-detail-card{width:100%}.issue-report-table{min-width:720px}
  .page-actions{align-items:stretch}.admin-search{width:100%}.settings-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Guided empty states for stock workflows */
+.stock-empty-notice{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px dashed #b8c7dc;background:#f8fbff;border-radius:10px;padding:13px 14px}
+.stock-empty-notice>div{display:flex;align-items:center;gap:10px;color:#31547d}
+.stock-empty-notice svg{flex:0 0 auto}.stock-empty-notice b,.stock-empty-notice small{display:block}
+.stock-empty-notice b{font-size:.8rem}.stock-empty-notice small{font-size:.7rem;color:#667085;margin-top:2px}
+.stock-empty-notice .btn{white-space:nowrap;padding:7px 11px;font-size:.72rem}
+.field-help{display:block;margin-top:5px;color:#667085;font-size:.68rem;font-weight:400}
+.stock-preview-empty{min-height:270px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;text-align:center;color:#a8b8d0}
+.stock-preview-empty>svg{width:42px;height:42px;stroke-width:1.5;color:#7690b4}
+.stock-preview-empty b,.stock-preview-empty small{display:block}.stock-preview-empty b{font-size:.9rem;color:#e4ebf4}
+.stock-preview-empty small{font-size:.7rem;margin-top:4px}
+.health-empty{min-height:155px;display:flex;align-items:center;justify-content:center;gap:12px;text-align:left;color:#71839c}
+.health-empty>svg{width:36px;height:36px;stroke-width:1.5}.health-empty b,.health-empty span{display:block}
+.health-empty b{color:#314867;font-size:.85rem}.health-empty span{font-size:.68rem;margin-top:3px}
+.essential-activity-empty{min-height:258px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#8797ad;font-size:.73rem}
+.essential-activity-empty svg{width:29px;height:29px;stroke-width:1.5}
+@media(max-width:620px){.stock-empty-notice{align-items:flex-start;flex-direction:column}.stock-empty-notice .btn{width:100%}}
 .renewal-actions .renewal-button{width:auto;display:inline-flex;grid-auto-flow:column;gap:6px;padding:0 10px;background:#e7f0ff;color:#175cd3;font-weight:700;font-size:.7rem}

@@ -7,7 +7,8 @@ import { bangkokDateKey } from '../utils/date'
 const csvCell=(value:unknown)=>`"${String(value??'').replaceAll('"','""')}"`
 const defaultRange=()=>{const end=new Date();const start=new Date();start.setDate(1);return {from:bangkokDateKey(start),to:bangkokDateKey(end)}}
 const formatDateTime=(value:string)=>new Intl.DateTimeFormat('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value))
-const money=(value:number)=>new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB',minimumFractionDigits:2}).format(value)
+const formatDate=(value:string)=>new Intl.DateTimeFormat('th-TH',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00+07:00`))
+const money=(value:number)=>`${new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}).format(value)} บาท`
 type RangePreset='today'|'month'|'quarter'
 
 export function ReportsPage(){
@@ -74,7 +75,7 @@ export function ReportsPage(){
         <div className="department-report-list">{departmentRows.length?departmentRows.map(row=><div key={row.name}><span className="department-code">{row.name}</span><div><b>{money(row.expense)}</b><small>{row.transactions} รายการ · {row.items} ชนิด</small><i><span style={{width:`${row.expense/maxDepartment*100}%`}}/></i></div></div>):<p className="empty">ไม่พบข้อมูลการเบิกตามตัวกรองที่เลือก</p>}</div>
       </article>
 
-      <article className="card issue-detail-card"><div className="card-head"><div><h2>รายละเอียดการเบิก</h2><p>พบ {issues.length} รายการ ในช่วง {dateFrom} ถึง {dateTo}</p></div></div><div className="table-wrap"><table className="issue-report-table"><thead><tr><th>วันที่และเวลา</th><th>สินค้า</th><th>จำนวน</th><th>แผนก</th><th>ผู้รับสินค้า</th><th>ผู้อนุมัติ</th><th>ค่าใช้จ่าย</th><th>ผู้บันทึก</th></tr></thead><tbody>{issues.length?issues.map(transaction=>{const item=itemById.get(transaction.itemId);return <tr key={transaction.id}><td>{formatDateTime(transaction.createdAt)}</td><td><b>{item?.name??'-'}</b><small>{item?.sku??'-'}</small></td><td><strong>{transaction.quantity} {item?.unit}</strong></td><td><span className="department-badge">{transaction.department??'ไม่ระบุ'}</span></td><td>{transaction.employeeName??'ไม่ระบุ'}</td><td>{transaction.approvedBy??'ไม่ระบุ'}</td><td><strong>{transaction.totalCost==null?'ยังไม่ระบุ':money(transaction.totalCost)}</strong></td><td>{transaction.user}</td></tr>}):<tr><td className="empty" colSpan={8}>ไม่พบรายการเบิกตามตัวกรองที่เลือก</td></tr>}</tbody></table></div></article>
+      <article className="card issue-detail-card"><div className="card-head"><div><h2>รายละเอียดการเบิก</h2><p>พบ {issues.length} รายการ ในช่วง {formatDate(dateFrom)} ถึง {formatDate(dateTo)}</p></div></div><div className="table-wrap"><table className="issue-report-table"><thead><tr><th>วันที่และเวลา</th><th>สินค้า</th><th>จำนวน</th><th>แผนก</th><th>ผู้รับสินค้า</th><th>ผู้อนุมัติ</th><th>ค่าใช้จ่าย</th><th>ผู้บันทึก</th></tr></thead><tbody>{issues.length?issues.map(transaction=>{const item=itemById.get(transaction.itemId);return <tr key={transaction.id}><td>{formatDateTime(transaction.createdAt)}</td><td><b>{item?.name??'-'}</b><small>{item?.sku??'-'}</small></td><td><strong>{transaction.quantity} {item?.unit}</strong></td><td><span className="department-badge">{transaction.department??'ไม่ระบุ'}</span></td><td>{transaction.employeeName??'ไม่ระบุ'}</td><td>{transaction.approvedBy??'ไม่ระบุ'}</td><td><strong>{transaction.totalCost==null?'ยังไม่ระบุ':money(transaction.totalCost)}</strong></td><td>{transaction.user}</td></tr>}):<tr><td className="empty" colSpan={8}>ไม่พบรายการเบิกตามตัวกรองที่เลือก</td></tr>}</tbody></table></div></article>
     </section>
   </div>
 }
