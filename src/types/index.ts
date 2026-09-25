@@ -6,17 +6,19 @@ export interface Location { id: string; name: string; description: string }
 export interface Item {
   id: string; sku: string; name: string; description: string; categoryId: string; unit: string;
   minStock: number; barcode: string; imageUrl?: string; isActive: boolean; locationId: string;
-  quantity: number; createdAt: string;
+  quantity: number; averageUnitCost?: number; createdAt: string;
 }
 export interface StockTransaction {
   id: string; itemId: string; locationId: string; type: TransactionType; quantity: number;
   before: number; after: number; referenceNo?: string; employeeName?: string; department?: string; approvedBy?: string;
   purpose?: string; note?: string; destinationLocationId?:string; user: string; createdAt: string;
+  unitCost?: number; totalCost?: number;
 }
 export interface StockAdjustmentInput { itemId:string; locationId:string; countedQuantity:number; referenceNo:string; reason:string; note?:string }
 export interface StockTransferInput { itemId:string; sourceLocationId:string; destinationLocationId:string; quantity:number; referenceNo:string; reason:string; note?:string }
 export interface StockChangeInput {
   itemId: string; locationId: string; quantity: number; referenceNo?: string; supplier?: string;
+  totalPurchaseCost?: number;
   employeeName?: string; department?: string; approvedBy?: string; purpose?: string; note?: string;
 }
 

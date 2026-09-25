@@ -8,7 +8,7 @@ const toItem = (row: Record<string, unknown>): Item => ({
   id: String(row.id), sku: String(row.sku), name: String(row.name), description: String(row.description ?? ''),
   categoryId: String(row.category_id), unit: String(row.unit), minStock: Number(row.min_stock), barcode: String(row.barcode ?? ''),
   imageUrl: row.image_url ? String(row.image_url) : undefined, isActive: Boolean(row.is_active),
-  locationId: row.location_id ? String(row.location_id) : '', quantity: Number(row.quantity), createdAt: String(row.created_at),
+  locationId: row.location_id ? String(row.location_id) : '', quantity: Number(row.quantity), averageUnitCost: Number(row.average_unit_cost ?? 0), createdAt: String(row.created_at),
 })
 
 export const inventoryService = {

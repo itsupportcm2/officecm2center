@@ -4,12 +4,10 @@ import type { StockAdjustmentInput, StockChangeInput, StockTransaction, StockTra
 export const stockService = {
   async apply(type: Extract<TransactionType, 'IN' | 'OUT'>, input: StockChangeInput): Promise<void> {
     if (!isSupabaseConfigured || !supabase) return
-    const { error } = await supabase.rpc(type === 'IN' ? 'stock_in_v2' : 'stock_out_v2', {
-      p_item_id: input.itemId, p_location_id: input.locationId, p_quantity: input.quantity,
-      p_reference_no: input.referenceNo ?? null, p_employee_name: input.employeeName ?? null,
-      p_department: input.department ?? null, p_purpose: input.purpose ?? null, p_note: input.note ?? null,
-      p_approved_by: input.approvedBy ?? null, p_supplier: input.supplier ?? null,
-    })
+    const args = type === 'IN'
+      ? { p_item_id:input.itemId, p_location_id:input.locationId, p_quantity:input.quantity, p_total_cost:input.totalPurchaseCost ?? 0, p_note:input.note ?? null }
+      : { p_item_id:input.itemId, p_location_id:input.locationId, p_quantity:input.quantity, p_employee_name:input.employeeName ?? '', p_department:input.department ?? '', p_approved_by:input.approvedBy ?? '', p_note:input.note ?? null }
+    const { error } = await supabase.rpc(type === 'IN' ? 'stock_in_with_cost' : 'stock_out_with_cost', args)
     if (error) throw error
   },
   async adjust(input:StockAdjustmentInput):Promise<void>{
@@ -31,6 +29,7 @@ export const stockService = {
       id:String(row.id),itemId:String(row.item_id),locationId:String(row.location_id),destinationLocationId:row.destination_location_id?String(row.destination_location_id):undefined,type:row.transaction_type as TransactionType,
       quantity:Number(row.quantity),before:Number(row.quantity_before),after:Number(row.quantity_after),referenceNo:row.reference_no??undefined,
       employeeName:row.employee_name??undefined,department:row.department??undefined,purpose:row.purpose??undefined,note:row.note??undefined,approvedBy:row.approved_by??undefined,
+      unitCost:row.unit_cost==null?undefined:Number(row.unit_cost),totalCost:row.total_cost==null?undefined:Number(row.total_cost),
       user:names.get(String(row.created_by))??'ผู้ใช้งาน',createdAt:String(row.created_at),
     }))
   },
