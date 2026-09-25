@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowDownToLine, ArrowRight, ArrowRightLeft, ArrowUpFromLine, BarChart3, Bell, Boxes, CalendarClock, ChevronDown, ChevronUp, ClipboardList, DatabaseBackup, FileClock, FileText, Grid2X2, History, LogOut, Menu, PackageSearch, Search, Settings, SlidersHorizontal, Users, X } from 'lucide-react'
 import { daysUntil, useRenewals } from '../store/RenewalContext'
 import { useAuth } from '../store/AuthContext'
 import { bangkokDateKey, formatThaiDate } from '../utils/date'
+import { defaultSettings, settingsService } from '../services/settingsService'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 const mainNav=[['/',Grid2X2,'ภาพรวม'],['/inventory',Boxes,'สินค้า']] as const
 const subNav=[['/stock-in',ArrowDownToLine,'รับสินค้าเข้า'],['/stock-out',ArrowUpFromLine,'เบิกสินค้าออก'],['/stock-adjust',SlidersHorizontal,'ปรับยอดสต็อก'],['/stock-transfer',ArrowRightLeft,'โอนย้ายสต็อก'],['/history',History,'ประวัติ']] as const
@@ -14,9 +16,12 @@ titles['/']='ระบบจัดการสำนักงาน CM'
 const renewalDate=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T00:00:00`))
 
 export function AppLayout(){
- const {dueItems}=useRenewals();const {user,signOut}=useAuth();const todayKey=bangkokDateKey();const alertKey=`renewal-alert-dismissed-${todayKey}`;const renewalAlertsEnabled=(()=>{try{return JSON.parse(localStorage.getItem('cm-office-settings-v1')??'{}').renewals!==false}catch{return true}})()
- const [open,setOpen]=useState(false);const [stockOpen,setStockOpen]=useState(true);const [query,setQuery]=useState('');const [showRenewalAlert,setShowRenewalAlert]=useState(()=>renewalAlertsEnabled&&dueItems.length>0&&sessionStorage.getItem(alertKey)!=='yes'&&Date.now()>=Number(localStorage.getItem('renewal-alert-snoozed-until')??0));const loc=useLocation();const navigate=useNavigate()
- const closeRenewalAlert=()=>{sessionStorage.setItem(alertKey,'yes');setShowRenewalAlert(false)}
+ const {dueItems}=useRenewals();const {user,signOut}=useAuth();const todayKey=bangkokDateKey();const alertKey=`renewal-alert-dismissed-${todayKey}`;const alertSignature=dueItems.map(item=>`${item.id}:${item.expiryDate}`).join('|')
+ const [renewalAlertsEnabled,setRenewalAlertsEnabled]=useState(()=>{try{return JSON.parse(localStorage.getItem('cm-office-settings-v1')??'{}').renewals!==false}catch{return defaultSettings.renewals}})
+ const [open,setOpen]=useState(false);const [stockOpen,setStockOpen]=useState(true);const [query,setQuery]=useState('');const [showRenewalAlert,setShowRenewalAlert]=useState(false);const loc=useLocation();const navigate=useNavigate()
+ useEffect(()=>{if(!isSupabaseConfigured)return;void settingsService.load().then(settings=>setRenewalAlertsEnabled(settings.renewals)).catch(console.error)},[])
+ useEffect(()=>{if(!renewalAlertsEnabled||!alertSignature){setShowRenewalAlert(false);return}const dismissed=sessionStorage.getItem(alertKey);const snoozedUntil=Number(localStorage.getItem('renewal-alert-snoozed-until')??0);if(dismissed!==alertSignature&&Date.now()>=snoozedUntil)setShowRenewalAlert(true)},[alertKey,alertSignature,renewalAlertsEnabled])
+ const closeRenewalAlert=()=>{sessionStorage.setItem(alertKey,alertSignature);setShowRenewalAlert(false)}
  const snoozeRenewalAlert=()=>{localStorage.setItem('renewal-alert-snoozed-until',String(Date.now()+4*60*60*1000));setShowRenewalAlert(false)}
  const title=loc.pathname.startsWith('/inventory/')?'รายละเอียดสินค้า':titles[loc.pathname]??'ระบบสต็อก';const dashboard=loc.pathname==='/'
  return <div className={`app-shell ops-shell ${dashboard?'dashboard-page':''}`}>
