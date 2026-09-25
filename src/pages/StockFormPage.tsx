@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Confirm, Toast } from '../components/ui'
 import { DEPARTMENTS } from '../constants/departments'
-import { EMPLOYEES } from '../constants/employees'
+import { approverService, type Approver } from '../services/approverService'
 import { useStock } from '../store/StockContext'
 
 export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
@@ -17,6 +17,7 @@ export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
   const [employeeName,setEmployeeName]=useState('')
   const [department,setDepartment]=useState('')
   const [approvedBy,setApprovedBy]=useState('')
+  const [approvers,setApprovers]=useState<Approver[]>([])
   const [note,setNote]=useState('')
   const [confirm,setConfirm]=useState(false)
   const [saving,setSaving]=useState(false)
@@ -25,6 +26,7 @@ export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
 
   useEffect(()=>{if(!itemId&&items[0])setItemId(items[0].id)},[itemId,items])
   useEffect(()=>{if(item)setLocationId(item.locationId)},[item])
+  useEffect(()=>{void approverService.list().then(setApprovers).catch(problem=>setError(problem instanceof Error?problem.message:'โหลดรายชื่อผู้อนุมัติไม่สำเร็จ'))},[])
 
   const purchaseCost=Number(totalPurchaseCost)
   const locationQuantity=getLocationQuantity(itemId,locationId)
@@ -83,7 +85,7 @@ export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
           {mode==='IN'?<label>ราคารวมที่ซื้อ (บาท) *<input type="number" min="0" step="0.01" value={totalPurchaseCost} onChange={event=>setTotalPurchaseCost(event.target.value)} placeholder="เช่น 1250.00"/></label>:<>
             <label>ผู้รับสินค้า *<input value={employeeName} onChange={event=>setEmployeeName(event.target.value)} placeholder="กรอกชื่อ–นามสกุลผู้รับ"/></label>
             <label>แผนก *<select value={department} onChange={event=>setDepartment(event.target.value)}><option value="">เลือกแผนก</option>{DEPARTMENTS.map(value=><option value={value} key={value}>{value}</option>)}</select></label>
-            <label>ผู้อนุมัติ *<select value={approvedBy} onChange={event=>setApprovedBy(event.target.value)}><option value="">เลือกผู้อนุมัติ</option>{EMPLOYEES.map(value=><option value={value} key={value}>{value}</option>)}</select></label>
+            <label>ผู้อนุมัติ *<select value={approvedBy} onChange={event=>setApprovedBy(event.target.value)}><option value="">เลือกผู้อนุมัติ</option>{approvers.map(row=><option value={row.name} key={row.id}>{row.name}</option>)}</select></label>
           </>}
         </div>
         <label>หมายเหตุ<textarea value={note} onChange={event=>setNote(event.target.value)} placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"/></label>
