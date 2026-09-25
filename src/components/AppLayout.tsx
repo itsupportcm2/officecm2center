@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowDownToLine, ArrowRight, ArrowRightLeft, ArrowUpFromLine, BarChart3, Bell, Boxes, CalendarClock, ChevronDown, ChevronUp, ClipboardList, DatabaseBackup, FileClock, FileText, Grid2X2, History, LogOut, Menu, PackageSearch, Search, Settings, SlidersHorizontal, Users, X } from 'lucide-react'
+import { ArrowDownToLine, ArrowRight, ArrowRightLeft, ArrowUpFromLine, BarChart3, Bell, Boxes, CalendarClock, ChevronDown, ChevronUp, ClipboardList, DatabaseBackup, FileClock, FileText, Grid2X2, History, LogOut, MapPin, Menu, PackageSearch, Search, Settings, SlidersHorizontal, Tags, Users, X } from 'lucide-react'
 import { daysUntil, useRenewals } from '../store/RenewalContext'
 import { useAuth } from '../store/AuthContext'
 import { bangkokDateKey, formatThaiDate } from '../utils/date'
@@ -32,6 +32,7 @@ export function AppLayout(){
     <button className="nav-group" onClick={()=>setStockOpen(v=>!v)}><ClipboardList size={21}/><span>รายการสต็อก</span>{stockOpen?<ChevronUp className="nav-tail" size={16}/>:<ChevronDown className="nav-tail" size={16}/>}</button>
     {stockOpen&&<div className="sub-nav">{subNav.filter(([to])=>user?.role!=='viewer'||to==='/history').map(([to,Icon,label])=><NavLink key={to} to={to} onClick={()=>setOpen(false)}><Icon size={19}/><span>{label}</span></NavLink>)}</div>}
     <div className="nav-separator"/><span className="nav-section-label">ติดตามและรายงาน</span>{trackingNav.filter(([to])=>user?.role!=='viewer'||(to!=='/purchase-requests'&&to!=='/renewals')).map(([to,Icon,label])=><NavLink key={to} to={to} onClick={()=>setOpen(false)}><Icon size={21}/><span>{label}</span></NavLink>)}
+    {user?.role!=='viewer'&&<><div className="nav-separator"/><span className="nav-section-label">ข้อมูลสินค้า</span><NavLink to="/categories" onClick={()=>setOpen(false)}><Tags size={21}/><span>หมวดหมู่</span></NavLink>{user?.role==='admin'&&<NavLink to="/locations" onClick={()=>setOpen(false)}><MapPin size={21}/><span>ตำแหน่งจัดเก็บ</span></NavLink>}</>}
     {user?.role==='admin'&&<><div className="nav-separator"/><span className="nav-section-label">ผู้ดูแลระบบ</span>{adminNav.map(([to,Icon,label])=><NavLink key={to} to={to} onClick={()=>setOpen(false)}><Icon size={21}/><span>{label}</span></NavLink>)}</>}
    </nav>
    <div className="side-profile ops-profile"><div className="avatar">{user?.name.slice(0,2)}</div><div><strong>{user?.name}</strong><span>{user?.role==='admin'?'ผู้ดูแลระบบ':user?.role==='staff'?'เจ้าหน้าที่พัสดุ':'ผู้ดูข้อมูล'}</span></div></div>
