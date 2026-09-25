@@ -25,8 +25,9 @@
 4. `supabase/migrations/202609240002_online_contexts.sql`
 5. `supabase/migrations/202609240003_fix_audit_trigger.sql`
 6. `supabase/migrations/202609250001_user_management.sql`
-7. Deploy `supabase/functions/manage-users`
-8. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
+7. `supabase/migrations/202609250002_staff_create_items.sql`
+8. Deploy `supabase/functions/manage-users`
+9. `supabase/seed.sql` เฉพาะเมื่อต้องการข้อมูลตัวอย่าง
 
 จากนั้นสร้างผู้ใช้คนแรกใน Supabase Authentication แล้วเปลี่ยน profile ของบัญชีนั้นเป็น admin ด้วย SQL Editor ที่เชื่อถือได้:
 
@@ -43,6 +44,7 @@ where id = 'AUTH_USER_UUID';
 | งาน | admin | staff | viewer |
 |---|---:|---:|---:|
 | ดูสินค้า/ยอด/ประวัติ | ✓ | ✓ | ✓ |
+| เพิ่มสินค้าใหม่ | ✓ | ✓ | — |
 | รับเข้า/เบิกออก | ✓ | ✓ | — |
 | ปรับยอด/โอนตำแหน่ง | ✓ | ✓ | — |
 | เพิ่ม/แก้/ลบสินค้า | ✓ | — | — |

@@ -23,6 +23,7 @@ npm run dev
    - `supabase/migrations/202609240002_online_contexts.sql`
    - `supabase/migrations/202609240003_fix_audit_trigger.sql`
    - `supabase/migrations/202609250001_user_management.sql`
+   - `supabase/migrations/202609250002_staff_create_items.sql`
 5. Deploy Edge Function `supabase/functions/manage-users` สำหรับหน้าจัดการผู้ใช้
 6. รัน `supabase/seed.sql` เพื่อเพิ่มข้อมูลตัวอย่าง
 7. สร้างผู้ใช้ Admin คนแรกใน Supabase Authentication และกำหนด role เป็น `admin` ในตาราง `profiles`
@@ -34,7 +35,7 @@ Edge Function ใช้ `SUPABASE_SERVICE_ROLE_KEY` ที่ Supabase จัด
 ## สิทธิ์ผู้ใช้
 
 - `admin`: จัดการสินค้า ผู้ใช้ หมวดหมู่ ตำแหน่ง และสต็อกทั้งหมด
-- `staff`: ดูคลัง รับเข้า เบิกออก และดูประวัติ
+- `staff`: ดูคลัง เพิ่มสินค้า รับเข้า เบิกออก และดูประวัติ
 - `viewer`: อ่านข้อมูลเท่านั้น
 
 ## สร้างเวอร์ชันใช้งานจริง
