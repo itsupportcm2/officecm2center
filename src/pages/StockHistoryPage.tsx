@@ -3,9 +3,8 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Empty, TxBadge } from '../components/ui'
 import { useStock } from '../store/StockContext'
+import { csvCell } from '../utils/csv'
 import { bangkokDateKey, formatThaiDateTime } from '../utils/date'
-
-const csvCell=(value:unknown)=>`"${String(value??'').replaceAll('"','""')}"`
 
 export function StockHistoryPage(){
  const {transactions,items,categories,locations}=useStock();const [params]=useSearchParams();const itemFilter=params.get('item')??''

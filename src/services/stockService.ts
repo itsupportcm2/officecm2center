@@ -22,10 +22,12 @@ export const stockService = {
   },
   async history(): Promise<StockTransaction[]> {
     if (!isSupabaseConfigured || !supabase) return []
-    const [{data,error},{data:profiles,error:profileError}] = await Promise.all([supabase.from('stock_transactions').select('*').order('created_at',{ascending:false}),supabase.from('profiles').select('id,full_name')])
-    if (error || profileError) throw error ?? profileError
+    const pageSize=1000;const allRows:any[]=[];let from=0
+    while(true){const {data,error}=await supabase.from('stock_transactions').select('*').order('created_at',{ascending:false}).range(from,from+pageSize-1);if(error)throw error;allRows.push(...(data??[]));if((data?.length??0)<pageSize)break;from+=pageSize}
+    const {data:profiles,error:profileError}=await supabase.from('profiles').select('id,full_name')
+    if(profileError)throw profileError
     const names=new Map((profiles??[]).map((row:any)=>[String(row.id),String(row.full_name)]))
-    return (data??[]).map((row:any)=>({
+    return allRows.map((row:any)=>({
       id:String(row.id),itemId:String(row.item_id),locationId:String(row.location_id),destinationLocationId:row.destination_location_id?String(row.destination_location_id):undefined,type:row.transaction_type as TransactionType,
       quantity:Number(row.quantity),before:Number(row.quantity_before),after:Number(row.quantity_after),referenceNo:row.reference_no??undefined,
       employeeName:row.employee_name??undefined,department:row.department??undefined,purpose:row.purpose??undefined,note:row.note??undefined,approvedBy:row.approved_by??undefined,

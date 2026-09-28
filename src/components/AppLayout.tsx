@@ -26,7 +26,7 @@ export function AppLayout(){
  const title=loc.pathname.startsWith('/inventory/')?'รายละเอียดสินค้า':titles[loc.pathname]??'ระบบสต็อก';const dashboard=loc.pathname==='/'
  return <div className={`app-shell ops-shell ${dashboard?'dashboard-page':''}`}>
   {open&&<button className="mobile-overlay" aria-label="ปิดเมนู" onClick={()=>setOpen(false)}/>}<aside className={`sidebar ops-sidebar ${open?'open':''}`}>
-   <div className="brand ops-brand"><img className="cm-brand-logo" src="/cm_logo.png" alt="โลโก้เชียงใหม่โฟรเซ่นฟูดส์"/><div className="brand-copy"><strong>ระบบจัดการสำนักงาน</strong><span>เชียงใหม่โฟรเซ่นฟูดส์</span></div><button className="icon-btn mobile-only" onClick={()=>setOpen(false)}><X size={20}/></button></div>
+   <div className="brand ops-brand"><img className="cm-brand-logo" src="/cm_logo.png" alt="โลโก้เชียงใหม่โฟรเซ่นฟูดส์"/><div className="brand-copy"><strong>ระบบจัดการสำนักงาน</strong><span>เชียงใหม่โฟรเซ่นฟูดส์</span></div><button className="icon-btn mobile-only" aria-label="ปิดเมนู" onClick={()=>setOpen(false)}><X size={20}/></button></div>
    <nav className="ops-nav">
     {mainNav.map(([to,Icon,label])=><NavLink key={to} to={to} end={to==='/'} onClick={()=>setOpen(false)}><Icon size={21}/><span>{label}</span></NavLink>)}
     <button className="nav-group" onClick={()=>setStockOpen(v=>!v)}><ClipboardList size={21}/><span>รายการสต็อก</span>{stockOpen?<ChevronUp className="nav-tail" size={16}/>:<ChevronDown className="nav-tail" size={16}/>}</button>

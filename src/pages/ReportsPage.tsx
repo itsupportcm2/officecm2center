@@ -2,9 +2,8 @@ import { Download, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DEPARTMENTS } from '../constants/departments'
 import { useStock } from '../store/StockContext'
+import { csvCell } from '../utils/csv'
 import { bangkokDateKey } from '../utils/date'
-
-const csvCell=(value:unknown)=>`"${String(value??'').replaceAll('"','""')}"`
 const defaultRange=()=>{const end=new Date();const start=new Date();start.setDate(1);return {from:bangkokDateKey(start),to:bangkokDateKey(end)}}
 const formatDateTime=(value:string)=>new Intl.DateTimeFormat('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value))
 const formatDate=(value:string)=>new Intl.DateTimeFormat('th-TH',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00+07:00`))

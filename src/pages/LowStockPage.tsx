@@ -8,7 +8,8 @@ import { useState } from 'react'
 
 export function LowStockPage(){
  const {items,categories,locations}=useStock();const {createFromItems}=usePurchases();const {user}=useAuth();const navigate=useNavigate();const [toast,setToast]=useState('')
- const groups=[{title:'สินค้าหมด',icon:PackageX,items:items.filter(item=>item.quantity===0),tone:'red'},{title:'สินค้าใกล้หมด',icon:AlertTriangle,items:items.filter(item=>item.quantity>0&&item.quantity<=item.minStock),tone:'amber'}]
+ const activeItems=items.filter(item=>item.isActive)
+ const groups=[{title:'สินค้าหมด',icon:PackageX,items:activeItems.filter(item=>item.quantity===0),tone:'red'},{title:'สินค้าใกล้หมด',icon:AlertTriangle,items:activeItems.filter(item=>item.quantity>0&&item.quantity<=item.minStock),tone:'amber'}]
  const urgent=groups.flatMap(group=>group.items)
  const create=async(selected:typeof items)=>{try{const request=await createFromItems(selected);if(!request){setToast('รายการนี้อยู่ในใบขอซื้อที่กำลังดำเนินการแล้ว');setTimeout(()=>setToast(''),2500);return}setToast(`สร้าง ${request.requestNo} แล้ว`);setTimeout(()=>navigate('/purchase-requests'),700)}catch(error){setToast(error instanceof Error?error.message:'สร้างใบขอซื้อไม่สำเร็จ');setTimeout(()=>setToast(''),2800)}}
  return <div className="page-stack"><div className="notice"><AlertTriangle size={20}/><div><b>พบ {urgent.length} รายการที่ต้องดำเนินการ</b><span>ตรวจสอบ เติมสต็อก หรือสร้างใบขอซื้อเพื่อไม่ให้กระทบการใช้งาน</span></div>{user?.role!=='viewer'&&urgent.length>0&&<button className="btn primary" onClick={()=>create(urgent)}><FilePlus2 size={18}/>สร้างใบขอซื้อทั้งหมด</button>}</div>

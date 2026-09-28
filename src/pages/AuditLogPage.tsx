@@ -2,10 +2,10 @@ import { Download, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Empty } from '../components/ui'
 import { useAudit, type AuditAction } from '../store/AuditContext'
+import { csvCell } from '../utils/csv'
 import { bangkokDateKey, formatThaiDateTime } from '../utils/date'
 
 const labels:Record<AuditAction,string>={CREATE:'เพิ่มข้อมูล',UPDATE:'แก้ไขข้อมูล',DELETE:'ลบข้อมูล',STOCK_IN:'รับสินค้าเข้า',STOCK_OUT:'เบิกสินค้าออก',STOCK_ADJUST:'ปรับยอดสต็อก',STOCK_TRANSFER:'โอนย้ายสต็อก',PURCHASE_CREATE:'สร้างใบขอซื้อ',PURCHASE_UPDATE:'อัปเดตใบขอซื้อ',RENEW:'ต่ออายุ',BACKUP:'สำรองข้อมูล',RESTORE:'กู้คืนข้อมูล',SETTINGS:'เปลี่ยนการตั้งค่า'}
-const csvCell=(value:unknown)=>`"${String(value??'').replaceAll('"','""')}"`
 
 export function AuditLogPage(){
  const {entries}=useAudit()

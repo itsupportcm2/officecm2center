@@ -26,7 +26,7 @@ const PurchaseRequestsPage=lazy(()=>import('./pages/PurchaseRequestsPage').then(
 
 function ProtectedRoute({roles}:{roles?:Role[]}){const {user,loading}=useAuth();if(loading)return <div className="route-loading">กำลังตรวจสอบสิทธิ์...</div>;if(!user)return <Navigate to="/login" replace/>;if(roles&&!roles.includes(user.role))return <Navigate to="/" replace/>;return <Outlet/>}
 
-export default function App(){const {items}=useStock();useWebMcp(items);return <Suspense fallback={<div className="route-loading">กำลังโหลดหน้า...</div>}><Routes>
+export default function App(){const {items,loading,error,reload}=useStock();const {user}=useAuth();useWebMcp(items);if(user&&loading)return <div className="route-loading">กำลังโหลดข้อมูลล่าสุด...</div>;if(user&&error)return <div className="data-load-error"><div><h1>โหลดข้อมูลไม่สำเร็จ</h1><p>{error}</p><button className="btn primary" onClick={()=>void reload().catch(()=>undefined)}>ลองโหลดใหม่</button></div></div>;return <Suspense fallback={<div className="route-loading">กำลังโหลดหน้า...</div>}><Routes>
   <Route path="/login" element={<LoginPage/>}/>
   <Route element={<ProtectedRoute/>}><Route element={<AppLayout/>}>
     <Route index element={<DashboardPage/>}/><Route path="inventory" element={<InventoryPage/>}/><Route path="inventory/:id" element={<ItemDetailPage/>}/>
