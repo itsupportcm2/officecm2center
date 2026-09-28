@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { categories as initialCategories, items as initialItems, locations as initialLocations, transactions as initialTransactions } from '../data/mockData'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { inventoryService } from '../services/inventoryService'
 import { stockService } from '../services/stockService'
 import type { Category, Item, Location, StockAdjustmentInput, StockChangeInput, StockTransaction, StockTransferInput, TransactionType } from '../types'
 import { nextAverageUnitCost, type LocationBalances } from '../utils/stock'
+import { readStockSnapshot, writeStockSnapshot } from '../utils/stockCache'
 import { useAudit } from './AuditContext'
 import { useAuth } from './AuthContext'
 
@@ -26,6 +27,7 @@ const Context=createContext<Store|null>(null)
 
 export const StockProvider=({children}:{children:ReactNode})=>{
  const {user}=useAuth();const {record}=useAudit();const localMode=!isSupabaseConfigured
+ const userId=user?.id
  const [items,setItems]=useState<Item[]>(()=>localMode?readLocal(KEYS.items,initialItems):[])
  const [categories,setCategories]=useState<Category[]>(()=>localMode?readLocal(KEYS.categories,initialCategories):[])
  const [locations,setLocations]=useState<Location[]>(()=>localMode?readLocal(KEYS.locations,initialLocations):[])
@@ -33,22 +35,35 @@ export const StockProvider=({children}:{children:ReactNode})=>{
  const [balances,setBalances]=useState<LocationBalances>(()=>localMode?readLocal(KEYS.balances,initialBalances(readLocal(KEYS.items,initialItems))):{})
  const [loading,setLoading]=useState(false)
  const [error,setError]=useState<string|null>(null)
+ const hasDataRef=useRef(localMode)
+ const loadTokenRef=useRef(0)
 
  const reloadData=useCallback(async(showLoading=true)=>{
   if(localMode)return
-  if(!user){setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);return}
+  if(!userId)return
+  const token=++loadTokenRef.current
   if(showLoading)setLoading(true)
   try{
    const [inventory,history]=await Promise.all([inventoryService.load(),stockService.history()])
+   if(token!==loadTokenRef.current)return
    setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setBalances(inventory.balances);setTransactions(history);setError(null)
+   hasDataRef.current=true
+   writeStockSnapshot(sessionStorage,userId,{items:inventory.items,categories:inventory.categories,locations:inventory.locations,balances:inventory.balances,transactions:history})
   }catch(problem){
-   setError(problem instanceof Error?problem.message:'ไม่สามารถโหลดข้อมูลจากระบบได้')
+   if(token!==loadTokenRef.current)return
+   if(showLoading||!hasDataRef.current)setError(problem instanceof Error?problem.message:'ไม่สามารถโหลดข้อมูลจากระบบได้')
    throw problem
-  }finally{if(showLoading)setLoading(false)}
- },[localMode,user])
+  }finally{if(showLoading&&token===loadTokenRef.current)setLoading(false)}
+ },[localMode,userId])
 
- useEffect(()=>{if(localMode){setLoading(false);return}if(!user){setLoading(false);return}void reloadData(true).catch(()=>undefined)},[localMode,user,reloadData])
- useEffect(()=>{if(localMode||!user)return;const refresh=()=>{void reloadData(false).catch(()=>undefined)};window.addEventListener('focus',refresh);const timer=window.setInterval(refresh,120000);return()=>{window.removeEventListener('focus',refresh);window.clearInterval(timer)}},[localMode,user,reloadData])
+ useLayoutEffect(()=>{
+  if(localMode){setLoading(false);return}
+  if(!userId){loadTokenRef.current+=1;hasDataRef.current=false;setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
+  const cached=readStockSnapshot(sessionStorage,userId)
+  if(cached){setItems(cached.items);setCategories(cached.categories);setLocations(cached.locations);setTransactions(cached.transactions);setBalances(cached.balances);setError(null);setLoading(false);hasDataRef.current=true;void reloadData(false).catch(()=>undefined)}
+  else{hasDataRef.current=false;void reloadData(true).catch(()=>undefined)}
+ },[localMode,userId,reloadData])
+ useEffect(()=>{if(localMode||!userId)return;const refresh=()=>{void reloadData(false).catch(()=>undefined)};window.addEventListener('focus',refresh);const timer=window.setInterval(refresh,120000);return()=>{window.removeEventListener('focus',refresh);window.clearInterval(timer)}},[localMode,userId,reloadData])
  useEffect(()=>{if(!localMode||loading)return;localStorage.setItem(KEYS.items,JSON.stringify(items));localStorage.setItem(KEYS.categories,JSON.stringify(categories));localStorage.setItem(KEYS.locations,JSON.stringify(locations));localStorage.setItem(KEYS.transactions,JSON.stringify(transactions));localStorage.setItem(KEYS.balances,JSON.stringify(balances))},[items,categories,locations,transactions,balances,localMode,loading])
 
  const syncAfterWrite=async()=>{if(!localMode)await reloadData(false).catch(()=>undefined)}
