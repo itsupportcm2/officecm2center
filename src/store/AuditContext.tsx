@@ -29,11 +29,11 @@ const AuditContext=createContext<AuditStore|null>(null)
 export function AuditProvider({children}:{children:ReactNode}){
  const {user}=useAuth()
  const [entries,setEntries]=useState<AuditEntry[]>(()=>isSupabaseConfigured?[]:readEntries())
- useEffect(()=>{if(!isSupabaseConfigured||!user)return;let active=true;auditService.load().then(rows=>{if(active)setEntries(rows)}).catch(console.error);return()=>{active=false}},[user])
+ useEffect(()=>{if(!isSupabaseConfigured||!user||user.role==='issuer'||user.role==='viewer')return;let active=true;auditService.load().then(rows=>{if(active)setEntries(rows)}).catch(console.error);return()=>{active=false}},[user])
  const value=useMemo<AuditStore>(()=>({
   entries,
   record:entry=>{
-   if(isSupabaseConfigured){void auditService.record(entry).then(()=>auditService.load()).then(setEntries).catch(console.error);return}
+   if(isSupabaseConfigured){if(user?.role==='issuer'||user?.role==='viewer')return;void auditService.record(entry).then(()=>auditService.load()).then(setEntries).catch(console.error);return}
    const next=[{...entry,id:crypto.randomUUID(),actor:user?.name??'ผู้ใช้งาน',createdAt:new Date().toISOString()},...readEntries()].slice(0,1000)
    localStorage.setItem(AUDIT_STORAGE_KEY,JSON.stringify(next))
    setEntries(next)

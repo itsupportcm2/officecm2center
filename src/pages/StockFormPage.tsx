@@ -4,9 +4,11 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Confirm, Toast } from '../components/ui'
 import { DEPARTMENTS } from '../constants/departments'
 import { approverService, type Approver } from '../services/approverService'
+import { useAuth } from '../store/AuthContext'
 import { useStock } from '../store/StockContext'
 
 export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
+  const {user}=useAuth()
   const {items,locations,getLocationQuantity,applyStock}=useStock()
   const [params]=useSearchParams()
   const activeItems=items.filter(row=>row.isActive)
@@ -80,7 +82,7 @@ export function StockFormPage({mode}:{mode:'IN'|'OUT'}) {
       </div>
       <div className="form-stack">
         <label>สินค้า *<select value={itemId} disabled={!activeItems.length} onChange={event=>setItemId(event.target.value)}><option value="">{activeItems.length?'เลือกสินค้า':'ยังไม่มีสินค้าในระบบ'}</option>{activeItems.map(row=><option value={row.id} key={row.id}>{row.sku} — {row.name}</option>)}</select></label>
-        {!activeItems.length&&<div className="stock-empty-notice"><div><PackageSearch/><span><b>ยังไม่มีสินค้าให้ทำรายการ</b><small>เพิ่มสินค้าและกำหนดตำแหน่งจัดเก็บก่อนรับเข้าหรือเบิกออก</small></span></div><Link className="btn secondary" to="/inventory">ไปหน้าเพิ่มสินค้า</Link></div>}
+        {!activeItems.length&&<div className="stock-empty-notice"><div><PackageSearch/><span><b>ยังไม่มีสินค้าให้ทำรายการ</b><small>{user?.role==='issuer'?'กรุณาติดต่อเจ้าหน้าที่พัสดุเพื่อตรวจสอบข้อมูลสินค้า':'เพิ่มสินค้าและกำหนดตำแหน่งจัดเก็บก่อนรับเข้าหรือเบิกออก'}</small></span></div>{user?.role!=='issuer'&&<Link className="btn secondary" to="/inventory">ไปหน้าเพิ่มสินค้า</Link>}</div>}
         {item&&<div className="location-balance-list">{locations.map(location=><span key={location.id} className={location.id===locationId?'active':''}>{location.name}<b>{getLocationQuantity(itemId,location.id)} {item.unit}</b></span>)}</div>}
         <div className="form-grid">
           <label>ตำแหน่งจัดเก็บ *<select value={locationId} disabled={!item} onChange={event=>setLocationId(event.target.value)}><option value="">เลือกตำแหน่ง</option>{locations.map(location=><option value={location.id} key={location.id}>{location.name}</option>)}</select></label>

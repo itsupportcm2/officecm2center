@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const roles = new Set(['admin', 'staff', 'viewer'])
+const roles = new Set(['admin', 'staff', 'issuer'])
 const departments = new Set(['EC','HR','AP','AC','PC','IT','DC','LAB','R&D','QC','RM','PR','PA','ST','MC','SE','O&E','SERVICE'])
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,

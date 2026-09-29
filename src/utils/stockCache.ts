@@ -1,7 +1,7 @@
-import type { Category, Item, Location, StockTransaction } from '../types'
+import type { Category, Item, Location, Role, StockTransaction } from '../types'
 import type { LocationBalances } from './stock'
 
-const CACHE_PREFIX='cm-office-online-snapshot-v1:'
+const CACHE_PREFIX='cm-office-online-snapshot-v2:'
 const MAX_CACHED_TRANSACTIONS=1000
 
 interface StorageLike {
@@ -20,32 +20,34 @@ export interface StockSnapshot {
 
 interface StoredSnapshot extends StockSnapshot {
   userId:string
+  role:Role
   savedAt:string
 }
 
-const cacheKey=(userId:string)=>`${CACHE_PREFIX}${userId}`
+const cacheKey=(userId:string,role:Role)=>`${CACHE_PREFIX}${userId}:${role}`
 
-export const readStockSnapshot=(storage:StorageLike,userId:string):StockSnapshot|null=>{
+export const readStockSnapshot=(storage:StorageLike,userId:string,role:Role):StockSnapshot|null=>{
   try{
-    const raw=storage.getItem(cacheKey(userId))
+    const key=cacheKey(userId,role)
+    const raw=storage.getItem(key)
     if(!raw)return null
     const parsed=JSON.parse(raw) as Partial<StoredSnapshot>
-    if(parsed.userId!==userId||!Array.isArray(parsed.items)||!Array.isArray(parsed.categories)||!Array.isArray(parsed.locations)||!Array.isArray(parsed.transactions)||!parsed.balances){
-      storage.removeItem(cacheKey(userId))
+    if(parsed.userId!==userId||parsed.role!==role||!Array.isArray(parsed.items)||!Array.isArray(parsed.categories)||!Array.isArray(parsed.locations)||!Array.isArray(parsed.transactions)||!parsed.balances){
+      storage.removeItem(key)
       return null
     }
     return {items:parsed.items,categories:parsed.categories,locations:parsed.locations,transactions:parsed.transactions,balances:parsed.balances}
   }catch{
-    storage.removeItem(cacheKey(userId))
+    storage.removeItem(cacheKey(userId,role))
     return null
   }
 }
 
-export const writeStockSnapshot=(storage:StorageLike,userId:string,snapshot:StockSnapshot)=>{
+export const writeStockSnapshot=(storage:StorageLike,userId:string,role:Role,snapshot:StockSnapshot)=>{
   try{
-    const stored:StoredSnapshot={...snapshot,transactions:snapshot.transactions.slice(0,MAX_CACHED_TRANSACTIONS),userId,savedAt:new Date().toISOString()}
-    storage.setItem(cacheKey(userId),JSON.stringify(stored))
+    const stored:StoredSnapshot={...snapshot,transactions:snapshot.transactions.slice(0,MAX_CACHED_TRANSACTIONS),userId,role,savedAt:new Date().toISOString()}
+    storage.setItem(cacheKey(userId,role),JSON.stringify(stored))
   }catch{
-    storage.removeItem(cacheKey(userId))
+    storage.removeItem(cacheKey(userId,role))
   }
 }

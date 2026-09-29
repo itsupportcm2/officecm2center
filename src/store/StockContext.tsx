@@ -28,6 +28,8 @@ const Context=createContext<Store|null>(null)
 export const StockProvider=({children}:{children:ReactNode})=>{
  const {user}=useAuth();const {record}=useAudit();const localMode=!isSupabaseConfigured
  const userId=user?.id
+ const userRole=user?.role
+ const userName=user?.name
  const [items,setItems]=useState<Item[]>(()=>localMode?readLocal(KEYS.items,initialItems):[])
  const [categories,setCategories]=useState<Category[]>(()=>localMode?readLocal(KEYS.categories,initialCategories):[])
  const [locations,setLocations]=useState<Location[]>(()=>localMode?readLocal(KEYS.locations,initialLocations):[])
@@ -44,25 +46,25 @@ export const StockProvider=({children}:{children:ReactNode})=>{
   const token=++loadTokenRef.current
   if(showLoading)setLoading(true)
   try{
-   const [inventory,history]=await Promise.all([inventoryService.load(),stockService.history()])
+   const [inventory,history]=await Promise.all([inventoryService.load(userRole),stockService.history(userRole,userName)])
    if(token!==loadTokenRef.current)return
    setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setBalances(inventory.balances);setTransactions(history);setError(null)
    hasDataRef.current=true
-   writeStockSnapshot(sessionStorage,userId,{items:inventory.items,categories:inventory.categories,locations:inventory.locations,balances:inventory.balances,transactions:history})
+   if(userRole)writeStockSnapshot(sessionStorage,userId,userRole,{items:inventory.items,categories:inventory.categories,locations:inventory.locations,balances:inventory.balances,transactions:history})
   }catch(problem){
    if(token!==loadTokenRef.current)return
    if(showLoading||!hasDataRef.current)setError(problem instanceof Error?problem.message:'ไม่สามารถโหลดข้อมูลจากระบบได้')
    throw problem
   }finally{if(showLoading&&token===loadTokenRef.current)setLoading(false)}
- },[localMode,userId])
+ },[localMode,userId,userRole,userName])
 
  useLayoutEffect(()=>{
   if(localMode){setLoading(false);return}
-  if(!userId){loadTokenRef.current+=1;hasDataRef.current=false;setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
-  const cached=readStockSnapshot(sessionStorage,userId)
+  if(!userId||!userRole){loadTokenRef.current+=1;hasDataRef.current=false;setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
+  const cached=readStockSnapshot(sessionStorage,userId,userRole)
   if(cached){setItems(cached.items);setCategories(cached.categories);setLocations(cached.locations);setTransactions(cached.transactions);setBalances(cached.balances);setError(null);setLoading(false);hasDataRef.current=true;void reloadData(false).catch(()=>undefined)}
   else{hasDataRef.current=false;void reloadData(true).catch(()=>undefined)}
- },[localMode,userId,reloadData])
+ },[localMode,userId,userRole,reloadData])
  useEffect(()=>{if(localMode||!userId)return;const refresh=()=>{void reloadData(false).catch(()=>undefined)};window.addEventListener('focus',refresh);const timer=window.setInterval(refresh,120000);return()=>{window.removeEventListener('focus',refresh);window.clearInterval(timer)}},[localMode,userId,reloadData])
  useEffect(()=>{if(!localMode||loading)return;localStorage.setItem(KEYS.items,JSON.stringify(items));localStorage.setItem(KEYS.categories,JSON.stringify(categories));localStorage.setItem(KEYS.locations,JSON.stringify(locations));localStorage.setItem(KEYS.transactions,JSON.stringify(transactions));localStorage.setItem(KEYS.balances,JSON.stringify(balances))},[items,categories,locations,transactions,balances,localMode,loading])
 

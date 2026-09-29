@@ -29,7 +29,7 @@ export function RenewalProvider({children}:{children:ReactNode}){
  const [items,setItems]=useState<RenewalItem[]>(()=>{if(isSupabaseConfigured)return [];try{const saved=localStorage.getItem(STORAGE_KEY);const parsed:RenewalItem[]=saved?JSON.parse(saved):initialRenewals;return parsed.map(item=>({...item,owner:normalizeOwner(item.owner),cycleCount:item.cycleCount??1,cycleUnit:item.cycleUnit??'year'}))}catch{return initialRenewals}})
  const [history,setHistory]=useState<RenewalHistoryEntry[]>(()=>{if(isSupabaseConfigured)return [];try{return JSON.parse(localStorage.getItem(HISTORY_KEY)??'[]')}catch{return []}})
  const reload=async()=>{const data=await renewalService.load();setItems(data.items);setHistory(data.history)}
- useEffect(()=>{if(!isSupabaseConfigured||!user)return;void reload().catch(console.error)},[user])
+ useEffect(()=>{if(!isSupabaseConfigured||!user||user.role==='issuer'||user.role==='viewer')return;void reload().catch(console.error)},[user])
  useEffect(()=>{if(!isSupabaseConfigured)localStorage.setItem(STORAGE_KEY,JSON.stringify(items))},[items])
  useEffect(()=>{if(!isSupabaseConfigured)localStorage.setItem(HISTORY_KEY,JSON.stringify(history))},[history])
  const dueItems=useMemo(()=>items.filter(item=>item.isActive&&daysUntil(item.expiryDate)<=item.remindDays).sort((a,b)=>a.expiryDate.localeCompare(b.expiryDate)),[items])

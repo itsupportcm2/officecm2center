@@ -9,13 +9,18 @@ const snapshot:StockSnapshot={items:[],categories:[],locations:[],transactions:[
 
 describe('stock session cache',()=>{
   it('keeps snapshots separated by user',()=>{
-    const target=storage();writeStockSnapshot(target,'user-a',snapshot)
-    expect(readStockSnapshot(target,'user-a')).toEqual(snapshot)
-    expect(readStockSnapshot(target,'user-b')).toBeNull()
+    const target=storage();writeStockSnapshot(target,'user-a','staff',snapshot)
+    expect(readStockSnapshot(target,'user-a','staff')).toEqual(snapshot)
+    expect(readStockSnapshot(target,'user-b','staff')).toBeNull()
+  })
+
+  it('keeps snapshots separated by role',()=>{
+    const target=storage();writeStockSnapshot(target,'user-a','staff',snapshot)
+    expect(readStockSnapshot(target,'user-a','issuer')).toBeNull()
   })
 
   it('discards malformed cached data',()=>{
-    const target=storage();target.setItem('cm-office-online-snapshot-v1:user-a','{"userId":"user-a"}')
-    expect(readStockSnapshot(target,'user-a')).toBeNull()
+    const target=storage();target.setItem('cm-office-online-snapshot-v2:user-a:staff','{"userId":"user-a","role":"staff"}')
+    expect(readStockSnapshot(target,'user-a','staff')).toBeNull()
   })
 })

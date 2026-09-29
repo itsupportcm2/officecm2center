@@ -1,6 +1,6 @@
 import { categories as seedCategories, items as seedItems, locations as seedLocations } from '../data/mockData'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
-import type { Category, Item, Location } from '../types'
+import type { Category, Item, Location, Role } from '../types'
 import { buildLocationBalances, type LocationBalances } from '../utils/stock'
 
 export interface InventoryData { items: Item[]; categories: Category[]; locations: Location[]; balances:LocationBalances }
@@ -26,8 +26,23 @@ const loadAllItems=async()=>{
 }
 
 export const inventoryService = {
-  async load(): Promise<InventoryData> {
+  async load(role?:Role): Promise<InventoryData> {
     if (!isSupabaseConfigured || !supabase) return {items:seedItems,categories:seedCategories,locations:seedLocations,balances:Object.fromEntries(seedItems.map(item=>[item.id,{[item.locationId]:item.quantity}]))}
+    if(role==='issuer'){
+      const {data,error}=await supabase.rpc('get_issue_catalog')
+      if(error)throw error
+      const payload=(data??{}) as {items?:Record<string,unknown>[];locations?:Record<string,unknown>[];balances?:Array<{item_id:string;location_id:string;quantity:number|string}>}
+      return {
+        items:(payload.items??[]).map(row=>({
+          id:String(row.id),sku:String(row.sku),name:String(row.name),description:'',categoryId:'',unit:String(row.unit),minStock:0,
+          barcode:String(row.barcode??''),isActive:true,locationId:row.primary_location_id?String(row.primary_location_id):'',
+          quantity:Number(row.quantity??0),createdAt:String(row.created_at),
+        })),
+        categories:[],
+        locations:(payload.locations??[]).map(row=>({id:String(row.id),name:String(row.name),description:String(row.description??'')})),
+        balances:buildLocationBalances(payload.balances??[]),
+      }
+    }
     const [itemRows, { data: categories, error: catError }, { data: locations, error: locError }, balanceRows] = await Promise.all([
       loadAllItems(), supabase.from('categories').select('*').order('name'), supabase.from('locations').select('*').order('name'),loadAllBalances(),
     ])

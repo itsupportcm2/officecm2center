@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'staff' | 'viewer'
+export type Role = 'admin' | 'staff' | 'issuer' | 'viewer'
 export type TransactionType = 'IN' | 'OUT' | 'ADJUST' | 'TRANSFER'
 
 export interface Category { id: string; name: string; description: string }
