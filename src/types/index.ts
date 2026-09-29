@@ -37,3 +37,18 @@ export interface PurchaseRequest {
   id:string; requestNo:string; status:'DRAFT'|'SUBMITTED'|'ORDERED'|'CANCELLED'; lines:PurchaseRequestLine[];
   note:string; requestedBy:string; createdAt:string; updatedAt:string;
 }
+
+export type IssueRequestStatus = 'PENDING'|'APPROVED'|'REJECTED'|'CANCELLED'
+export interface IssueRequestLine {
+  id:string;itemId:string;locationId:string;quantity:number;sku:string;itemName:string;unit:string;
+  locationName:string;availableQuantity:number;
+}
+export interface IssueRequest {
+  id:string;requestNo:string;status:IssueRequestStatus;recipientName:string;department:string;note:string;
+  rejectionReason:string;requestedBy:string;requestedByName:string;reviewedBy?:string;reviewedByName?:string;
+  reviewedAt?:string;createdAt:string;updatedAt:string;lines:IssueRequestLine[];
+}
+export interface NewIssueRequest {
+  recipientName:string;department:string;note:string;
+  lines:Array<{itemId:string;locationId:string;quantity:number}>;
+}

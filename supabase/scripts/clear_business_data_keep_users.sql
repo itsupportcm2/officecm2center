@@ -7,6 +7,8 @@ begin;
 -- ระบุตารางที่ต้องล้างทั้งหมดในคำสั่งเดียวเพื่อรักษา foreign key
 -- TRUNCATE ไม่เรียก DELETE trigger จึงใช้สำหรับงานดูแลระบบครั้งนี้เท่านั้น
 truncate table
+  public.issue_request_lines,
+  public.issue_requests,
   public.purchase_request_lines,
   public.purchase_requests,
   public.renewal_history,
@@ -28,6 +30,8 @@ union all select 'locations', count(*) from public.locations
 union all select 'items', count(*) from public.items
 union all select 'stock_balances', count(*) from public.stock_balances
 union all select 'stock_transactions', count(*) from public.stock_transactions
+union all select 'issue_requests', count(*) from public.issue_requests
+union all select 'issue_request_lines', count(*) from public.issue_request_lines
 union all select 'purchase_requests', count(*) from public.purchase_requests
 union all select 'purchase_request_lines', count(*) from public.purchase_request_lines
 union all select 'renewals', count(*) from public.renewals
