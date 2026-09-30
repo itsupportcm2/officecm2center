@@ -5,6 +5,7 @@ import { useAudit } from './AuditContext'
 import { useAuth } from './AuthContext'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { purchaseService } from '../services/purchaseService'
+import { useLocation } from 'react-router-dom'
 
 const STORAGE_KEY='cm-office-purchase-requests-v1'
 const read=():PurchaseRequest[]=>{try{return JSON.parse(localStorage.getItem(STORAGE_KEY)??'[]')}catch{return []}}
@@ -13,9 +14,9 @@ interface Store{requests:PurchaseRequest[];createFromItems:(items:Item[])=>Promi
 const Context=createContext<Store|null>(null)
 
 export function PurchaseProvider({children}:{children:ReactNode}){
- const {user}=useAuth();const {record}=useAudit();const [requests,setRequests]=useState<PurchaseRequest[]>(()=>isSupabaseConfigured?[]:read())
+ const {user}=useAuth();const {record}=useAudit();const location=useLocation();const [requests,setRequests]=useState<PurchaseRequest[]>(()=>isSupabaseConfigured?[]:read())
  const reload=async()=>setRequests(await purchaseService.load())
- useEffect(()=>{if(isSupabaseConfigured&&user&&user.role!=='issuer'&&user.role!=='viewer')void reload().catch(console.error)},[user])
+ useEffect(()=>{const shouldLoad=location.pathname==='/purchase-requests'||location.pathname==='/low-stock';if(isSupabaseConfigured&&shouldLoad&&user&&user.role!=='issuer'&&user.role!=='viewer')void reload().catch(console.error)},[user,location.pathname])
  useEffect(()=>{if(!isSupabaseConfigured)localStorage.setItem(STORAGE_KEY,JSON.stringify(requests))},[requests])
  const value=useMemo<Store>(()=>({requests,
   createFromItems:async items=>{const pendingIds=new Set(requests.filter(request=>request.status==='DRAFT'||request.status==='SUBMITTED').flatMap(request=>request.lines.map(line=>line.itemId)));const eligible=items.filter(item=>!pendingIds.has(item.id));if(!eligible.length)return null;if(isSupabaseConfigured){await purchaseService.create(eligible);const rows=await purchaseService.load();setRequests(rows);const created=rows[0]??null;if(created)record({action:'PURCHASE_CREATE',entity:'purchase_request',entityId:created.id,title:created.requestNo,detail:`สร้างใบขอซื้อ ${created.lines.length} รายการ`});return created}const now=new Date().toISOString();const request:PurchaseRequest={id:crypto.randomUUID(),requestNo:nextRequestNo(requests.length),status:'DRAFT',lines:eligible.map(item=>({itemId:item.id,sku:item.sku,name:item.name,quantity:Math.max(item.minStock*2-item.quantity,1),unit:item.unit})),note:'สร้างจากรายการสินค้าใกล้หมด',requestedBy:user?.name??'ผู้ใช้งาน',createdAt:now,updatedAt:now};setRequests(current=>[request,...current]);record({action:'PURCHASE_CREATE',entity:'purchase_request',entityId:request.id,title:request.requestNo,detail:`สร้างใบขอซื้อ ${request.lines.length} รายการจากสินค้าใกล้หมด`});return request},

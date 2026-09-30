@@ -39,14 +39,16 @@ export const StockProvider=({children}:{children:ReactNode})=>{
  const [error,setError]=useState<string|null>(null)
  const hasDataRef=useRef(localMode)
  const loadTokenRef=useRef(0)
+ const lastLoadAtRef=useRef(0)
 
  const reloadData=useCallback(async(showLoading=true)=>{
   if(localMode)return
   if(!userId)return
   const token=++loadTokenRef.current
+  lastLoadAtRef.current=Date.now()
   if(showLoading)setLoading(true)
   try{
-   const [inventory,history]=await Promise.all([inventoryService.load(userRole),stockService.history(userRole,userName)])
+   const {inventory,history}=await inventoryService.loadSnapshot(userRole,userName)
    if(token!==loadTokenRef.current)return
    setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setBalances(inventory.balances);setTransactions(history);setError(null)
    hasDataRef.current=true
@@ -65,7 +67,7 @@ export const StockProvider=({children}:{children:ReactNode})=>{
   if(cached){setItems(cached.items);setCategories(cached.categories);setLocations(cached.locations);setTransactions(cached.transactions);setBalances(cached.balances);setError(null);setLoading(false);hasDataRef.current=true;void reloadData(false).catch(()=>undefined)}
   else{hasDataRef.current=false;void reloadData(true).catch(()=>undefined)}
  },[localMode,userId,userRole,reloadData])
- useEffect(()=>{if(localMode||!userId)return;const refresh=()=>{void reloadData(false).catch(()=>undefined)};window.addEventListener('focus',refresh);const timer=window.setInterval(refresh,120000);return()=>{window.removeEventListener('focus',refresh);window.clearInterval(timer)}},[localMode,userId,reloadData])
+ useEffect(()=>{if(localMode||!userId)return;const refresh=()=>{if(document.visibilityState!=='visible'||Date.now()-lastLoadAtRef.current<60000)return;void reloadData(false).catch(()=>undefined)};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);const timer=window.setInterval(refresh,120000);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);window.clearInterval(timer)}},[localMode,userId,reloadData])
  useEffect(()=>{if(!localMode||loading)return;localStorage.setItem(KEYS.items,JSON.stringify(items));localStorage.setItem(KEYS.categories,JSON.stringify(categories));localStorage.setItem(KEYS.locations,JSON.stringify(locations));localStorage.setItem(KEYS.transactions,JSON.stringify(transactions));localStorage.setItem(KEYS.balances,JSON.stringify(balances))},[items,categories,locations,transactions,balances,localMode,loading])
 
  const syncAfterWrite=async()=>{if(!localMode)await reloadData(false).catch(()=>undefined)}

@@ -1,6 +1,7 @@
 import { categories as seedCategories, items as seedItems, locations as seedLocations } from '../data/mockData'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
-import type { Category, Item, Location, Role } from '../types'
+import type { Category, Item, Location, Role, StockTransaction, TransactionType } from '../types'
+import { stockService } from './stockService'
 import { buildLocationBalances, type LocationBalances } from '../utils/stock'
 
 export interface InventoryData { items: Item[]; categories: Category[]; locations: Location[]; balances:LocationBalances }
@@ -10,6 +11,17 @@ const toItem = (row: Record<string, unknown>): Item => ({
   categoryId: String(row.category_id), unit: String(row.unit), minStock: Number(row.min_stock), barcode: String(row.barcode ?? ''),
   imageUrl: row.image_url ? String(row.image_url) : undefined, isActive: Boolean(row.is_active),
   locationId: row.location_id ? String(row.location_id) : '', quantity: Number(row.quantity), averageUnitCost: Number(row.average_unit_cost ?? 0), createdAt: String(row.created_at),
+})
+
+const toTransaction=(row:Record<string,unknown>,fallbackUser:string):StockTransaction=>({
+  id:String(row.id),itemId:String(row.item_id),locationId:String(row.location_id),
+  destinationLocationId:row.destination_location_id?String(row.destination_location_id):undefined,
+  type:row.transaction_type as TransactionType,quantity:Number(row.quantity),before:Number(row.quantity_before),after:Number(row.quantity_after),
+  referenceNo:row.reference_no?String(row.reference_no):undefined,employeeName:row.employee_name?String(row.employee_name):undefined,
+  department:row.department?String(row.department):undefined,purpose:row.purpose?String(row.purpose):undefined,
+  note:row.note?String(row.note):undefined,approvedBy:row.approved_by?String(row.approved_by):undefined,
+  unitCost:row.unit_cost==null?undefined:Number(row.unit_cost),totalCost:row.total_cost==null?undefined:Number(row.total_cost),
+  user:row.created_by_name?String(row.created_by_name):fallbackUser,createdAt:String(row.created_at),
 })
 
 const loadAllBalances=async()=>{
@@ -26,6 +38,28 @@ const loadAllItems=async()=>{
 }
 
 export const inventoryService = {
+  async loadSnapshot(role?:Role,userName='ผู้ใช้งาน'):Promise<{inventory:InventoryData;history:StockTransaction[]}>{
+    if(!isSupabaseConfigured||!supabase)return {inventory:await this.load(role),history:[]}
+    if(role==='issuer'){
+      const [inventory,history]=await Promise.all([this.load(role),stockService.history(role,userName)])
+      return {inventory,history}
+    }
+    const {data,error}=await supabase.rpc('get_operator_stock_snapshot')
+    if(error)throw error
+    const payload=(data??{}) as {
+      items?:Record<string,unknown>[];categories?:Record<string,unknown>[];locations?:Record<string,unknown>[];
+      balances?:Array<{item_id:string;location_id:string;quantity:number|string}>;transactions?:Record<string,unknown>[]
+    }
+    return {
+      inventory:{
+        items:(payload.items??[]).map(toItem),
+        categories:(payload.categories??[]).map(row=>({id:String(row.id),name:String(row.name),description:String(row.description??'')})),
+        locations:(payload.locations??[]).map(row=>({id:String(row.id),name:String(row.name),description:String(row.description??'')})),
+        balances:buildLocationBalances(payload.balances??[]),
+      },
+      history:(payload.transactions??[]).map(row=>toTransaction(row,userName)),
+    }
+  },
   async load(role?:Role): Promise<InventoryData> {
     if (!isSupabaseConfigured || !supabase) return {items:seedItems,categories:seedCategories,locations:seedLocations,balances:Object.fromEntries(seedItems.map(item=>[item.id,{[item.locationId]:item.quantity}]))}
     if(role==='issuer'){

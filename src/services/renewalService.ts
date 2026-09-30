@@ -8,17 +8,25 @@ const toItem=(row:any):RenewalItem=>({
  lastRenewedAt:row.last_renewed_at??undefined,updatedAt:String(row.updated_at),
 })
 
+const loadItems=async():Promise<RenewalItem[]>=>{
+ if(!supabase)return []
+ const {data,error}=await supabase.from('renewals').select('*').order('expiry_date')
+ if(error)throw error
+ return (data??[]).map(toItem)
+}
+
 export const renewalService={
+ loadItems,
  async load():Promise<{items:RenewalItem[];history:RenewalHistoryEntry[]}>{
   if(!supabase)return {items:[],history:[]}
-  const [{data:rows,error},{data:historyRows,error:historyError},{data:profiles,error:profileError}]=await Promise.all([
-   supabase.from('renewals').select('*').order('expiry_date'),
+  const items=await loadItems()
+  const [{data:historyRows,error:historyError},{data:profiles,error:profileError}]=await Promise.all([
    supabase.from('renewal_history').select('*').order('renewed_at',{ascending:false}),
    supabase.from('profiles').select('id,full_name'),
   ])
-  if(error||historyError||profileError)throw error??historyError??profileError
+  if(historyError||profileError)throw historyError??profileError
   const names=new Map((profiles??[]).map((row:any)=>[String(row.id),String(row.full_name)]))
-  const items=(rows??[]).map(toItem);const itemNames=new Map(items.map(item=>[item.id,item.name]))
+  const itemNames=new Map(items.map(item=>[item.id,item.name]))
   return {items,history:(historyRows??[]).map((row:any)=>({id:String(row.id),renewalId:String(row.renewal_id),itemName:itemNames.get(String(row.renewal_id))??'-',previousExpiryDate:String(row.previous_expiry_date),newExpiryDate:String(row.new_expiry_date),cost:Number(row.cost??0),documentUrl:row.evidence_url??undefined,renewedBy:names.get(String(row.renewed_by))??'ผู้ใช้งาน',renewedAt:String(row.renewed_at)}))}
  },
  async create(item:Omit<RenewalItem,'id'|'updatedAt'>){if(!supabase)throw new Error('Supabase is not configured');const {error}=await supabase.from('renewals').insert({name:item.name,category:item.category,expiry_date:item.expiryDate,remind_days:item.remindDays,cycle_count:item.cycleCount,cycle_unit:item.cycleUnit,owner:item.owner,estimated_cost:item.cost??0,document_url:item.documentUrl||null,note:item.note,is_active:item.isActive});if(error)throw error},

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { isSupabaseConfigured } from '../lib/supabase'
 import { auditService } from '../services/auditService'
 import { useAuth } from './AuthContext'
+import { useLocation } from 'react-router-dom'
 
 export const AUDIT_STORAGE_KEY='cm-office-audit-v1'
 
@@ -27,18 +28,18 @@ interface AuditStore{
 const AuditContext=createContext<AuditStore|null>(null)
 
 export function AuditProvider({children}:{children:ReactNode}){
- const {user}=useAuth()
+ const {user}=useAuth();const location=useLocation()
  const [entries,setEntries]=useState<AuditEntry[]>(()=>isSupabaseConfigured?[]:readEntries())
- useEffect(()=>{if(!isSupabaseConfigured||!user||user.role==='issuer'||user.role==='viewer')return;let active=true;auditService.load().then(rows=>{if(active)setEntries(rows)}).catch(console.error);return()=>{active=false}},[user])
+ useEffect(()=>{if(!isSupabaseConfigured||!user||user.role==='issuer'||user.role==='viewer'||location.pathname!=='/audit-log')return;let active=true;auditService.load().then(rows=>{if(active)setEntries(rows)}).catch(console.error);return()=>{active=false}},[user,location.pathname])
  const value=useMemo<AuditStore>(()=>({
   entries,
   record:entry=>{
-   if(isSupabaseConfigured){if(user?.role==='issuer'||user?.role==='viewer')return;void auditService.record(entry).then(()=>auditService.load()).then(setEntries).catch(console.error);return}
+   if(isSupabaseConfigured){if(user?.role==='issuer'||user?.role==='viewer')return;void auditService.record(entry).then(()=>location.pathname==='/audit-log'?auditService.load():null).then(rows=>{if(rows)setEntries(rows)}).catch(console.error);return}
    const next=[{...entry,id:crypto.randomUUID(),actor:user?.name??'ผู้ใช้งาน',createdAt:new Date().toISOString()},...readEntries()].slice(0,1000)
    localStorage.setItem(AUDIT_STORAGE_KEY,JSON.stringify(next))
    setEntries(next)
   },
- }),[entries,user])
+ }),[entries,user,location.pathname])
  return <AuditContext.Provider value={value}>{children}</AuditContext.Provider>
 }
 
