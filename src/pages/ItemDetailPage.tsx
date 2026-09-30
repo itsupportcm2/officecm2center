@@ -4,9 +4,11 @@ import { Empty, StatusBadge, TxBadge } from '../components/ui'
 import { useStock } from '../store/StockContext'
 import { useAuth } from '../store/AuthContext'
 import { formatThaiDateTime } from '../utils/date'
+import { useEffect } from 'react'
 
 export function ItemDetailPage(){
- const {id}=useParams();const nav=useNavigate();const {user}=useAuth();const {items,categories,locations,transactions,getLocationQuantity}=useStock();const item=items.find(row=>row.id===id)
+ const {id}=useParams();const nav=useNavigate();const {user}=useAuth();const {items,categories,locations,transactions,getLocationQuantity,loadHistory}=useStock();const item=items.find(row=>row.id===id)
+ useEffect(()=>{if(id)void loadHistory(id).catch(console.error)},[id,loadHistory])
  if(!item)return <Empty text="ไม่พบสินค้านี้"/>
  const history=transactions.filter(transaction=>transaction.itemId===item.id)
  return <div className="page-stack"><button className="back-link" onClick={()=>nav(-1)}><ArrowLeft size={18}/>กลับไปคลังสินค้า</button>

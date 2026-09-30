@@ -6,6 +6,7 @@ import { stockService } from '../services/stockService'
 import type { Category, Item, Location, StockAdjustmentInput, StockChangeInput, StockTransaction, StockTransferInput, TransactionType } from '../types'
 import { nextAverageUnitCost, type LocationBalances } from '../utils/stock'
 import { readStockSnapshot, writeStockSnapshot } from '../utils/stockCache'
+import { beginTiming, reportTiming } from '../utils/performance'
 import { useAudit } from './AuditContext'
 import { useAuth } from './AuthContext'
 
@@ -15,8 +16,8 @@ const initialBalances=(items:Item[]):LocationBalances=>Object.fromEntries(items.
 type NewItem=Omit<Item,'id'|'createdAt'|'quantity'>
 
 interface Store{
- items:Item[];categories:Category[];locations:Location[];transactions:StockTransaction[];balances:LocationBalances;loading:boolean;error:string|null
- reload:()=>Promise<void>;getLocationQuantity:(itemId:string,locationId:string)=>number
+ items:Item[];categories:Category[];locations:Location[];transactions:StockTransaction[];balances:LocationBalances;loading:boolean;historyLoading:boolean;error:string|null
+ reload:()=>Promise<void>;loadHistory:(itemId?:string)=>Promise<void>;getLocationQuantity:(itemId:string,locationId:string)=>number
  addItem:(item:NewItem)=>Promise<void>;importItems:(items:NewItem[])=>Promise<number>;updateItem:(item:Item)=>Promise<void>;deleteItem:(id:string)=>Promise<void>
  applyStock:(type:Extract<TransactionType,'IN'|'OUT'>,input:StockChangeInput)=>Promise<void>
  adjustStock:(input:StockAdjustmentInput)=>Promise<void>;transferStock:(input:StockTransferInput)=>Promise<void>
@@ -36,33 +37,53 @@ export const StockProvider=({children}:{children:ReactNode})=>{
  const [transactions,setTransactions]=useState<StockTransaction[]>(()=>localMode?readLocal(KEYS.transactions,initialTransactions):[])
  const [balances,setBalances]=useState<LocationBalances>(()=>localMode?readLocal(KEYS.balances,initialBalances(readLocal(KEYS.items,initialItems))):{})
  const [loading,setLoading]=useState(false)
+ const [historyLoading,setHistoryLoading]=useState(false)
  const [error,setError]=useState<string|null>(null)
  const hasDataRef=useRef(localMode)
  const loadTokenRef=useRef(0)
  const lastLoadAtRef=useRef(0)
+ const fullHistoryLoadedRef=useRef(localMode)
+ const loadedItemHistoryRef=useRef(new Set<string>())
 
  const reloadData=useCallback(async(showLoading=true)=>{
   if(localMode)return
   if(!userId)return
   const token=++loadTokenRef.current
+  const startedAt=beginTiming()
   lastLoadAtRef.current=Date.now()
   if(showLoading)setLoading(true)
   try{
-   const {inventory,history}=await inventoryService.loadSnapshot(userRole,userName)
+   const snapshot=await inventoryService.loadSnapshot(userRole,userName)
+   const history=fullHistoryLoadedRef.current&&userRole!=='issuer'?await inventoryService.loadHistory(userRole,userName):snapshot.history
    if(token!==loadTokenRef.current)return
-   setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setBalances(inventory.balances);setTransactions(history);setError(null)
+   const {inventory}=snapshot
+   setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setBalances(inventory.balances)
+   if(!fullHistoryLoadedRef.current&&loadedItemHistoryRef.current.size){const retainedIds=new Set(loadedItemHistoryRef.current);setTransactions(current=>{const merged=new Map(history.map(row=>[row.id,row]));current.filter(row=>retainedIds.has(row.itemId)).forEach(row=>merged.set(row.id,row));return [...merged.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))})}else setTransactions(history)
+   setError(null)
    hasDataRef.current=true
-   if(userRole)writeStockSnapshot(sessionStorage,userId,userRole,{items:inventory.items,categories:inventory.categories,locations:inventory.locations,balances:inventory.balances,transactions:history})
+   if(userRole)writeStockSnapshot(sessionStorage,userId,userRole,{items:inventory.items,categories:inventory.categories,locations:inventory.locations,balances:inventory.balances,transactions:snapshot.history})
   }catch(problem){
    if(token!==loadTokenRef.current)return
    if(showLoading||!hasDataRef.current)setError(problem instanceof Error?problem.message:'ไม่สามารถโหลดข้อมูลจากระบบได้')
    throw problem
-  }finally{if(showLoading&&token===loadTokenRef.current)setLoading(false)}
+  }finally{reportTiming('stock bootstrap',startedAt);if(showLoading&&token===loadTokenRef.current)setLoading(false)}
+ },[localMode,userId,userRole,userName])
+
+ const loadHistory=useCallback(async(itemId?:string)=>{
+  if(localMode||!userId||userRole==='issuer')return
+  if(!itemId&&fullHistoryLoadedRef.current)return
+  if(itemId&&(fullHistoryLoadedRef.current||loadedItemHistoryRef.current.has(itemId)))return
+  const startedAt=beginTiming();setHistoryLoading(true)
+  try{
+   const rows=await inventoryService.loadHistory(userRole,userName,itemId)
+   if(itemId){loadedItemHistoryRef.current.add(itemId);setTransactions(current=>{const merged=new Map(current.map(row=>[row.id,row]));rows.forEach(row=>merged.set(row.id,row));return [...merged.values()].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))})}
+   else{fullHistoryLoadedRef.current=true;setTransactions(rows)}
+  }finally{reportTiming(itemId?'item history':'full stock history',startedAt);setHistoryLoading(false)}
  },[localMode,userId,userRole,userName])
 
  useLayoutEffect(()=>{
   if(localMode){setLoading(false);return}
-  if(!userId||!userRole){loadTokenRef.current+=1;hasDataRef.current=false;setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
+  if(!userId||!userRole){loadTokenRef.current+=1;hasDataRef.current=false;fullHistoryLoadedRef.current=false;loadedItemHistoryRef.current.clear();setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
   const cached=readStockSnapshot(sessionStorage,userId,userRole)
   if(cached){setItems(cached.items);setCategories(cached.categories);setLocations(cached.locations);setTransactions(cached.transactions);setBalances(cached.balances);setError(null);setLoading(false);hasDataRef.current=true;void reloadData(false).catch(()=>undefined)}
   else{hasDataRef.current=false;void reloadData(true).catch(()=>undefined)}
@@ -74,7 +95,7 @@ export const StockProvider=({children}:{children:ReactNode})=>{
  const getLocationQuantity=(itemId:string,locationId:string)=>balances[itemId]?.[locationId]??0
  const makeTransaction=(data:Omit<StockTransaction,'id'|'user'|'createdAt'>):StockTransaction=>({...data,id:`TX-${Date.now()}-${crypto.randomUUID().slice(0,6)}`,user:user?.name??'ผู้ใช้งาน',createdAt:new Date().toISOString()})
 
- const value=useMemo<Store>(()=>({items,categories,locations,transactions,balances,loading,error,reload:()=>reloadData(true),getLocationQuantity,
+ const value=useMemo<Store>(()=>({items,categories,locations,transactions,balances,loading,historyLoading,error,reload:()=>reloadData(true),loadHistory,getLocationQuantity,
   addItem:async input=>{const item=await inventoryService.createItem(input);if(localMode){setItems(current=>[item,...current]);setBalances(current=>({...current,[item.id]:{[item.locationId]:0}}))}else await syncAfterWrite();record({action:'CREATE',entity:'item',entityId:item.id,title:item.name,detail:`เพิ่มสินค้า SKU ${item.sku}`})},
   importItems:async inputs=>{if(!inputs.length)return 0;if(!localMode){const count=await inventoryService.bulkCreate(inputs);await syncAfterWrite();return count}for(const input of inputs){const item=await inventoryService.createItem(input);setItems(current=>[item,...current]);setBalances(current=>({...current,[item.id]:{[item.locationId]:0}}))}return inputs.length},
   updateItem:async item=>{await inventoryService.updateItem(item);if(localMode){setItems(current=>current.map(row=>row.id===item.id?item:row));setBalances(current=>current[item.id]?current:{...current,[item.id]:{[item.locationId]:item.quantity}})}else await syncAfterWrite();record({action:'UPDATE',entity:'item',entityId:item.id,title:item.name,detail:`แก้ไขข้อมูลสินค้า SKU ${item.sku}`})},
@@ -87,7 +108,7 @@ export const StockProvider=({children}:{children:ReactNode})=>{
   deleteCategory:async id=>{if(items.some(item=>item.categoryId===id))throw new Error('ไม่สามารถลบหมวดหมู่ที่ยังมีสินค้าใช้งานอยู่');const category=categories.find(row=>row.id===id);await inventoryService.deleteCategory(id);if(localMode)setCategories(rows=>rows.filter(row=>row.id!==id));else await syncAfterWrite();record({action:'DELETE',entity:'category',entityId:id,title:category?.name??id,detail:'ลบหมวดหมู่สินค้า'})},
   addLocation:async(name,description)=>{const location=await inventoryService.createLocation(name,description);if(localMode)setLocations(rows=>[...rows,location]);else await syncAfterWrite();record({action:'CREATE',entity:'location',entityId:location.id,title:name,detail:'เพิ่มตำแหน่งจัดเก็บ'})},
   deleteLocation:async id=>{if(Object.values(balances).some(row=>(row[id]??0)>0))throw new Error('ไม่สามารถลบตำแหน่งที่ยังมีสต็อกคงเหลือ');const location=locations.find(row=>row.id===id);await inventoryService.deleteLocation(id);if(localMode)setLocations(rows=>rows.filter(row=>row.id!==id));else await syncAfterWrite();record({action:'DELETE',entity:'location',entityId:id,title:location?.name??id,detail:'ลบตำแหน่งจัดเก็บ'})},
- }),[items,categories,locations,transactions,balances,loading,error,user,record,localMode,reloadData])
+ }),[items,categories,locations,transactions,balances,loading,historyLoading,error,user,record,localMode,reloadData,loadHistory])
  return <Context.Provider value={value}>{children}</Context.Provider>
 }
 export const useStock=()=>{const value=useContext(Context);if(!value)throw new Error('StockProvider missing');return value}

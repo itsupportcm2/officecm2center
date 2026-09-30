@@ -60,6 +60,13 @@ export const inventoryService = {
       history:(payload.transactions??[]).map(row=>toTransaction(row,userName)),
     }
   },
+  async loadHistory(role?:Role,userName='ผู้ใช้งาน',itemId?:string):Promise<StockTransaction[]>{
+    if(!isSupabaseConfigured||!supabase)return []
+    if(role==='issuer')return stockService.history(role,userName)
+    const {data,error}=await supabase.rpc('get_operator_stock_history',{p_item_id:itemId??null})
+    if(error)throw error
+    return ((data??[]) as Record<string,unknown>[]).map(row=>toTransaction(row,userName))
+  },
   async load(role?:Role): Promise<InventoryData> {
     if (!isSupabaseConfigured || !supabase) return {items:seedItems,categories:seedCategories,locations:seedLocations,balances:Object.fromEntries(seedItems.map(item=>[item.id,{[item.locationId]:item.quantity}]))}
     if(role==='issuer'){

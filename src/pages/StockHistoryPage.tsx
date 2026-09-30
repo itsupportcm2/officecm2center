@@ -1,5 +1,5 @@
 import { Download, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Empty, TxBadge } from '../components/ui'
 import { useAuth } from '../store/AuthContext'
@@ -9,13 +9,15 @@ import { bangkokDateKey, formatThaiDateTime } from '../utils/date'
 
 export function StockHistoryPage(){
  const {user}=useAuth();const isIssuer=user?.role==='issuer'
- const {transactions,items,categories,locations}=useStock();const [params]=useSearchParams();const itemFilter=params.get('item')??''
+ const {transactions,items,categories,locations,loadHistory,historyLoading}=useStock();const [params]=useSearchParams();const itemFilter=params.get('item')??''
  const [type,setType]=useState('')
  const [q,setQ]=useState('')
  const [loc,setLoc]=useState('')
  const [category,setCategory]=useState('')
  const [dateFrom,setDateFrom]=useState('')
  const [dateTo,setDateTo]=useState('')
+
+ useEffect(()=>{if(!isIssuer)void loadHistory().catch(console.error)},[isIssuer,loadHistory])
 
  const filtered=useMemo(()=>transactions.filter(transaction=>{
   const item=items.find(candidate=>candidate.id===transaction.itemId)
@@ -59,7 +61,7 @@ export function StockHistoryPage(){
    {!isIssuer&&<select aria-label="หมวดหมู่" value={category} onChange={event=>setCategory(event.target.value)}><option value="">ทุกหมวดหมู่</option>{categories.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}</select>}
    <select aria-label="ตำแหน่งจัดเก็บ" value={loc} onChange={event=>setLoc(event.target.value)}><option value="">ทุกตำแหน่ง</option>{locations.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}</select>
   </section>
-  <section className="card">
+  <section className="card">{historyLoading&&<div className="inline-loading">กำลังโหลดประวัติทั้งหมด...</div>}
    <div className="table-wrap"><table><thead><tr><th>วันที่</th><th>รหัสรายการ</th><th>เลขที่เอกสาร</th><th>สินค้า</th><th>SKU</th><th>ประเภท</th><th>จำนวน</th><th>ก่อน</th><th>หลัง</th><th>ตำแหน่ง</th><th>พนักงาน/ผู้ใช้</th><th>หมายเหตุ</th></tr></thead><tbody>{filtered.map(transaction=>{const item=items.find(candidate=>candidate.id===transaction.itemId);const source=locations.find(candidate=>candidate.id===transaction.locationId)?.name;const destination=locations.find(candidate=>candidate.id===transaction.destinationLocationId)?.name;return <tr key={transaction.id}><td>{formatThaiDateTime(transaction.createdAt)}</td><td className="mono">{transaction.id}</td><td className="mono">{transaction.referenceNo??'—'}</td><td><b>{item?.name}</b></td><td className="mono">{item?.sku}</td><td><TxBadge type={transaction.type}/></td><td>{transaction.quantity}</td><td>{transaction.before}</td><td><b>{transaction.after}</b></td><td>{transaction.type==='TRANSFER'?`${source} → ${destination}`:source}</td><td>{transaction.employeeName??transaction.user}</td><td>{transaction.note??'—'}</td></tr>})}</tbody></table>{!filtered.length&&<Empty/>}</div>
   </section>
  </div>

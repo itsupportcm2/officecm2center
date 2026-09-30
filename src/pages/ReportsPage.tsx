@@ -1,5 +1,5 @@
 import { Download, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DEPARTMENTS } from '../constants/departments'
 import { useStock } from '../store/StockContext'
 import { csvCell } from '../utils/csv'
@@ -11,13 +11,15 @@ const money=(value:number)=>`${new Intl.NumberFormat('th-TH',{minimumFractionDig
 type RangePreset='today'|'month'|'quarter'
 
 export function ReportsPage(){
-  const {items,transactions}=useStock()
+  const {items,transactions,loadHistory,historyLoading}=useStock()
   const defaults=useMemo(defaultRange,[])
   const [dateFrom,setDateFrom]=useState(defaults.from)
   const [dateTo,setDateTo]=useState(defaults.to)
   const [department,setDepartment]=useState('')
   const [employeeQuery,setEmployeeQuery]=useState('')
   const [activePreset,setActivePreset]=useState<RangePreset|null>('month')
+
+  useEffect(()=>{void loadHistory().catch(console.error)},[loadHistory])
 
   const applyPreset=(preset:RangePreset)=>{
     const end=new Date();const start=new Date(end)
@@ -60,7 +62,7 @@ export function ReportsPage(){
     const anchor=document.createElement('a');anchor.href=url;anchor.download=`expense-report-${department||'all'}-${dateFrom}-${dateTo}.csv`;anchor.click();URL.revokeObjectURL(url)
   }
 
-  return <div className="page-stack issue-report-page">
+  return <div className="page-stack issue-report-page">{historyLoading&&<div className="inline-loading">กำลังโหลดข้อมูลรายงานทั้งหมด...</div>}
     <section className="report-filter-bar card">
       <div><h2>รายงานค่าใช้จ่ายสินค้า</h2><p>สรุปยอดซื้อรับเข้าและมูลค่าสินค้าที่เบิกออกตามช่วงวันที่</p><div className="expense-summary-row"><div className="expense-inline receipt"><span>ค่าใช้จ่ายรับเข้ารวม</span><strong>{money(totalReceiptExpense)}</strong><small>{receipts.length} รายการรับเข้า · รวมทุกแผนก</small></div><div className="expense-inline"><span>มูลค่าเบิกออกรวม</span><strong>{money(totalExpense)}</strong><small>{issues.length} รายการเบิก</small></div></div>{missingReceiptCost>0&&<p className="form-hint">มีรายการรับเข้าเก่า {missingReceiptCost} รายการที่ไม่มีราคาซื้อและไม่รวมในยอด</p>}{missingCost>0&&<p className="form-hint">มีรายการเบิกเก่า {missingCost} รายการที่ยังไม่มีข้อมูลต้นทุนและไม่รวมในยอด</p>}</div>
       <div className="issue-report-filters">

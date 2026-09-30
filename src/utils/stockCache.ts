@@ -1,8 +1,8 @@
 import type { Category, Item, Location, Role, StockTransaction } from '../types'
 import type { LocationBalances } from './stock'
 
-const CACHE_PREFIX='cm-office-online-snapshot-v2:'
-const MAX_CACHED_TRANSACTIONS=1000
+const CACHE_PREFIX='cm-office-online-snapshot-v3:'
+const MAX_CACHED_TRANSACTIONS=10
 
 interface StorageLike {
   getItem:(key:string)=>string|null
