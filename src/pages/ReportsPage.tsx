@@ -34,9 +34,17 @@ export function ReportsPage(){
       &&(!employeeQuery.trim()||(transaction.employeeName??'').toLocaleLowerCase('th-TH').includes(employeeQuery.trim().toLocaleLowerCase('th-TH')))
   }),[transactions,dateFrom,dateTo,department,employeeQuery])
 
+  const receipts=useMemo(()=>transactions.filter(transaction=>{
+    if(transaction.type!=='IN')return false
+    const date=bangkokDateKey(transaction.createdAt)
+    return date>=dateFrom&&date<=dateTo
+  }),[transactions,dateFrom,dateTo])
+
   const itemById=useMemo(()=>new Map(items.map(item=>[item.id,item])),[items])
   const totalExpense=issues.reduce((sum,row)=>sum+(row.totalCost??0),0)
+  const totalReceiptExpense=receipts.reduce((sum,row)=>sum+(row.totalCost??0),0)
   const missingCost=issues.filter(row=>row.totalCost==null).length
+  const missingReceiptCost=receipts.filter(row=>row.totalCost==null).length
   const departmentRows=DEPARTMENTS.map(name=>{
     const rows=issues.filter(transaction=>transaction.department===name)
     return {name,transactions:rows.length,items:new Set(rows.map(row=>row.itemId)).size,expense:rows.reduce((sum,row)=>sum+(row.totalCost??0),0)}
@@ -54,7 +62,7 @@ export function ReportsPage(){
 
   return <div className="page-stack issue-report-page">
     <section className="report-filter-bar card">
-      <div><h2>รายงานค่าใช้จ่ายจากการเบิกสินค้า</h2><p>สรุปยอดรวมและแยกตามแผนกจากต้นทุน ณ วันที่เบิก</p><div className="expense-inline"><span>ค่าใช้จ่ายรวม</span><strong>{money(totalExpense)}</strong><small>{issues.length} รายการเบิก</small></div>{missingCost>0&&<p className="form-hint">มี {missingCost} รายการเก่าที่ยังไม่มีข้อมูลต้นทุนและไม่รวมในยอด</p>}</div>
+      <div><h2>รายงานค่าใช้จ่ายสินค้า</h2><p>สรุปยอดซื้อรับเข้าและมูลค่าสินค้าที่เบิกออกตามช่วงวันที่</p><div className="expense-summary-row"><div className="expense-inline receipt"><span>ค่าใช้จ่ายรับเข้ารวม</span><strong>{money(totalReceiptExpense)}</strong><small>{receipts.length} รายการรับเข้า · รวมทุกแผนก</small></div><div className="expense-inline"><span>มูลค่าเบิกออกรวม</span><strong>{money(totalExpense)}</strong><small>{issues.length} รายการเบิก</small></div></div>{missingReceiptCost>0&&<p className="form-hint">มีรายการรับเข้าเก่า {missingReceiptCost} รายการที่ไม่มีราคาซื้อและไม่รวมในยอด</p>}{missingCost>0&&<p className="form-hint">มีรายการเบิกเก่า {missingCost} รายการที่ยังไม่มีข้อมูลต้นทุนและไม่รวมในยอด</p>}</div>
       <div className="issue-report-filters">
         <div className="report-presets" aria-label="ช่วงเวลาสำเร็จรูป">
           <button className={activePreset==='today'?'active':''} onClick={()=>applyPreset('today')}>วันนี้</button>
