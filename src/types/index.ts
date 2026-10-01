@@ -41,7 +41,7 @@ export interface PurchaseRequest {
 export type IssueRequestStatus = 'PENDING'|'APPROVED'|'REJECTED'|'CANCELLED'
 export interface IssueRequestLine {
   id:string;itemId:string;locationId:string;quantity:number;sku:string;itemName:string;unit:string;
-  locationName:string;availableQuantity:number;
+  locationName:string;availableQuantity:number;note:string;
 }
 export interface IssueRequest {
   id:string;requestNo:string;status:IssueRequestStatus;recipientName:string;department:string;note:string;
@@ -51,5 +51,5 @@ export interface IssueRequest {
 }
 export interface NewIssueRequest {
   recipientName:string;department:string;signature:Blob;
-  lines:Array<{itemId:string;locationId:string;quantity:number}>;
+  lines:Array<{itemId:string;locationId:string;quantity:number;note?:string}>;
 }
