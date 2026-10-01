@@ -45,10 +45,11 @@ export interface IssueRequestLine {
 }
 export interface IssueRequest {
   id:string;requestNo:string;status:IssueRequestStatus;recipientName:string;department:string;note:string;
+  signaturePath?:string;
   rejectionReason:string;requestedBy:string;requestedByName:string;reviewedBy?:string;reviewedByName?:string;
   reviewedAt?:string;createdAt:string;updatedAt:string;lines:IssueRequestLine[];
 }
 export interface NewIssueRequest {
-  recipientName:string;department:string;note:string;
+  recipientName:string;department:string;signature:Blob;
   lines:Array<{itemId:string;locationId:string;quantity:number}>;
 }
