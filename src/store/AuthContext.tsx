@@ -4,18 +4,18 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import type { Role } from '../types'
 import { beginTiming, reportTiming } from '../utils/performance'
 
-interface AuthUser { id:string; name:string; email:string; role:Role }
+interface AuthUser { id:string; name:string; email:string; role:Role; department:string }
 interface AuthStore { user:AuthUser|null; loading:boolean; signIn:(email:string,password:string)=>Promise<void>; signOut:()=>Promise<void> }
 const Context=createContext<AuthStore|null>(null)
 const DEMO_KEY='cm-office-demo-auth'
-const demoUser:AuthUser={id:'demo-admin',name:'ณัฐพล',email:'admin@example.co.th',role:'admin'}
+const demoUser:AuthUser={id:'demo-admin',name:'ณัฐพล',email:'admin@example.co.th',role:'admin',department:'IT'}
 const demoProfiles:Record<Role,AuthUser>={
  admin:demoUser,
- staff:{id:'demo-staff',name:'กมลชนก วิเศษ',email:'staff@example.co.th',role:'staff'},
- issuer:{id:'demo-issuer',name:'สุภาวดี มีสุข',email:'issuer@example.co.th',role:'issuer'},
- viewer:{id:'demo-viewer',name:'สุภาวดี มีสุข',email:'viewer@example.co.th',role:'viewer'},
+ staff:{id:'demo-staff',name:'กมลชนก วิเศษ',email:'staff@example.co.th',role:'staff',department:'ST'},
+ issuer:{id:'demo-issuer',name:'สุภาวดี มีสุข',email:'issuer@example.co.th',role:'issuer',department:'AC'},
+ viewer:{id:'demo-viewer',name:'สุภาวดี มีสุข',email:'viewer@example.co.th',role:'viewer',department:'AC'},
 }
-const readDemoUser=():AuthUser|null=>{const saved=sessionStorage.getItem(DEMO_KEY);if(saved==='signed-out')return null;if(!saved||saved==='signed-in')return demoUser;try{const parsed=JSON.parse(saved) as AuthUser;return parsed?.role?parsed:demoUser}catch{return demoUser}}
+const readDemoUser=():AuthUser|null=>{const saved=sessionStorage.getItem(DEMO_KEY);if(saved==='signed-out')return null;if(!saved||saved==='signed-in')return demoUser;try{const parsed=JSON.parse(saved) as AuthUser;return parsed?.role?{...demoProfiles[parsed.role],...parsed,department:parsed.department??demoProfiles[parsed.role].department}:demoUser}catch{return demoUser}}
 
 let profileCache:{token:string;promise:Promise<AuthUser|null>}|null=null
 
@@ -25,10 +25,10 @@ function profileFromSession(session:Session|null):Promise<AuthUser|null>{
  const startedAt=beginTiming()
  const promise=(async()=>{
   try{
-   const {data,error}=await supabase.from('profiles').select('full_name,role,is_active').eq('id',session.user.id).maybeSingle()
+   const {data,error}=await supabase.from('profiles').select('full_name,role,is_active,department').eq('id',session.user.id).maybeSingle()
    if(error)throw error
    if(!data||data.is_active===false)return null
-   return {id:session.user.id,name:data.full_name??session.user.email??'ผู้ใช้งาน',email:session.user.email??'',role:(data.role??'viewer') as Role}
+   return {id:session.user.id,name:data.full_name??session.user.email??'ผู้ใช้งาน',email:session.user.email??'',role:(data.role??'viewer') as Role,department:data.department??''}
   }finally{reportTiming('auth profile',startedAt)}
  })()
  profileCache={token:session.access_token,promise}
