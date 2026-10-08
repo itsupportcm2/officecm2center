@@ -156,6 +156,7 @@ export interface IssueRequest {
   department: string;
   note: string;
   signaturePath?: string;
+  approvalSignaturePath?: string;
   rejectionReason: string;
   requestedBy: string;
   requestedByName: string;

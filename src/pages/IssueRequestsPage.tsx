@@ -9,7 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Confirm, Empty, Modal, Toast } from "../components/ui";
+import { Empty, Modal, Toast } from "../components/ui";
 import { useAuth } from "../store/AuthContext";
 import { useIssueRequests } from "../store/IssueRequestContext";
 import { useStock } from "../store/StockContext";
@@ -49,17 +49,30 @@ const blankLine = (): DraftLine => ({
   note: "",
 });
 
-function RequestSignature({ request }: { request: IssueRequest }) {
+function RequestSignature({
+  request,
+  approval = false,
+}: {
+  request: IssueRequest;
+  approval?: boolean;
+}) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  if (!request.signaturePath) return null;
+  const path = approval
+    ? request.approvalSignaturePath
+    : request.signaturePath;
+  if (!path) return null;
   const view = async () => {
     if (loading) return;
     setLoading(true);
     setError("");
     try {
-      setUrl(await issueRequestService.signatureUrl(request.signaturePath!));
+      setUrl(
+        approval
+          ? await issueRequestService.approvalSignatureUrl(path)
+          : await issueRequestService.signatureUrl(path),
+      );
     } catch {
       setError("ไม่สามารถเปิดลายเซ็นได้");
     } finally {
@@ -69,11 +82,11 @@ function RequestSignature({ request }: { request: IssueRequest }) {
   return (
     <div className="request-signature">
       <div>
-        <b>ลายเซ็นหัวหน้าแผนก</b>
-        <small>แนบโดยผู้ส่งคำขอ</small>
+        <b>{approval ? "ลายเซ็นผู้อนุมัติ" : "ลายเซ็นหัวหน้าแผนก"}</b>
+        <small>{approval ? `ลงนามโดย ${request.reviewedByName ?? "เจ้าหน้าที่"}` : "แนบโดยผู้ส่งคำขอ"}</small>
       </div>
       {url ? (
-        <img src={url} alt={`ลายเซ็นหัวหน้าแผนกของคำขอ ${request.requestNo}`} />
+        <img src={url} alt={`${approval ? "ลายเซ็นผู้อนุมัติ" : "ลายเซ็นหัวหน้าแผนก"}ของคำขอ ${request.requestNo}`} />
       ) : (
         <button
           className="btn compact secondary"
@@ -164,6 +177,7 @@ function RequestCard({
         )}
       </div>
       <RequestSignature request={request} />
+      <RequestSignature request={request} approval />
       <div className="table-wrap">
         <table>
           <thead>
@@ -315,7 +329,7 @@ function IssueRequestReview({
         <p className="issue-review-notice">
           <Clock3 size={17} />
           เมื่อยืนยันแล้ว คำขอจะถูกส่งให้เจ้าหน้าที่ตรวจสอบ
-          แต่สต็อกจะยังไม่ถูกตัดจนกว่าจะอนุมัติ
+          แต่สต็อกจะยังไม่ถูกตัดจนกว่าเจ้าหน้าที่เบิกของจะปิดงาน
         </p>
       </div>
       <div className="modal-actions">
@@ -353,6 +367,8 @@ export function IssueRequestsPage({
   const [approveRequest, setApproveRequest] = useState<IssueRequest | null>(
     null,
   );
+  const [approvalSignature, setApprovalSignature] = useState<Blob | null>(null);
+  const [approvalSignatureKey, setApprovalSignatureKey] = useState(0);
   const [rejectRequest, setRejectRequest] = useState<IssueRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const activeItems = items.filter(
@@ -433,14 +449,14 @@ export function IssueRequestsPage({
     }
   };
   const approve = async () => {
-    if (!approveRequest || saving) return;
+    if (!approveRequest || !approvalSignature || saving) return;
     setSaving(true);
     try {
-      await review(approveRequest.id, "APPROVED");
+      await review(approveRequest.id, "APPROVED", undefined, approvalSignature);
       setApproveRequest(null);
-      flash("อนุมัติและตัดสต็อกเรียบร้อย");
+      setApprovalSignature(null);
+      flash("อนุมัติคำขอแล้ว และส่งไปรอเบิกเรียบร้อย");
     } catch (error) {
-      setApproveRequest(null);
       flash(error instanceof Error ? error.message : "อนุมัติไม่สำเร็จ");
     } finally {
       setSaving(false);
@@ -491,7 +507,7 @@ export function IssueRequestsPage({
           <div>
             <h2>คำขอเบิกที่รออนุมัติ</h2>
             <p className="page-intro">
-              ตรวจสอบรายการก่อนอนุมัติ ระบบจะตัดสต็อกเมื่ออนุมัติสำเร็จเท่านั้น
+              ตรวจสอบและลงลายเซ็นก่อนอนุมัติ จากนั้นรายการจะถูกส่งไปรอเบิกโดยยังไม่ตัดสต็อก
             </p>
           </div>
           <span className="request-count-badge">{pending.length} รายการรอ</span>
@@ -504,7 +520,11 @@ export function IssueRequestsPage({
               key={request.id}
               request={request}
               operator
-              onApprove={setApproveRequest}
+              onApprove={(request) => {
+                setApproveRequest(request);
+                setApprovalSignature(null);
+                setApprovalSignatureKey((value) => value + 1);
+              }}
               onReject={(request) => {
                 setRejectRequest(request);
                 setRejectReason("");
@@ -530,12 +550,44 @@ export function IssueRequestsPage({
           </section>
         )}
         {approveRequest && (
-          <Confirm
-            title="ยืนยันอนุมัติคำขอ"
-            detail={`${approveRequest.requestNo} — ระบบจะตัดสต็อก ${approveRequest.lines.length} รายการทันที`}
-            onCancel={() => setApproveRequest(null)}
-            onConfirm={() => void approve()}
-          />
+          <Modal
+            title="ลงลายเซ็นเพื่ออนุมัติคำขอ"
+            onClose={() => {
+              if (!saving) setApproveRequest(null);
+            }}
+          >
+            <div className="modal-body">
+              <p className="page-intro">
+                {approveRequest.requestNo} — ตรวจสอบแล้วลงลายเซ็นผู้อนุมัติ
+                จากนั้นคำขอจะถูกส่งไปยังหน้าคำรอเบิก
+              </p>
+              <SignaturePad
+                onChange={setApprovalSignature}
+                resetKey={approvalSignatureKey}
+                title="ลายเซ็นผู้อนุมัติ *"
+                instruction="เจ้าหน้าที่ผู้ตรวจสอบลงลายเซ็นในกรอบด้านล่าง"
+                disclaimer="ลายเซ็นนี้จะผูกกับคำขอและไม่สามารถแก้ไขได้หลังอนุมัติ"
+                ariaLabel="พื้นที่วาดลายเซ็นผู้อนุมัติ"
+              />
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn secondary"
+                disabled={saving}
+                onClick={() => setApproveRequest(null)}
+              >
+                กลับไปตรวจสอบ
+              </button>
+              <button
+                className="btn primary"
+                disabled={!approvalSignature || saving}
+                onClick={() => void approve()}
+              >
+                <CheckCircle2 size={17} />
+                {saving ? "กำลังอนุมัติ..." : "ยืนยันอนุมัติ"}
+              </button>
+            </div>
+          </Modal>
         )}{" "}
         {rejectRequest && (
           <Modal title="ไม่อนุมัติคำขอ" onClose={() => setRejectRequest(null)}>
@@ -744,7 +796,7 @@ export function IssueRequestsPage({
         <p>{requestSummary || "เลือกรายการสินค้าที่ต้องการเบิก"}</p>
         <div className="safety-note">
           <Clock3 size={18} />
-          สต็อกจะยังไม่เปลี่ยนจนกว่าเจ้าหน้าที่จะกดอนุมัติ
+          สต็อกจะยังไม่เปลี่ยนจนกว่าเจ้าหน้าที่เบิกของจะปิดงาน
         </div>
       </aside>
       {reviewOpen && (

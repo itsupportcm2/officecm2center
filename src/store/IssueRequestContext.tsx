@@ -25,6 +25,7 @@ interface Store {
     id: string,
     decision: "APPROVED" | "REJECTED",
     reason?: string,
+    signature?: Blob,
   ) => Promise<void>;
   cancel: (id: string) => Promise<void>;
   fulfill: (id: string) => Promise<void>;
@@ -84,8 +85,8 @@ export function IssueRequestProvider({ children }: { children: ReactNode }) {
         await issueRequestService.create(input);
         await reload();
       },
-      review: async (id, decision, reason) => {
-        await issueRequestService.review(id, decision, reason);
+      review: async (id, decision, reason, signature) => {
+        await issueRequestService.review(id, decision, reason, signature);
         await Promise.all([reload(), reloadStock()]);
       },
       cancel: async (id) => {

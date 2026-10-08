@@ -9,6 +9,9 @@ const mapRequest = (row: any): IssueRequest => ({
   department: String(row.department),
   note: String(row.note ?? ""),
   signaturePath: row.signature_path ? String(row.signature_path) : undefined,
+  approvalSignaturePath: row.approval_signature_path
+    ? String(row.approval_signature_path)
+    : undefined,
   rejectionReason: String(row.rejection_reason ?? ""),
   requestedBy: String(row.requested_by),
   requestedByName: String(row.requested_by_name ?? "ผู้ใช้งาน"),
@@ -86,18 +89,52 @@ export const issueRequestService = {
     if (error) throw error;
     return data.signedUrl;
   },
+  async approvalSignatureUrl(path: string): Promise<string> {
+    if (!supabase) throw new Error("Supabase is not configured");
+    const { data, error } = await supabase.storage
+      .from("approval-signatures")
+      .createSignedUrl(path, 300);
+    if (error) throw error;
+    return data.signedUrl;
+  },
   async review(
     id: string,
     decision: "APPROVED" | "REJECTED",
     reason?: string,
+    signature?: Blob,
   ): Promise<void> {
     if (!supabase) throw new Error("Supabase is not configured");
+    let signaturePath: string | null = null;
+    if (decision === "APPROVED") {
+      if (!signature) throw new Error("กรุณาลงลายเซ็นผู้อนุมัติ");
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session)
+        throw sessionError ?? new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+      signaturePath = `${session.user.id}/${id}-${crypto.randomUUID()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("approval-signatures")
+        .upload(signaturePath, signature, {
+          contentType: "image/png",
+          upsert: false,
+        });
+      if (uploadError) throw uploadError;
+    }
     const { error } = await supabase.rpc("review_issue_request", {
       p_request_id: id,
       p_decision: decision,
       p_rejection_reason: reason || null,
+      p_approval_signature_path: signaturePath,
     });
-    if (error) throw error;
+    if (error) {
+      if (signaturePath)
+        await supabase.rpc("cleanup_approval_signature", {
+          p_signature_path: signaturePath,
+        });
+      throw error;
+    }
   },
   async cancel(id: string): Promise<void> {
     if (!supabase) throw new Error("Supabase is not configured");
