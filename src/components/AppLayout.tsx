@@ -102,7 +102,8 @@ export function AppLayout() {
   const alertSignature = dueItems
     .map((item) => `${item.id}:${item.expiryDate}`)
     .join("|");
-  const { pending: pendingIssueRequests, ready: readyIssueRequests } = useIssueRequests();
+  const { pending: pendingIssueRequests, ready: readyIssueRequests } =
+    useIssueRequests();
   const issueAlertSignature = pendingIssueRequests
     .map((request) => `${request.id}:${request.updatedAt}`)
     .join("|");
@@ -239,15 +240,55 @@ export function AppLayout() {
           {isFulfiller && (
             <>
               {mainNav.map(([to, Icon, label]) => (
-                <NavLink key={to} to={to} end={to === "/"} onClick={() => setOpen(false)}>
-                  <Icon size={21} /><span>{label}</span>
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === "/"}
+                  onClick={() => setOpen(false)}
+                >
+                  <Icon size={21} />
+                  <span>{label}</span>
                 </NavLink>
               ))}
-              <NavLink to="/history" onClick={() => setOpen(false)}><History size={21}/><span>ประวัติ</span></NavLink>
-              <NavLink to="/fulfillment" onClick={() => setOpen(false)}><PackageCheck size={21}/><span>คำรอเบิก</span>{readyIssueRequests.length>0&&<em className="nav-count">{readyIssueRequests.length}</em>}</NavLink>
-              <NavLink to="/reports" onClick={() => setOpen(false)}><BarChart3 size={21}/><span>รายงาน</span></NavLink>
-              <NavLink to="/low-stock" onClick={() => setOpen(false)}><PackageSearch size={21}/><span>สินค้าใกล้หมด</span></NavLink>
-              <NavLink to="/categories" onClick={() => setOpen(false)}><Tags size={21}/><span>หมวดหมู่</span></NavLink>
+              <button
+                className="nav-group"
+                onClick={() => setStockOpen((v) => !v)}
+              >
+                <ClipboardList size={21} />
+                <span>รายการสต๊อค</span>
+                {stockOpen ? (
+                  <ChevronUp className="nav-tail" size={16} />
+                ) : (
+                  <ChevronDown className="nav-tail" size={16} />
+                )}
+              </button>
+              {stockOpen && (
+                <div className="sub-nav">
+                  <NavLink to="/fulfillment" onClick={() => setOpen(false)}>
+                    <PackageCheck size={19} />
+                    <span>คำรอเบิก</span>
+                    {readyIssueRequests.length > 0 && (
+                      <em className="nav-count">{readyIssueRequests.length}</em>
+                    )}
+                  </NavLink>
+                  <NavLink to="/history" onClick={() => setOpen(false)}>
+                    <History size={19} />
+                    <span>ประวัติ</span>
+                  </NavLink>
+                </div>
+              )}
+              <NavLink to="/reports" onClick={() => setOpen(false)}>
+                <BarChart3 size={21} />
+                <span>รายงาน</span>
+              </NavLink>
+              <NavLink to="/low-stock" onClick={() => setOpen(false)}>
+                <PackageSearch size={21} />
+                <span>สินค้าใกล้หมด</span>
+              </NavLink>
+              <NavLink to="/categories" onClick={() => setOpen(false)}>
+                <Tags size={21} />
+                <span>หมวดหมู่</span>
+              </NavLink>
             </>
           )}
           {isOperator && (
@@ -342,7 +383,7 @@ export function AppLayout() {
                     ? "ผู้ขอเบิกสินค้า"
                     : isFulfiller
                       ? "เจ้าหน้าที่เบิกของ"
-                    : "ยังไม่ได้รับสิทธิ์"}
+                      : "ยังไม่ได้รับสิทธิ์"}
             </span>
           </div>
         </div>
@@ -409,14 +450,16 @@ export function AppLayout() {
                 className="icon-btn notify"
                 aria-label="เปิดการแจ้งเตือน"
                 onClick={() => {
-                  if (isOperator && pendingIssueRequests.length) setShowIssueAlert(true);
+                  if (isOperator && pendingIssueRequests.length)
+                    setShowIssueAlert(true);
                   else if (readyIssueRequests.length) navigate("/fulfillment");
                   else if (renewalAlertsEnabled && dueItems.length)
                     setShowRenewalAlert(true);
                 }}
               >
                 <Bell size={22} />
-                {((isOperator && pendingIssueRequests.length > 0) || readyIssueRequests.length > 0 ||
+                {((isOperator && pendingIssueRequests.length > 0) ||
+                  readyIssueRequests.length > 0 ||
                   (renewalAlertsEnabled && dueItems.length > 0)) && <i />}
               </button>
             )}
