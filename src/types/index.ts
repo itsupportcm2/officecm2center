@@ -1,55 +1,182 @@
-export type Role = 'admin' | 'staff' | 'issuer' | 'viewer'
-export type TransactionType = 'IN' | 'OUT' | 'ADJUST' | 'TRANSFER'
+export type Role = "admin" | "staff" | "issuer" | "fulfiller" | "viewer";
+export type TransactionType = "IN" | "OUT" | "ADJUST" | "TRANSFER";
 
-export interface Category { id: string; name: string; description: string }
-export interface Location { id: string; name: string; description: string }
+export interface Category {
+  id: string;
+  name: string;
+  description: string;
+}
+export interface Location {
+  id: string;
+  name: string;
+  description: string;
+}
 export interface Item {
-  id: string; sku: string; name: string; description: string; categoryId: string; unit: string;
-  minStock: number; barcode: string; imageUrl?: string; isActive: boolean; locationId: string;
-  quantity: number; averageUnitCost?: number; createdAt: string;
+  id: string;
+  sku: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  unit: string;
+  minStock: number;
+  barcode: string;
+  imageUrl?: string;
+  isActive: boolean;
+  locationId: string;
+  quantity: number;
+  averageUnitCost?: number;
+  createdAt: string;
 }
 export interface StockTransaction {
-  id: string; itemId: string; locationId: string; type: TransactionType; quantity: number;
-  before: number; after: number; referenceNo?: string; employeeName?: string; department?: string; approvedBy?: string;
-  purpose?: string; note?: string; destinationLocationId?:string; user: string; createdAt: string;
-  unitCost?: number; totalCost?: number;
+  id: string;
+  itemId: string;
+  locationId: string;
+  type: TransactionType;
+  quantity: number;
+  before: number;
+  after: number;
+  referenceNo?: string;
+  employeeName?: string;
+  department?: string;
+  approvedBy?: string;
+  purpose?: string;
+  note?: string;
+  destinationLocationId?: string;
+  user: string;
+  createdAt: string;
+  unitCost?: number;
+  totalCost?: number;
 }
-export interface StockAdjustmentInput { itemId:string; locationId:string; countedQuantity:number; referenceNo:string; reason:string; note?:string }
-export interface StockTransferInput { itemId:string; sourceLocationId:string; destinationLocationId:string; quantity:number; referenceNo:string; reason:string; note?:string }
+export interface StockAdjustmentInput {
+  itemId: string;
+  locationId: string;
+  countedQuantity: number;
+  referenceNo: string;
+  reason: string;
+  note?: string;
+}
+export interface StockTransferInput {
+  itemId: string;
+  sourceLocationId: string;
+  destinationLocationId: string;
+  quantity: number;
+  referenceNo: string;
+  reason: string;
+  note?: string;
+}
 export interface StockChangeInput {
-  itemId: string; locationId: string; quantity: number; referenceNo?: string; supplier?: string;
+  itemId: string;
+  locationId: string;
+  quantity: number;
+  referenceNo?: string;
+  supplier?: string;
   totalPurchaseCost?: number;
-  employeeName?: string; department?: string; approvedBy?: string; purpose?: string; note?: string;
+  employeeName?: string;
+  department?: string;
+  approvedBy?: string;
+  purpose?: string;
+  note?: string;
 }
 
 export interface RenewalItem {
-  id: string; name: string; category: string; expiryDate: string; remindDays: number;
-  owner: string; note: string; isActive: boolean; cycleCount: number; cycleUnit: 'month'|'year';
-  cost?: number; documentUrl?: string; lastRenewedAt?: string; updatedAt: string;
+  id: string;
+  name: string;
+  category: string;
+  expiryDate: string;
+  remindDays: number;
+  owner: string;
+  note: string;
+  isActive: boolean;
+  cycleCount: number;
+  cycleUnit: "month" | "year";
+  cost?: number;
+  documentUrl?: string;
+  lastRenewedAt?: string;
+  updatedAt: string;
 }
 export interface RenewalHistoryEntry {
-  id:string; renewalId:string; itemName:string; previousExpiryDate:string; newExpiryDate:string;
-  cost:number; documentUrl?:string; renewedBy:string; renewedAt:string;
+  id: string;
+  renewalId: string;
+  itemName: string;
+  previousExpiryDate: string;
+  newExpiryDate: string;
+  cost: number;
+  documentUrl?: string;
+  renewedBy: string;
+  renewedAt: string;
 }
-export interface RenewalActionInput { newExpiryDate:string; cost:number; documentUrl?:string; note?:string }
-export interface PurchaseRequestLine { itemId:string; sku:string; name:string; quantity:number; unit:string }
+export interface RenewalActionInput {
+  newExpiryDate: string;
+  cost: number;
+  documentUrl?: string;
+  note?: string;
+}
+export interface PurchaseRequestLine {
+  itemId: string;
+  sku: string;
+  name: string;
+  quantity: number;
+  unit: string;
+}
 export interface PurchaseRequest {
-  id:string; requestNo:string; status:'DRAFT'|'SUBMITTED'|'ORDERED'|'CANCELLED'; lines:PurchaseRequestLine[];
-  note:string; requestedBy:string; createdAt:string; updatedAt:string;
+  id: string;
+  requestNo: string;
+  status: "DRAFT" | "SUBMITTED" | "ORDERED" | "CANCELLED";
+  lines: PurchaseRequestLine[];
+  note: string;
+  requestedBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export type IssueRequestStatus = 'PENDING'|'APPROVED'|'REJECTED'|'CANCELLED'
+export type IssueRequestStatus =
+  | "PENDING"
+  | "READY_TO_FULFILL"
+  | "FULFILLED"
+  | "APPROVED"
+  | "REJECTED"
+  | "CANCELLED";
 export interface IssueRequestLine {
-  id:string;itemId:string;locationId:string;quantity:number;sku:string;itemName:string;unit:string;
-  locationName:string;availableQuantity:number;note:string;
+  id: string;
+  itemId: string;
+  locationId: string;
+  quantity: number;
+  sku: string;
+  itemName: string;
+  unit: string;
+  locationName: string;
+  availableQuantity: number;
+  note: string;
 }
 export interface IssueRequest {
-  id:string;requestNo:string;status:IssueRequestStatus;recipientName:string;department:string;note:string;
-  signaturePath?:string;
-  rejectionReason:string;requestedBy:string;requestedByName:string;reviewedBy?:string;reviewedByName?:string;
-  reviewedAt?:string;createdAt:string;updatedAt:string;lines:IssueRequestLine[];
+  id: string;
+  requestNo: string;
+  status: IssueRequestStatus;
+  recipientName: string;
+  department: string;
+  note: string;
+  signaturePath?: string;
+  rejectionReason: string;
+  requestedBy: string;
+  requestedByName: string;
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: string;
+  fulfilledBy?: string;
+  fulfilledByName?: string;
+  fulfilledAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  lines: IssueRequestLine[];
 }
 export interface NewIssueRequest {
-  recipientName:string;department:string;signature:Blob;
-  lines:Array<{itemId:string;locationId:string;quantity:number;note?:string}>;
+  recipientName: string;
+  department: string;
+  signature: Blob;
+  lines: Array<{
+    itemId: string;
+    locationId: string;
+    quantity: number;
+    note?: string;
+  }>;
 }

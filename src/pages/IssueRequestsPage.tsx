@@ -20,12 +20,16 @@ import { issueRequestService } from "../services/issueRequestService";
 
 const statusLabel: Record<IssueRequestStatus, string> = {
   PENDING: "รออนุมัติ",
+  READY_TO_FULFILL: "อนุมัติแล้ว–รอเบิก",
+  FULFILLED: "เบิกของเรียบร้อยแล้ว",
   APPROVED: "อนุมัติแล้ว",
   REJECTED: "ไม่อนุมัติ",
   CANCELLED: "ยกเลิก",
 };
 const statusIcon: Record<IssueRequestStatus, typeof Clock3> = {
   PENDING: Clock3,
+  READY_TO_FULFILL: Clock3,
+  FULFILLED: CheckCircle2,
   APPROVED: CheckCircle2,
   REJECTED: XCircle,
   CANCELLED: XCircle,
@@ -354,7 +358,11 @@ export function IssueRequestsPage({
   const activeItems = items.filter(
     (item) => item.isActive && item.quantity > 0,
   );
-  const history = requests.filter((row) => row.status !== "PENDING");
+  const history = requests.filter((row) =>
+    operator
+      ? !["PENDING", "READY_TO_FULFILL"].includes(row.status)
+      : row.status !== "PENDING",
+  );
   const flash = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 3000);
