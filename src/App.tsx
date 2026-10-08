@@ -221,7 +221,9 @@ export default function App() {
               />
             </Route>
             <Route
-              element={<ProtectedRoute roles={["admin", "staff", "fulfiller"]} />}
+              element={
+                <ProtectedRoute roles={["admin", "staff", "fulfiller"]} />
+              }
             >
               <Route path="fulfillment" element={<FulfillmentPage />} />
               <Route path="inventory" element={<InventoryPage />} />
@@ -231,7 +233,11 @@ export default function App() {
               <Route path="reports" element={<ReportsPage />} />
               <Route path="categories" element={<CategoriesPage />} />
             </Route>
-            <Route element={<ProtectedRoute roles={["admin", "staff"]} />}>
+            <Route
+              element={
+                <ProtectedRoute roles={["admin", "staff", "fulfiller"]} />
+              }
+            >
               <Route path="stock-in" element={<StockFormPage mode="IN" />} />
               <Route path="stock-out" element={<StockFormPage mode="OUT" />} />
               <Route
@@ -242,6 +248,8 @@ export default function App() {
                 path="stock-transfer"
                 element={<StockControlPage mode="TRANSFER" />}
               />
+            </Route>
+            <Route element={<ProtectedRoute roles={["admin", "staff"]} />}>
               <Route path="renewals" element={<RenewalsPage />} />
               <Route
                 path="purchase-requests"

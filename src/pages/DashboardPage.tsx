@@ -37,7 +37,9 @@ export function DashboardPage() {
       <section
         className={`essential-top-grid ${user?.role === "viewer" ? "viewer" : ""}`}
       >
-        {(user?.role === "admin" || user?.role === "staff") && (
+        {(user?.role === "admin" ||
+          user?.role === "staff" ||
+          user?.role === "fulfiller") && (
           <div className="essential-actions">
             <Link className="essential-action receive" to="/stock-in">
               <span>

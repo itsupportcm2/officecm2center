@@ -271,10 +271,12 @@ export function AppLayout() {
                       <em className="nav-count">{readyIssueRequests.length}</em>
                     )}
                   </NavLink>
-                  <NavLink to="/history" onClick={() => setOpen(false)}>
-                    <History size={19} />
-                    <span>ประวัติ</span>
-                  </NavLink>
+                  {subNav.map(([to, Icon, label]) => (
+                    <NavLink key={to} to={to} onClick={() => setOpen(false)}>
+                      <Icon size={19} />
+                      <span>{label}</span>
+                    </NavLink>
+                  ))}
                 </div>
               )}
               <NavLink to="/reports" onClick={() => setOpen(false)}>
@@ -433,7 +435,7 @@ export function AppLayout() {
                 <kbd>Ctrl + K</kbd>
               </label>
             )}
-            {dashboard && isOperator && (
+            {dashboard && canViewStock && (
               <>
                 <NavLink to="/stock-in" className="header-action receive">
                   <ArrowDownToLine />
