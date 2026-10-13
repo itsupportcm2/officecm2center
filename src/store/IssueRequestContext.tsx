@@ -40,7 +40,7 @@ export function IssueRequestProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const lastLoadAtRef = useRef(0);
   const reload = useCallback(async () => {
-    if (!isSupabaseConfigured || !user || user.role === "viewer") {
+    if (!isSupabaseConfigured || !user || user.role === "viewer" || user.role === "employee_document_officer") {
       setRequests([]);
       return;
     }

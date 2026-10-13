@@ -69,6 +69,7 @@ const roleLabel: Record<Role, string> = {
   staff: "เจ้าหน้าที่",
   issuer: "ผู้ขอเบิกสินค้า",
   fulfiller: "เจ้าหน้าที่เบิกของ",
+  employee_document_officer: "เจ้าหน้าที่เอกสารแรงงานต่างด้าว",
   viewer: "ยังไม่ได้รับสิทธิ์",
 };
 
@@ -399,6 +400,7 @@ export function UsersPage() {
                 <option value="staff">เจ้าหน้าที่</option>
                 <option value="issuer">ผู้ขอเบิกสินค้า</option>
                 <option value="fulfiller">เจ้าหน้าที่เบิกของ</option>
+                <option value="employee_document_officer">เจ้าหน้าที่เอกสารแรงงานต่างด้าว</option>
               </select>
             </label>
           </div>

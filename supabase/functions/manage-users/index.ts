@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const roles = new Set(["admin", "staff", "issuer", "fulfiller"]);
+const roles = new Set(["admin", "staff", "issuer", "fulfiller", "employee_document_officer"]);
 const departments = new Set([
   "EC",
   "HR",

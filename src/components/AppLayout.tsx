@@ -128,6 +128,7 @@ const titles: Record<string, string> = {
   "/audit-log": "บันทึกกิจกรรม",
   "/data-tools": "สำรองและกู้คืนข้อมูล",
   "/settings": "ตั้งค่า",
+  "/migrant-workers": "เอกสารแรงงานต่างด้าว",
 };
 titles["/"] = "ระบบจัดการสำนักงาน CM";
 const renewalDate = (date: string) =>
@@ -153,6 +154,7 @@ export function AppLayout() {
   const issueAlertKey = `issue-request-alert:${user?.id ?? "guest"}`;
   const isIssuer = user?.role === "issuer";
   const isFulfiller = user?.role === "fulfiller";
+  const isEmployeeDocumentOfficer = user?.role === "employee_document_officer";
   const isOperator = user?.role === "admin" || user?.role === "staff";
   const canViewStock = isOperator || isFulfiller;
   const [renewalAlertsEnabled, setRenewalAlertsEnabled] = useState(() => {
@@ -268,6 +270,12 @@ export function AppLayout() {
           </button>
         </div>
         <nav className="ops-nav">
+          {isEmployeeDocumentOfficer && (
+            <NavLink to="/migrant-workers" onClick={() => setOpen(false)}>
+              <Users size={21} />
+              <span>เอกสารแรงงานต่างด้าว</span>
+            </NavLink>
+          )}
           {isIssuer && (
             <>
               <NavLink to="/issue-requests" onClick={() => setOpen(false)}>
@@ -426,7 +434,9 @@ export function AppLayout() {
                   ? "เจ้าหน้าที่พัสดุ"
                   : isIssuer
                     ? "ผู้ขอเบิกสินค้า"
-                    : isFulfiller
+                    : isEmployeeDocumentOfficer
+                      ? "เจ้าหน้าที่เอกสารแรงงานต่างด้าว"
+                      : isFulfiller
                       ? "เจ้าหน้าที่เบิกของ"
                       : "ยังไม่ได้รับสิทธิ์"}
             </span>

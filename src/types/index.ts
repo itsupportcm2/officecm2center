@@ -1,4 +1,4 @@
-export type Role = "admin" | "staff" | "issuer" | "fulfiller" | "viewer";
+export type Role = "admin" | "staff" | "issuer" | "fulfiller" | "employee_document_officer" | "viewer";
 export type TransactionType = "IN" | "OUT" | "ADJUST" | "TRANSFER";
 
 export interface Category {

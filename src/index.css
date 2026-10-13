@@ -4720,6 +4720,19 @@ body,
   color: #1d4ed8;
   background: #e8f0ff;
 }
+.role-employee_document_officer { color:#176b5a; background:#e3f8f1; }
+.migrant-documents-page .page-actions { display:flex; gap:.65rem; flex-wrap:wrap; }
+.migrant-documents-page .summary-grid,.migrant-documents-page .card { margin-bottom:1.25rem; }
+.migrant-documents-page .card-header { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; }
+.migrant-documents-page .card-header h2 { display:flex; align-items:center; gap:.55rem; margin:0; }
+.migrant-documents-page .card-header p { margin:.35rem 0 0; color:var(--muted); }
+.filter-tabs { display:flex; gap:.35rem; flex-wrap:wrap; }
+.filter-tabs button { border:1px solid var(--border); background:#fff; border-radius:8px; padding:.45rem .7rem; cursor:pointer; }
+.filter-tabs button.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.document-chip { display:inline-block; margin:0 .25rem .25rem 0; padding:.2rem .45rem; border-radius:999px; background:#eef4ff; color:#2358ad; font-size:.78rem; }
+.status-expired { color:#b42318; background:#fef0f0; }.status-due { color:#9a6700; background:#fff7d6; }.status-normal { color:#137333; background:#e9f8ed; }
+.checkbox-row { display:flex; align-items:center; gap:.5rem; }
+@media (max-width:720px){.migrant-documents-page .card-header{flex-direction:column}}
 .nav-count {
   margin-left: auto;
   min-width: 21px;

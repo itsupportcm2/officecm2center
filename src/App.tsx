@@ -103,6 +103,9 @@ const FulfillmentPage = lazy(() =>
     default: module.FulfillmentPage,
   })),
 );
+const MigrantWorkerDocumentsPage = lazy(() =>
+  import("./pages/MigrantWorkerDocumentsPage").then((module) => ({ default: module.MigrantWorkerDocumentsPage })),
+);
 
 function LoadingShell({ label }: { label: string }) {
   return (
@@ -153,6 +156,7 @@ function ProtectedRoute({ roles }: { roles?: Role[] }) {
 function HomePage() {
   const { user } = useAuth();
   if (user?.role === "issuer") return <Navigate to="/issue-requests" replace />;
+  if (user?.role === "employee_document_officer") return <Navigate to="/migrant-workers" replace />;
   if (user?.role === "viewer")
     return (
       <div className="route-loading">
@@ -172,6 +176,8 @@ export default function App() {
       const pages =
         user.role === "issuer"
           ? [import("./pages/IssueRequestsPage")]
+          : user.role === "employee_document_officer"
+            ? [import("./pages/MigrantWorkerDocumentsPage")]
           : [
               import("./pages/InventoryPage"),
               import("./pages/StockFormPage"),
@@ -255,6 +261,9 @@ export default function App() {
                 path="purchase-requests"
                 element={<PurchaseRequestsPage />}
               />
+            </Route>
+            <Route element={<ProtectedRoute roles={["admin", "staff", "employee_document_officer"]} />}>
+              <Route path="migrant-workers" element={<MigrantWorkerDocumentsPage />} />
             </Route>
             <Route element={<ProtectedRoute roles={["admin"]} />}>
               <Route path="locations" element={<LocationsPage />} />

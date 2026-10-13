@@ -54,7 +54,7 @@ export const StockProvider=({children}:{children:ReactNode})=>{
   if(showLoading)setLoading(true)
   try{
    const snapshot=await inventoryService.loadSnapshot(userRole,userName)
-   const history=fullHistoryLoadedRef.current&&userRole!=='issuer'?await inventoryService.loadHistory(userRole,userName):snapshot.history
+   const history=fullHistoryLoadedRef.current&&userRole!=='issuer'&&userRole!=='employee_document_officer'?await inventoryService.loadHistory(userRole,userName):snapshot.history
    if(token!==loadTokenRef.current)return
    const {inventory}=snapshot
    setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setBalances(inventory.balances)
@@ -70,7 +70,7 @@ export const StockProvider=({children}:{children:ReactNode})=>{
  },[localMode,userId,userRole,userName])
 
  const loadHistory=useCallback(async(itemId?:string)=>{
-  if(localMode||!userId||userRole==='issuer')return
+  if(localMode||!userId||userRole==='issuer'||userRole==='employee_document_officer')return
   if(!itemId&&fullHistoryLoadedRef.current)return
   if(itemId&&(fullHistoryLoadedRef.current||loadedItemHistoryRef.current.has(itemId)))return
   const startedAt=beginTiming();setHistoryLoading(true)
@@ -83,7 +83,7 @@ export const StockProvider=({children}:{children:ReactNode})=>{
 
  useLayoutEffect(()=>{
   if(localMode){setLoading(false);return}
-  if(!userId||!userRole){loadTokenRef.current+=1;hasDataRef.current=false;fullHistoryLoadedRef.current=false;loadedItemHistoryRef.current.clear();setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
+  if(!userId||!userRole||userRole==='employee_document_officer'){loadTokenRef.current+=1;hasDataRef.current=false;fullHistoryLoadedRef.current=false;loadedItemHistoryRef.current.clear();setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
   const cached=readStockSnapshot(sessionStorage,userId,userRole)
   if(cached){setItems(cached.items);setCategories(cached.categories);setLocations(cached.locations);setTransactions(cached.transactions);setBalances(cached.balances);setError(null);setLoading(false);hasDataRef.current=true;void reloadData(false).catch(()=>undefined)}
   else{hasDataRef.current=false;void reloadData(true).catch(()=>undefined)}

@@ -56,6 +56,13 @@ const demoProfiles: Record<string, AuthUser> = {
     role: "fulfiller",
     department: "ST",
   },
+  employee_document_officer: {
+    id: "demo-employee-document-officer",
+    name: "เจ้าหน้าที่เอกสารแรงงาน",
+    email: "documents@example.co.th",
+    role: "employee_document_officer",
+    department: "HR",
+  },
   viewer: {
     id: "demo-viewer",
     name: "สุภาวดี มีสุข",
@@ -169,6 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? "issuer"
             : normalized.startsWith("fulfiller")
               ? "fulfiller"
+              : normalized.startsWith("documents")
+                ? "employee_document_officer"
               : normalized.startsWith("viewer")
                 ? "viewer"
                 : normalized.startsWith("staff")
