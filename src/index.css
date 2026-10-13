@@ -5221,3 +5221,79 @@ body,
     max-width: 260px;
   }
 }
+
+/* Migrant Worker Combined Form Styles */
+.section-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--line, #e2e8f0);
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #475467;
+}
+.checkbox-inline input {
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+.combined-doc-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  margin-top: 10px;
+}
+.combined-doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #cbd5e1;
+}
+.combined-doc-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #0f172a;
+}
+.text-danger {
+  color: #dc2626 !important;
+}
+.add-doc-btn {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+  border: 1.5px dashed #cbd5e1;
+  background: #f1f5f9;
+  padding: 8px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.add-doc-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+

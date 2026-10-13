@@ -2,8 +2,10 @@ import {
   AlertTriangle,
   Edit3,
   FilePlus2,
+  FileText,
   Plus,
   RefreshCw,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +26,34 @@ const labels: Record<MigrantDocumentType, string> = {
   WORK_PERMIT: "ใบอนุญาตทำงาน",
 };
 const TITLES = ["นาย", "นาง", "นางสาว", "MR.", "MRS.", "MS."];
+export interface InitialDocItem {
+  id: string;
+  documentType: MigrantDocumentType;
+  documentNumber: string;
+  issuedOn: string | null;
+  expiresOn: string | null;
+  visaIssuedOn: string | null;
+  visaExpiresOn: string | null;
+  areaPermitIssuedOn: string | null;
+  areaPermitExpiresOn: string | null;
+  remindDays: number;
+  note: string;
+}
+const blankNewDoc = (
+  type: MigrantDocumentType = "PASSPORT_RED",
+): InitialDocItem => ({
+  id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  documentType: type,
+  documentNumber: "",
+  issuedOn: null,
+  expiresOn: null,
+  visaIssuedOn: null,
+  visaExpiresOn: null,
+  areaPermitIssuedOn: null,
+  areaPermitExpiresOn: null,
+  remindDays: 30,
+  note: "",
+});
 const blankWorker = (): Omit<ForeignWorker, "createdAt" | "updatedAt"> => ({
   id: "",
   employeeCode: "",
@@ -81,6 +111,27 @@ export function MigrantWorkerDocumentsPage() {
   const [docForm, setDocForm] = useState(blankDoc());
   const [workerOpen, setWorkerOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
+  const [includeDocs, setIncludeDocs] = useState(true);
+  const [workerDocs, setWorkerDocs] = useState<InitialDocItem[]>([
+    blankNewDoc("PASSPORT_RED"),
+  ]);
+  const addDocRow = () => {
+    const hasWorkPermit = workerDocs.some(
+      (d) => d.documentType === "WORK_PERMIT",
+    );
+    setWorkerDocs([
+      ...workerDocs,
+      blankNewDoc(hasWorkPermit ? "PASSPORT_RED" : "WORK_PERMIT"),
+    ]);
+  };
+  const removeDocRow = (id: string) => {
+    setWorkerDocs(workerDocs.filter((d) => d.id !== id));
+  };
+  const updateDocRow = (id: string, updates: Partial<InitialDocItem>) => {
+    setWorkerDocs(
+      workerDocs.map((d) => (d.id === id ? { ...d, ...updates } : d)),
+    );
+  };
   const load = async () => {
     setLoading(true);
     try {
@@ -163,9 +214,45 @@ export function MigrantWorkerDocumentsPage() {
       setToast("กรุณาเลือกแผนก");
       return;
     }
+
+    if (!workerForm.id && includeDocs && workerDocs.length > 0) {
+      for (let i = 0; i < workerDocs.length; i++) {
+        const d = workerDocs[i];
+        const docLabel = labels[d.documentType];
+        if (d.documentType !== "WORK_PERMIT" && !d.documentNumber.trim()) {
+          setToast(
+            `กรุณากรอกเลขที่เอกสารสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
+          );
+          return;
+        }
+        if (!d.expiresOn) {
+          setToast(
+            `กรุณาระบุวันหมดอายุสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
+          );
+          return;
+        }
+        if (
+          (d.documentType === "PASSPORT_RED" ||
+            d.documentType === "PASSPORT_GREEN") &&
+          !d.visaExpiresOn
+        ) {
+          setToast(
+            `กรุณาระบุวันหมดอายุวีซ่าสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
+          );
+          return;
+        }
+        if (d.documentType === "TEN_YEAR_CARD" && !d.areaPermitExpiresOn) {
+          setToast(
+            `กรุณาระบุวันหมดอายุใบออกนอกพื้นที่สำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
+          );
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     try {
-      await migrantWorkerService.saveWorker({
+      const savedWorker = await migrantWorkerService.saveWorker({
         ...workerForm,
         employeeCode: workerForm.employeeCode.trim(),
         fullName: workerForm.fullName.trim(),
@@ -176,7 +263,36 @@ export function MigrantWorkerDocumentsPage() {
         position: workerForm.position.trim(),
         note: (workerForm.note ?? "").trim(),
       });
-      setToast("บันทึกข้อมูลพนักงานแล้ว");
+
+      if (!workerForm.id && includeDocs && workerDocs.length > 0) {
+        for (const d of workerDocs) {
+          const isPassport =
+            d.documentType === "PASSPORT_RED" ||
+            d.documentType === "PASSPORT_GREEN";
+          const isArea = d.documentType === "TEN_YEAR_CARD";
+          await migrantWorkerService.saveDocument({
+            id: "",
+            workerId: savedWorker.id,
+            documentType: d.documentType,
+            documentNumber: d.documentNumber.trim(),
+            issuedOn: d.issuedOn,
+            expiresOn: d.expiresOn,
+            visaIssuedOn: isPassport ? d.visaIssuedOn : null,
+            visaExpiresOn: isPassport ? d.visaExpiresOn : null,
+            areaPermitIssuedOn: isArea ? d.areaPermitIssuedOn : null,
+            areaPermitExpiresOn: isArea ? d.areaPermitExpiresOn : null,
+            remindDays: d.remindDays,
+            note: d.note.trim(),
+            isActive: true,
+          });
+        }
+      }
+
+      setToast(
+        !workerForm.id && includeDocs && workerDocs.length > 0
+          ? `บันทึกข้อมูลพนักงานและเอกสาร ${workerDocs.length} ฉบับเรียบร้อยแล้ว`
+          : "บันทึกข้อมูลพนักงานแล้ว",
+      );
       setWorkerOpen(false);
       await load();
     } catch (error) {
@@ -261,6 +377,8 @@ export function MigrantWorkerDocumentsPage() {
             className="btn secondary"
             onClick={() => {
               setWorkerForm(blankWorker());
+              setWorkerDocs([blankNewDoc("PASSPORT_RED")]);
+              setIncludeDocs(true);
               setWorkerOpen(true);
             }}
           >
@@ -429,6 +547,7 @@ export function MigrantWorkerDocumentsPage() {
                         className="icon-action"
                         onClick={() => {
                           setWorkerForm({ ...w });
+                          setIncludeDocs(false);
                           setWorkerOpen(true);
                         }}
                       >
@@ -456,111 +575,343 @@ export function MigrantWorkerDocumentsPage() {
       </div>
       {workerOpen && (
         <Modal
-          title={workerForm.id ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงาน"}
+          title={workerForm.id ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงานและเอกสาร"}
           onClose={() => setWorkerOpen(false)}
         >
-          <div className="modal-body form-grid">
-            <label>
-              รหัสบุคลากร *
-              <input
-                value={workerForm.employeeCode}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, employeeCode: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              คำนำหน้า
-              <select
-                value={workerForm.title}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, title: e.target.value })
-                }
-              >
-                <option value="">เลือกคำนำหน้า</option>
-                {TITLES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-                {workerForm.title && !TITLES.includes(workerForm.title) && (
-                  <option value={workerForm.title}>{workerForm.title}</option>
+          <div className="modal-body form-stack">
+            <div>
+              <h3 className="section-title">
+                <Users size={16} /> ข้อมูลพนักงาน
+              </h3>
+              <div className="form-grid" style={{ marginTop: "10px" }}>
+                <label>
+                  รหัสบุคลากร *
+                  <input
+                    value={workerForm.employeeCode}
+                    onChange={(e) =>
+                      setWorkerForm({
+                        ...workerForm,
+                        employeeCode: e.target.value,
+                      })
+                    }
+                    placeholder="เช่น CM-1234"
+                  />
+                </label>
+                <label>
+                  คำนำหน้า
+                  <select
+                    value={workerForm.title}
+                    onChange={(e) =>
+                      setWorkerForm({ ...workerForm, title: e.target.value })
+                    }
+                  >
+                    <option value="">เลือกคำนำหน้า</option>
+                    {TITLES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                    {workerForm.title && !TITLES.includes(workerForm.title) && (
+                      <option value={workerForm.title}>
+                        {workerForm.title}
+                      </option>
+                    )}
+                  </select>
+                </label>
+                <label>
+                  ชื่อ-สกุล *
+                  <input
+                    value={workerForm.fullName}
+                    onChange={(e) =>
+                      setWorkerForm({ ...workerForm, fullName: e.target.value })
+                    }
+                    placeholder="ชื่อและนามสกุล"
+                  />
+                </label>
+                <label>
+                  แผนกในระบบ *
+                  <select
+                    value={workerForm.department}
+                    onChange={(e) =>
+                      setWorkerForm({
+                        ...workerForm,
+                        department: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">เลือกแผนก</option>
+                    {DEPARTMENTS.map((x) => (
+                      <option key={x}>{x}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  ตำแหน่ง
+                  <input
+                    value={workerForm.position}
+                    onChange={(e) =>
+                      setWorkerForm({ ...workerForm, position: e.target.value })
+                    }
+                    placeholder="เช่น พนักงานฝ่ายผลิต"
+                  />
+                </label>
+                <label>
+                  สัญชาติ
+                  <input
+                    value={workerForm.nationality}
+                    onChange={(e) =>
+                      setWorkerForm({
+                        ...workerForm,
+                        nationality: e.target.value,
+                      })
+                    }
+                    placeholder="เช่น เมียนมา, ลาว, กัมพูชา"
+                  />
+                </label>
+                <label>
+                  วันเกิด
+                  <input
+                    type="date"
+                    value={workerForm.birthDate ?? ""}
+                    onChange={(e) =>
+                      setWorkerForm({
+                        ...workerForm,
+                        birthDate: e.target.value || null,
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  เลขประจำตัว / บัตรประชาชน
+                  <input
+                    value={workerForm.nationalId}
+                    onChange={(e) =>
+                      setWorkerForm({
+                        ...workerForm,
+                        nationalId: e.target.value,
+                      })
+                    }
+                    placeholder="เลข 13 หลัก หรือเลขประจำตัว"
+                  />
+                </label>
+                <label className="checkbox-row full">
+                  <input
+                    type="checkbox"
+                    checked={workerForm.isActive}
+                    onChange={(e) =>
+                      setWorkerForm({
+                        ...workerForm,
+                        isActive: e.target.checked,
+                      })
+                    }
+                  />{" "}
+                  ใช้งานข้อมูลพนักงานนี้
+                </label>
+              </div>
+            </div>
+
+            {!workerForm.id && (
+              <div className="doc-section-wrapper">
+                <div className="section-title-bar">
+                  <h3 className="section-title">
+                    <FileText size={16} /> ข้อมูลเอกสาร
+                  </h3>
+                  <label className="checkbox-inline">
+                    <input
+                      type="checkbox"
+                      checked={includeDocs}
+                      onChange={(e) => setIncludeDocs(e.target.checked)}
+                    />{" "}
+                    เพิ่มเอกสารพร้อมกัน
+                  </label>
+                </div>
+
+                {includeDocs && (
+                  <div className="doc-list-container">
+                    {workerDocs.map((doc, idx) => {
+                      const isPassport =
+                        doc.documentType === "PASSPORT_RED" ||
+                        doc.documentType === "PASSPORT_GREEN";
+                      const isArea = doc.documentType === "TEN_YEAR_CARD";
+                      return (
+                        <div key={doc.id} className="combined-doc-card">
+                          <div className="combined-doc-header">
+                            <span className="combined-doc-badge">
+                              <FileText size={15} /> ฉบับที่ {idx + 1}:{" "}
+                              {labels[doc.documentType]}
+                            </span>
+                            {workerDocs.length > 1 && (
+                              <button
+                                type="button"
+                                className="icon-action text-danger"
+                                onClick={() => removeDocRow(doc.id)}
+                                title="ลบเอกสารฉบับนี้"
+                              >
+                                <Trash2 size={15} /> ลบฉบับนี้
+                              </button>
+                            )}
+                          </div>
+                          <div className="form-grid">
+                            <label>
+                              ประเภทเอกสาร *
+                              <select
+                                value={doc.documentType}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    documentType: e.target
+                                      .value as MigrantDocumentType,
+                                  })
+                                }
+                              >
+                                {Object.entries(labels).map(([k, v]) => (
+                                  <option value={k} key={k}>
+                                    {v}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              {doc.documentType === "WORK_PERMIT"
+                                ? "เลขที่เอกสาร (ถ้ามี)"
+                                : "เลขที่เอกสาร *"}
+                              <input
+                                value={doc.documentNumber}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    documentNumber: e.target.value,
+                                  })
+                                }
+                                placeholder={
+                                  doc.documentType === "WORK_PERMIT"
+                                    ? "ระบุเลขที่เอกสาร (เว้นว่างได้)"
+                                    : isPassport
+                                      ? "เช่น ME... หรือ CC..."
+                                      : "ระบุเลขที่เอกสาร"
+                                }
+                              />
+                            </label>
+                            <label>
+                              {doc.documentType === "WORK_PERMIT"
+                                ? "วันออกใบอนุญาต"
+                                : isPassport
+                                  ? "วันออกเล่มพาสปอร์ต"
+                                  : "วันออกบัตร"}
+                              <input
+                                type="date"
+                                value={doc.issuedOn ?? ""}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    issuedOn: e.target.value || null,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label>
+                              {doc.documentType === "WORK_PERMIT"
+                                ? "วันหมดอายุใบอนุญาต *"
+                                : isPassport
+                                  ? "วันหมดอายุเล่มพาสปอร์ต *"
+                                  : "วันหมดอายุบัตร *"}
+                              <input
+                                type="date"
+                                value={doc.expiresOn ?? ""}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    expiresOn: e.target.value || null,
+                                  })
+                                }
+                              />
+                            </label>
+                            {isPassport && (
+                              <>
+                                <label>
+                                  วันออกวีซ่า
+                                  <input
+                                    type="date"
+                                    value={doc.visaIssuedOn ?? ""}
+                                    onChange={(e) =>
+                                      updateDocRow(doc.id, {
+                                        visaIssuedOn: e.target.value || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label>
+                                  วันหมดอายุวีซ่า *
+                                  <input
+                                    type="date"
+                                    value={doc.visaExpiresOn ?? ""}
+                                    onChange={(e) =>
+                                      updateDocRow(doc.id, {
+                                        visaExpiresOn:
+                                          e.target.value || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                              </>
+                            )}
+                            {isArea && (
+                              <>
+                                <label>
+                                  วันออกใบออกนอกพื้นที่ *
+                                  <input
+                                    type="date"
+                                    value={doc.areaPermitIssuedOn ?? ""}
+                                    onChange={(e) =>
+                                      updateDocRow(doc.id, {
+                                        areaPermitIssuedOn:
+                                          e.target.value || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label>
+                                  วันหมดอายุใบออกนอกพื้นที่ *
+                                  <input
+                                    type="date"
+                                    value={doc.areaPermitExpiresOn ?? ""}
+                                    onChange={(e) =>
+                                      updateDocRow(doc.id, {
+                                        areaPermitExpiresOn:
+                                          e.target.value || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                              </>
+                            )}
+                            <label>
+                              แจ้งเตือนล่วงหน้า (วัน)
+                              <input
+                                type="number"
+                                min="0"
+                                max="365"
+                                value={doc.remindDays}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    remindDays: Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      className="btn secondary compact add-doc-btn"
+                      onClick={addDocRow}
+                    >
+                      <Plus size={15} /> เพิ่มเอกสารอีกฉบับ (เช่น
+                      ใบอนุญาตทำงาน)
+                    </button>
+                  </div>
                 )}
-              </select>
-            </label>
-            <label>
-              ชื่อ-สกุล *
-              <input
-                value={workerForm.fullName}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, fullName: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              เลขบัตรประชาชน
-              <input
-                value={workerForm.nationalId}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, nationalId: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              วันเกิด
-              <input
-                type="date"
-                value={workerForm.birthDate ?? ""}
-                onChange={(e) =>
-                  setWorkerForm({
-                    ...workerForm,
-                    birthDate: e.target.value || null,
-                  })
-                }
-              />
-            </label>
-            <label>
-              สัญชาติ
-              <input
-                value={workerForm.nationality}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, nationality: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              แผนกในระบบ *
-              <select
-                value={workerForm.department}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, department: e.target.value })
-                }
-              >
-                <option value="">เลือกแผนก</option>
-                {DEPARTMENTS.map((x) => (
-                  <option key={x}>{x}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              ตำแหน่ง
-              <input
-                value={workerForm.position}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, position: e.target.value })
-                }
-              />
-            </label>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={workerForm.isActive}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, isActive: e.target.checked })
-                }
-              />{" "}
-              ใช้งานข้อมูลพนักงานนี้
-            </label>
+              </div>
+            )}
           </div>
           <div className="modal-actions">
             <button
@@ -574,7 +925,7 @@ export function MigrantWorkerDocumentsPage() {
               disabled={saving}
               onClick={() => void saveWorker()}
             >
-              {saving ? "กำลังบันทึก..." : "บันทึก"}
+              {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
             </button>
           </div>
         </Modal>

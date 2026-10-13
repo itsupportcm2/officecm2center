@@ -110,9 +110,9 @@ export const migrantWorkerService = {
   },
   async saveWorker(
     input: Omit<ForeignWorker, "createdAt" | "updatedAt">,
-  ): Promise<void> {
+  ): Promise<ForeignWorker> {
     if (!supabase) throw new Error("Supabase is not configured");
-    const { error } = await supabase.rpc("save_foreign_worker_details", {
+    const { data, error } = await supabase.rpc("save_foreign_worker_details", {
       p_worker_id: input.id || null,
       p_employee_code: input.employeeCode,
       p_full_name: input.fullName,
@@ -127,6 +127,7 @@ export const migrantWorkerService = {
       p_is_active: input.isActive,
     });
     if (error) throw error;
+    return worker(data);
   },
   async saveDocument(
     input: Omit<MigrantWorkerDocument, "createdAt" | "updatedAt">,
