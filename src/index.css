@@ -5297,3 +5297,80 @@ body,
   border-color: #94a3b8;
 }
 
+/* ===== Import Modal ===== */
+.import-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.import-step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.import-step-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+.import-hint {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.import-upload-area {
+  margin-top: 4px;
+}
+.import-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border: 2px dashed #94a3b8;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+.import-upload-label:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: #eff6ff;
+}
+.import-preview-table {
+  max-height: 220px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.import-preview-table table {
+  font-size: 0.8rem;
+}
+.import-row-ok td {
+  background: #f0fdf4;
+}
+.import-row-error td {
+  background: #fff7f7;
+}
+.import-success {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--teal);
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.text-muted {
+  color: var(--muted);
+  font-style: italic;
+}

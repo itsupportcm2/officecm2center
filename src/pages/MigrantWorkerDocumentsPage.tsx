@@ -1,14 +1,17 @@
 import {
   AlertTriangle,
+  Download,
   Edit3,
+  FileDown,
   FilePlus2,
   FileText,
+  FileUp,
   Plus,
   RefreshCw,
   Trash2,
   Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Toast } from "../components/ui";
 import { DEPARTMENTS } from "../constants/departments";
 import {
@@ -17,6 +20,13 @@ import {
   type MigrantDocumentType,
   type MigrantWorkerDocument,
 } from "../services/migrantWorkerService";
+import {
+  downloadTemplate,
+  exportToCSV,
+  exportToExcel,
+  parseImportFile,
+  type ImportRow,
+} from "../utils/migrantWorkerIO";
 
 const labels: Record<MigrantDocumentType, string> = {
   PASSPORT_RED: "พาสปอร์ตสีแดง",
@@ -115,6 +125,12 @@ export function MigrantWorkerDocumentsPage() {
   const [workerDocs, setWorkerDocs] = useState<InitialDocItem[]>([
     blankNewDoc("PASSPORT_RED"),
   ]);
+  // Import state
+  const [importOpen, setImportOpen] = useState(false);
+  const [importRows, setImportRows] = useState<ImportRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importDone, setImportDone] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const addDocRow = () => {
     const hasWorkPermit = workerDocs.some(
       (d) => d.documentType === "WORK_PERMIT",
@@ -358,6 +374,87 @@ export function MigrantWorkerDocumentsPage() {
       />
     </label>
   );
+  // ---- Import handler ----
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const rows = await parseImportFile(file);
+      setImportRows(rows);
+      setImportDone(false);
+    } catch {
+      setToast("อ่านไฟล์ไม่สำเร็จ กรุณาตรวจสอบรูปแบบไฟล์");
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const runImport = async () => {
+    const validRows = importRows.filter((r) => r.errors.length === 0);
+    if (!validRows.length) {
+      setToast("ไม่มีแถวที่ถูกต้องสำหรับนำเข้า");
+      return;
+    }
+    setImporting(true);
+    try {
+      // Group by employeeCode to avoid duplicate worker creation
+      const workerCodeMap = new Map<string, string>(); // code -> id
+      // Existing workers
+      for (const w of workers) workerCodeMap.set(w.employeeCode, w.id);
+
+      for (const row of validRows) {
+        let workerId = workerCodeMap.get(row.employeeCode);
+        if (!workerId) {
+          const saved = await migrantWorkerService.saveWorker({
+            id: "",
+            employeeCode: row.employeeCode,
+            title: row.title,
+            fullName: row.fullName,
+            nationality: row.nationality,
+            department: row.department,
+            organizationUnit: "",
+            nationalId: row.nationalId,
+            birthDate: row.birthDate,
+            position: "",
+            note: "",
+            isActive: true,
+          });
+          workerId = saved.id;
+          workerCodeMap.set(row.employeeCode, workerId);
+        }
+
+        if (row.documentType) {
+          const isPassport =
+            row.documentType === "PASSPORT_RED" ||
+            row.documentType === "PASSPORT_GREEN";
+          const isArea = row.documentType === "TEN_YEAR_CARD";
+          await migrantWorkerService.saveDocument({
+            id: "",
+            workerId,
+            documentType: row.documentType,
+            documentNumber: row.documentNumber,
+            issuedOn: row.issuedOn,
+            expiresOn: row.expiresOn,
+            visaIssuedOn: isPassport ? row.visaIssuedOn : null,
+            visaExpiresOn: isPassport ? row.visaExpiresOn : null,
+            areaPermitIssuedOn: isArea ? row.areaPermitIssuedOn : null,
+            areaPermitExpiresOn: isArea ? row.areaPermitExpiresOn : null,
+            remindDays: row.remindDays,
+            note: row.docNote,
+            isActive: true,
+          });
+        }
+      }
+
+      setImportDone(true);
+      setToast(`นำเข้าสำเร็จ ${validRows.length} แถว`);
+      await load();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "นำเข้าไม่สำเร็จ");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <section className="page migrant-documents-page">
       <div className="page-heading">
@@ -372,6 +469,34 @@ export function MigrantWorkerDocumentsPage() {
             disabled={loading}
           >
             <RefreshCw size={17} /> รีเฟรช
+          </button>
+          {/* Export buttons */}
+          <button
+            className="btn secondary"
+            onClick={() => exportToExcel(workers, documents)}
+            disabled={!workers.length}
+            title="ดาวน์โหลดเป็น Excel"
+          >
+            <FileDown size={17} /> Excel
+          </button>
+          <button
+            className="btn secondary"
+            onClick={() => exportToCSV(workers, documents)}
+            disabled={!workers.length}
+            title="ดาวน์โหลดเป็น CSV"
+          >
+            <Download size={17} /> CSV
+          </button>
+          {/* Import button */}
+          <button
+            className="btn secondary"
+            onClick={() => {
+              setImportRows([]);
+              setImportDone(false);
+              setImportOpen(true);
+            }}
+          >
+            <FileUp size={17} /> นำเข้าข้อมูล
           </button>
           <button
             className="btn secondary"
@@ -1054,6 +1179,129 @@ export function MigrantWorkerDocumentsPage() {
           </div>
         </Modal>
       )}
+      {/* Import Modal */}
+      {importOpen && (
+        <Modal title="นำเข้าข้อมูลจากไฟล์" onClose={() => setImportOpen(false)}>
+          <div className="modal-body import-modal-body">
+            {/* Step 1: download template */}
+            <div className="import-step">
+              <h3 className="import-step-title">1. ดาวน์โหลด Template</h3>
+              <p className="import-hint">
+                ดาวน์โหลดไฟล์ตัวอย่างเพื่อกรอกข้อมูล แล้วอัปโหลดกลับมา
+              </p>
+              <button
+                className="btn secondary compact"
+                onClick={downloadTemplate}
+              >
+                <Download size={15} /> ดาวน์โหลด Template (.xlsx)
+              </button>
+            </div>
+
+            {/* Step 2: upload file */}
+            <div className="import-step">
+              <h3 className="import-step-title">2. อัปโหลดไฟล์ข้อมูล</h3>
+              <div className="import-upload-area">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  id="import-file-input"
+                  style={{ display: "none" }}
+                  onChange={(e) => void handleImportFile(e)}
+                />
+                <label
+                  htmlFor="import-file-input"
+                  className="import-upload-label"
+                >
+                  <FileUp size={28} />
+                  <span>คลิกเพื่อเลือกไฟล์ .xlsx, .xls หรือ .csv</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Step 3: preview */}
+            {importRows.length > 0 && (
+              <div className="import-step">
+                <h3 className="import-step-title">
+                  3. ตรวจสอบข้อมูล ({importRows.length} แถว /{" "}
+                  {importRows.filter((r) => r.errors.length === 0).length}{" "}
+                  แถวถูกต้อง)
+                </h3>
+                <div className="table-wrap import-preview-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>แถว</th>
+                        <th>รหัส</th>
+                        <th>ชื่อ-สกุล</th>
+                        <th>แผนก</th>
+                        <th>ประเภทเอกสาร</th>
+                        <th>วันหมดอายุ</th>
+                        <th>สถานะ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.map((row) => (
+                        <tr
+                          key={row.rowIndex}
+                          className={row.errors.length ? "import-row-error" : "import-row-ok"}
+                        >
+                          <td className="mono">{row.rowIndex}</td>
+                          <td className="mono">{row.employeeCode}</td>
+                          <td>{row.fullName || <em className="text-muted">-</em>}</td>
+                          <td>{row.department || <em className="text-muted">-</em>}</td>
+                          <td>{row.documentType ?? <em className="text-muted">ไม่มีเอกสาร</em>}</td>
+                          <td className="mono">{row.expiresOn ?? "-"}</td>
+                          <td>
+                            {row.errors.length ? (
+                              <span className="status status-expired" title={row.errors.join(", ")}>
+                                ⚠ {row.errors.join(", ")}
+                              </span>
+                            ) : (
+                              <span className="status status-normal">✓ ถูกต้อง</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {importDone && (
+              <p className="import-success">
+                ✅ นำเข้าข้อมูลสำเร็จแล้ว สามารถปิดหน้าต่างนี้ได้
+              </p>
+            )}
+          </div>
+
+          <div className="modal-actions">
+            <button
+              className="btn secondary"
+              onClick={() => setImportOpen(false)}
+            >
+              ปิด
+            </button>
+            <button
+              className="btn primary"
+              disabled={
+                importing ||
+                importDone ||
+                !importRows.filter((r) => r.errors.length === 0).length
+              }
+              onClick={() => void runImport()}
+            >
+              {importing
+                ? "กำลังนำเข้า..."
+                : `นำเข้า ${
+                    importRows.filter((r) => r.errors.length === 0).length
+                  } แถว`}
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {toast && <Toast message={toast} />}
     </section>
   );
