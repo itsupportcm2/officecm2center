@@ -23,6 +23,7 @@ const labels: Record<MigrantDocumentType, string> = {
   TEN_YEAR_CARD: "บัตร 10 ปี",
   WORK_PERMIT: "ใบอนุญาตทำงาน",
 };
+const TITLES = ["นาย", "นาง", "นางสาว", "MR.", "MRS.", "MS."];
 const blankWorker = (): Omit<ForeignWorker, "createdAt" | "updatedAt"> => ({
   id: "",
   employeeCode: "",
@@ -170,10 +171,10 @@ export function MigrantWorkerDocumentsPage() {
         fullName: workerForm.fullName.trim(),
         nationalId: workerForm.nationalId.trim(),
         nationality: workerForm.nationality.trim(),
-        organizationUnit: workerForm.organizationUnit.trim(),
+        organizationUnit: (workerForm.organizationUnit ?? "").trim(),
         title: workerForm.title.trim(),
         position: workerForm.position.trim(),
-        note: workerForm.note.trim(),
+        note: (workerForm.note ?? "").trim(),
       });
       setToast("บันทึกข้อมูลพนักงานแล้ว");
       setWorkerOpen(false);
@@ -392,7 +393,6 @@ export function MigrantWorkerDocumentsPage() {
           <table>
             <thead>
               <tr>
-                <th>หน่วยงาน</th>
                 <th>รหัสพนักงาน</th>
                 <th>ชื่อ-นามสกุล</th>
                 <th>เลขบัตรประชาชน</th>
@@ -408,7 +408,6 @@ export function MigrantWorkerDocumentsPage() {
                 );
                 return (
                   <tr key={w.id}>
-                    <td>{w.organizationUnit || "-"}</td>
                     <td className="mono">{w.employeeCode}</td>
                     <td>
                       <b>{[w.title, w.fullName].filter(Boolean).join(" ")}</b>
@@ -462,19 +461,6 @@ export function MigrantWorkerDocumentsPage() {
         >
           <div className="modal-body form-grid">
             <label>
-              หน่วยงาน
-              <input
-                value={workerForm.organizationUnit}
-                onChange={(e) =>
-                  setWorkerForm({
-                    ...workerForm,
-                    organizationUnit: e.target.value,
-                  })
-                }
-                placeholder="เช่น PA-PACKING SEC."
-              />
-            </label>
-            <label>
               รหัสบุคลากร *
               <input
                 value={workerForm.employeeCode}
@@ -485,13 +471,22 @@ export function MigrantWorkerDocumentsPage() {
             </label>
             <label>
               คำนำหน้า
-              <input
+              <select
                 value={workerForm.title}
                 onChange={(e) =>
                   setWorkerForm({ ...workerForm, title: e.target.value })
                 }
-                placeholder="เช่น นาย, นาง, MR, MRS"
-              />
+              >
+                <option value="">เลือกคำนำหน้า</option>
+                {TITLES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+                {workerForm.title && !TITLES.includes(workerForm.title) && (
+                  <option value={workerForm.title}>{workerForm.title}</option>
+                )}
+              </select>
             </label>
             <label>
               ชื่อ-สกุล *
@@ -553,15 +548,6 @@ export function MigrantWorkerDocumentsPage() {
                 value={workerForm.position}
                 onChange={(e) =>
                   setWorkerForm({ ...workerForm, position: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              หมายเหตุ
-              <textarea
-                value={workerForm.note}
-                onChange={(e) =>
-                  setWorkerForm({ ...workerForm, note: e.target.value })
                 }
               />
             </label>
