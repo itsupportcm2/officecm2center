@@ -1,9 +1,44 @@
-import { CheckCircle2, Clock3, PackageCheck } from "lucide-react";
+import { CheckCircle2, Clock3, Eye, PackageCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Confirm, Empty, Toast } from "../components/ui";
 import { useIssueRequests } from "../store/IssueRequestContext";
 import type { IssueRequest } from "../types";
 import { formatThaiDateTime } from "../utils/date";
+import { issueRequestService } from "../services/issueRequestService";
+
+function StoredSignature({
+  path,
+  title,
+  requestNo,
+  approval = false,
+}: {
+  path?: string;
+  title: string;
+  requestNo: string;
+  approval?: boolean;
+}) {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  if (!path) return null;
+  const view = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      setUrl(
+        approval
+          ? await issueRequestService.approvalSignatureUrl(path)
+          : await issueRequestService.signatureUrl(path),
+      );
+    } catch {
+      setError("ไม่สามารถเปิดลายเซ็นได้");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return <div className="request-signature"><div><b>{title}</b><small>แนบกับคำขอ {requestNo}</small></div>{url ? <img src={url} alt={`${title}ของคำขอ ${requestNo}`} /> : <button className="btn compact secondary" onClick={() => void view()} disabled={loading}><Eye size={16}/>{loading ? "กำลังเปิด..." : "ดูลายเซ็น"}</button>}{error && <span className="negative">{error}</span>}</div>;
+}
 
 export function FulfillmentPage() {
   const { requests, ready, loading, fulfill } = useIssueRequests();
@@ -54,6 +89,8 @@ export function FulfillmentPage() {
         <span><b>ผู้อนุมัติ:</b> {request.reviewedByName ?? "-"}</span>
         {request.fulfilledByName && <span><b>ผู้เบิกของ:</b> {request.fulfilledByName}</span>}
       </div>
+      <StoredSignature path={request.signaturePath} title="ลายเซ็นหัวหน้าแผนก" requestNo={request.requestNo} />
+      <StoredSignature path={request.approvalSignaturePath} title="ลายเซ็นผู้อนุมัติ" requestNo={request.requestNo} approval />
       <div className="table-wrap">
         <table>
           <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ตำแหน่ง</th><th>หมายเหตุ</th></tr></thead>
