@@ -47,14 +47,14 @@ export const StockProvider=({children}:{children:ReactNode})=>{
 
  const reloadData=useCallback(async(showLoading=true)=>{
   if(localMode)return
-  if(!userId)return
+  if(!userId||userRole==='employee_document_officer'||userRole==='viewer')return
   const token=++loadTokenRef.current
   const startedAt=beginTiming()
   lastLoadAtRef.current=Date.now()
   if(showLoading)setLoading(true)
   try{
    const snapshot=await inventoryService.loadSnapshot(userRole,userName)
-   const history=fullHistoryLoadedRef.current&&userRole!=='issuer'&&userRole!=='employee_document_officer'?await inventoryService.loadHistory(userRole,userName):snapshot.history
+   const history=fullHistoryLoadedRef.current&&userRole!=='issuer'?await inventoryService.loadHistory(userRole,userName):snapshot.history
    if(token!==loadTokenRef.current)return
    const {inventory}=snapshot
    setItems(inventory.items);setCategories(inventory.categories);setLocations(inventory.locations);setBalances(inventory.balances)
@@ -62,15 +62,15 @@ export const StockProvider=({children}:{children:ReactNode})=>{
    setError(null)
    hasDataRef.current=true
    if(userRole)writeStockSnapshot(sessionStorage,userId,userRole,{items:inventory.items,categories:inventory.categories,locations:inventory.locations,balances:inventory.balances,transactions:snapshot.history})
-  }catch(problem){
+  }catch(problem:any){
    if(token!==loadTokenRef.current)return
-   if(showLoading||!hasDataRef.current)setError(problem instanceof Error?problem.message:'ไม่สามารถโหลดข้อมูลจากระบบได้')
+   if(showLoading&&!hasDataRef.current)setError(problem instanceof Error?problem.message:problem?.message||'ไม่สามารถโหลดข้อมูลจากระบบได้')
    throw problem
   }finally{reportTiming('stock bootstrap',startedAt);if(showLoading&&token===loadTokenRef.current)setLoading(false)}
  },[localMode,userId,userRole,userName])
 
  const loadHistory=useCallback(async(itemId?:string)=>{
-  if(localMode||!userId||userRole==='issuer'||userRole==='employee_document_officer')return
+  if(localMode||!userId||userRole==='issuer'||userRole==='employee_document_officer'||userRole==='viewer')return
   if(!itemId&&fullHistoryLoadedRef.current)return
   if(itemId&&(fullHistoryLoadedRef.current||loadedItemHistoryRef.current.has(itemId)))return
   const startedAt=beginTiming();setHistoryLoading(true)
@@ -83,12 +83,12 @@ export const StockProvider=({children}:{children:ReactNode})=>{
 
  useLayoutEffect(()=>{
   if(localMode){setLoading(false);return}
-  if(!userId||!userRole||userRole==='employee_document_officer'){loadTokenRef.current+=1;hasDataRef.current=false;fullHistoryLoadedRef.current=false;loadedItemHistoryRef.current.clear();setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
+  if(!userId||!userRole||userRole==='employee_document_officer'||userRole==='viewer'){loadTokenRef.current+=1;hasDataRef.current=true;fullHistoryLoadedRef.current=false;loadedItemHistoryRef.current.clear();setItems([]);setCategories([]);setLocations([]);setTransactions([]);setBalances({});setError(null);setLoading(false);return}
   const cached=readStockSnapshot(sessionStorage,userId,userRole)
   if(cached){setItems(cached.items);setCategories(cached.categories);setLocations(cached.locations);setTransactions(cached.transactions);setBalances(cached.balances);setError(null);setLoading(false);hasDataRef.current=true;void reloadData(false).catch(()=>undefined)}
   else{hasDataRef.current=false;void reloadData(true).catch(()=>undefined)}
  },[localMode,userId,userRole,reloadData])
- useEffect(()=>{if(localMode||!userId)return;const refresh=()=>{if(document.visibilityState!=='visible'||Date.now()-lastLoadAtRef.current<60000)return;void reloadData(false).catch(()=>undefined)};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);const timer=window.setInterval(refresh,120000);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);window.clearInterval(timer)}},[localMode,userId,reloadData])
+ useEffect(()=>{if(localMode||!userId||userRole==='employee_document_officer'||userRole==='viewer')return;const refresh=()=>{if(document.visibilityState!=='visible'||Date.now()-lastLoadAtRef.current<60000)return;void reloadData(false).catch(()=>undefined)};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);const timer=window.setInterval(refresh,120000);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);window.clearInterval(timer)}},[localMode,userId,userRole,reloadData])
  useEffect(()=>{if(!localMode||loading)return;localStorage.setItem(KEYS.items,JSON.stringify(items));localStorage.setItem(KEYS.categories,JSON.stringify(categories));localStorage.setItem(KEYS.locations,JSON.stringify(locations));localStorage.setItem(KEYS.transactions,JSON.stringify(transactions));localStorage.setItem(KEYS.balances,JSON.stringify(balances))},[items,categories,locations,transactions,balances,localMode,loading])
 
  const syncAfterWrite=async()=>{if(!localMode)await reloadData(false).catch(()=>undefined)}

@@ -191,9 +191,19 @@ export default function App() {
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [user, loading]);
-  if (user && loading)
+  if (
+    user &&
+    loading &&
+    user.role !== "employee_document_officer" &&
+    user.role !== "viewer"
+  )
     return <LoadingShell label="กำลังเตรียมข้อมูลสำนักงาน..." />;
-  if (user && error)
+  if (
+    user &&
+    error &&
+    user.role !== "employee_document_officer" &&
+    user.role !== "viewer"
+  )
     return (
       <div className="data-load-error">
         <div>

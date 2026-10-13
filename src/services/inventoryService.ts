@@ -40,6 +40,9 @@ const loadAllItems=async()=>{
 export const inventoryService = {
   async loadSnapshot(role?:Role,userName='ผู้ใช้งาน'):Promise<{inventory:InventoryData;history:StockTransaction[]}>{
     if(!isSupabaseConfigured||!supabase)return {inventory:await this.load(role),history:[]}
+    if(role==='employee_document_officer'||role==='viewer'){
+      return {inventory:{items:[],categories:[],locations:[],balances:{}},history:[]}
+    }
     if(role==='issuer'){
       const [inventory,history]=await Promise.all([this.load(role),stockService.history(role,userName)])
       return {inventory,history}
