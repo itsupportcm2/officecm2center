@@ -38,6 +38,49 @@ import { defaultSettings, settingsService } from "../services/settingsService";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { useIssueRequests } from "../store/IssueRequestContext";
 import { formatThaiDateTime } from "../utils/date";
+import { issueRequestService } from "../services/issueRequestService";
+
+function IssueAlertSignature({
+  path,
+  requestNo,
+}: {
+  path?: string;
+  requestNo: string;
+}) {
+  const [url, setUrl] = useState("");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!path) return;
+    let active = true;
+    setUrl("");
+    setFailed(false);
+    void issueRequestService
+      .signatureUrl(path)
+      .then((signedUrl) => {
+        if (active) setUrl(signedUrl);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [path]);
+
+  if (!path)
+    return <span className="issue-alert-signature missing">ไม่พบลายเซ็น</span>;
+  if (failed)
+    return <span className="issue-alert-signature missing">เปิดลายเซ็นไม่ได้</span>;
+  if (!url)
+    return <span className="issue-alert-signature loading">กำลังโหลดลายเซ็น…</span>;
+  return (
+    <div className="issue-alert-signature">
+      <small>ลายเซ็นหัวหน้าแผนก</small>
+      <img src={url} alt={`ลายเซ็นหัวหน้าแผนกของคำขอ ${requestNo}`} />
+    </div>
+  );
+}
 
 const mainNav = [
   ["/", Grid2X2, "ภาพรวม"],
@@ -572,7 +615,7 @@ export function AppLayout() {
             </header>
             <div className="renewal-news-list">
               {pendingIssueRequests.slice(0, 4).map((request) => (
-                <article key={request.id}>
+                <article className="issue-alert-entry" key={request.id}>
                   <span className="due">
                     <CheckCircle2 />
                   </span>
@@ -582,6 +625,10 @@ export function AppLayout() {
                       {request.requestedByName} · {request.lines.length} รายการ
                     </p>
                   </div>
+                  <IssueAlertSignature
+                    path={request.signaturePath}
+                    requestNo={request.requestNo}
+                  />
                   <strong>{formatThaiDateTime(request.createdAt)}</strong>
                 </article>
               ))}

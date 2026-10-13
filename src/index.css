@@ -2541,6 +2541,34 @@ label textarea {
   padding: 16px 24px 22px;
   border-top: 1px solid #edf1f6;
 }
+.renewal-news-list article.issue-alert-entry {
+  grid-template-columns: 36px minmax(0, 1fr) minmax(135px, 165px) auto;
+  align-items: center;
+}
+.issue-alert-signature {
+  min-width: 0;
+}
+.issue-alert-signature small {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 0.64rem;
+}
+.issue-alert-signature img {
+  display: block;
+  width: 100%;
+  height: 44px;
+  object-fit: contain;
+  object-position: left center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+.issue-alert-signature.loading,
+.issue-alert-signature.missing {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
 .notify:has(i) {
   color: #153b6d;
 }
