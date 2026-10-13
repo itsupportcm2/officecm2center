@@ -646,16 +646,6 @@ export function MigrantWorkerDocumentsPage() {
                   </select>
                 </label>
                 <label>
-                  ตำแหน่ง
-                  <input
-                    value={workerForm.position}
-                    onChange={(e) =>
-                      setWorkerForm({ ...workerForm, position: e.target.value })
-                    }
-                    placeholder="เช่น พนักงานฝ่ายผลิต"
-                  />
-                </label>
-                <label>
                   สัญชาติ
                   <input
                     value={workerForm.nationality}
@@ -665,7 +655,6 @@ export function MigrantWorkerDocumentsPage() {
                         nationality: e.target.value,
                       })
                     }
-                    placeholder="เช่น เมียนมา, ลาว, กัมพูชา"
                   />
                 </label>
                 <label>
@@ -792,7 +781,7 @@ export function MigrantWorkerDocumentsPage() {
                             </label>
                             <label>
                               {doc.documentType === "WORK_PERMIT"
-                                ? "วันออกใบอนุญาต"
+                                ? "วันออกใบอนุญาตทำงาน"
                                 : isPassport
                                   ? "วันออกเล่มพาสปอร์ต"
                                   : "วันออกบัตร"}
@@ -808,7 +797,7 @@ export function MigrantWorkerDocumentsPage() {
                             </label>
                             <label>
                               {doc.documentType === "WORK_PERMIT"
-                                ? "วันหมดอายุใบอนุญาต *"
+                                ? "วันหมดอายุใบอนุญาตทำงาน *"
                                 : isPassport
                                   ? "วันหมดอายุเล่มพาสปอร์ต *"
                                   : "วันหมดอายุบัตร *"}
@@ -1005,7 +994,7 @@ export function MigrantWorkerDocumentsPage() {
             {date(
               "issuedOn",
               docForm.documentType === "WORK_PERMIT"
-                ? "วันออกใบอนุญาต *"
+                ? "วันออกใบอนุญาตทำงาน *"
                 : docForm.documentType.includes("PASSPORT")
                   ? "วันออกเล่มพาสปอร์ต *"
                   : "วันออกบัตร *",
@@ -1013,7 +1002,7 @@ export function MigrantWorkerDocumentsPage() {
             {date(
               "expiresOn",
               docForm.documentType === "WORK_PERMIT"
-                ? "วันหมดอายุใบอนุญาต *"
+                ? "วันหมดอายุใบอนุญาตทำงาน *"
                 : docForm.documentType.includes("PASSPORT")
                   ? "วันหมดอายุเล่มพาสปอร์ต *"
                   : "วันหมดอายุบัตร *",
