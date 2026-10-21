@@ -271,10 +271,13 @@ export function AppLayout() {
         </div>
         <nav className="ops-nav">
           {isEmployeeDocumentOfficer && (
-            <NavLink to="/migrant-workers" onClick={() => setOpen(false)}>
-              <Users size={21} />
-              <span>เอกสารแรงงานต่างด้าว</span>
-            </NavLink>
+            <>
+              <span className="nav-section-label">ต่อภาษีพนักงานต่างด้าว</span>
+              <NavLink to="/migrant-workers" onClick={() => setOpen(false)}>
+                <Users size={21} />
+                <span>เอกสารแรงงานต่างด้าว</span>
+              </NavLink>
+            </>
           )}
           {isIssuer && (
             <>
@@ -408,6 +411,12 @@ export function AppLayout() {
                   <span>ตำแหน่งจัดเก็บ</span>
                 </NavLink>
               )}
+              <div className="nav-separator" />
+              <span className="nav-section-label">ต่อภาษีพนักงานต่างด้าว</span>
+              <NavLink to="/migrant-workers" onClick={() => setOpen(false)}>
+                <Users size={21} />
+                <span>เอกสารแรงงานต่างด้าว</span>
+              </NavLink>
               {user?.role === "admin" && (
                 <>
                   <div className="nav-separator" />
