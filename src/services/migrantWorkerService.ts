@@ -4,8 +4,7 @@ export type MigrantDocumentType =
   | "PASSPORT_RED"
   | "PASSPORT_GREEN"
   | "PINK_CARD"
-  | "TEN_YEAR_CARD"
-  | "WORK_PERMIT";
+  | "TEN_YEAR_CARD";
 
 export interface ForeignWorker {
   id: string;
@@ -34,6 +33,9 @@ export interface MigrantWorkerDocument {
   visaExpiresOn: string | null;
   areaPermitIssuedOn: string | null;
   areaPermitExpiresOn: string | null;
+  workPermitNumber: string;
+  workPermitIssuedOn: string | null;
+  workPermitExpiresOn: string | null;
   remindDays: number;
   note: string;
   isActive: boolean;
@@ -81,6 +83,9 @@ const document = (row: any): MigrantWorkerDocument => ({
   visaExpiresOn: row.visa_expires_on ?? null,
   areaPermitIssuedOn: row.area_permit_issued_on ?? null,
   areaPermitExpiresOn: row.area_permit_expires_on ?? null,
+  workPermitNumber: String(row.work_permit_number ?? ""),
+  workPermitIssuedOn: row.work_permit_issued_on ?? null,
+  workPermitExpiresOn: row.work_permit_expires_on ?? null,
   remindDays: Number(row.remind_days ?? 30),
   note: String(row.note ?? ""),
   isActive: Boolean(row.is_active),
@@ -149,6 +154,9 @@ export const migrantWorkerService = {
         p_remind_days: input.remindDays,
         p_note: input.note,
         p_is_active: input.isActive,
+        p_work_permit_number: input.workPermitNumber ?? "",
+        p_work_permit_issued_on: input.workPermitIssuedOn ?? null,
+        p_work_permit_expires_on: input.workPermitExpiresOn ?? null,
       },
     );
     if (error) throw error;

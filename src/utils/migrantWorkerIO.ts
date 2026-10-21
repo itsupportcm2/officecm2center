@@ -22,6 +22,9 @@ export const EXPORT_HEADERS = [
   "วันหมดอายุวีซ่า",
   "วันออกใบออกนอกพื้นที่",
   "วันหมดอายุใบออกนอกพื้นที่",
+  "เลขที่ใบอนุญาตทำงาน",
+  "วันออกใบอนุญาตทำงาน",
+  "วันหมดอายุใบอนุญาตทำงาน",
   "แจ้งเตือนล่วงหน้า(วัน)",
   "หมายเหตุเอกสาร",
 ];
@@ -31,7 +34,6 @@ const DOC_TYPE_MAP: Record<MigrantDocumentType, string> = {
   PASSPORT_GREEN: "พาสปอร์ตสีเขียว",
   PINK_CARD: "บัตรชมพู",
   TEN_YEAR_CARD: "บัตร 10 ปี",
-  WORK_PERMIT: "ใบอนุญาตทำงาน",
 };
 
 const DOC_TYPE_REVERSE: Record<string, MigrantDocumentType> = Object.fromEntries(
@@ -68,6 +70,9 @@ function toRows(
       doc.visaExpiresOn ?? "",
       doc.areaPermitIssuedOn ?? "",
       doc.areaPermitExpiresOn ?? "",
+      doc.workPermitNumber ?? "",
+      doc.workPermitIssuedOn ?? "",
+      doc.workPermitExpiresOn ?? "",
       String(doc.remindDays),
       doc.note,
     ]);
@@ -84,7 +89,7 @@ function toRows(
         w.department,
         w.nationalId,
         w.birthDate ?? "",
-        "", "", "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "", "", "", "", "", "",
       ]);
     }
   }
@@ -104,7 +109,7 @@ export function exportToExcel(
     { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 12 }, { wch: 18 },
     { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 16 }, { wch: 14 },
     { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 20 },
-    { wch: 14 }, { wch: 20 },
+    { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 20 },
   ];
 
   const wb = XLSX.utils.book_new();
@@ -158,6 +163,9 @@ export interface ImportRow {
   visaExpiresOn: string | null;
   areaPermitIssuedOn: string | null;
   areaPermitExpiresOn: string | null;
+  workPermitNumber: string;
+  workPermitIssuedOn: string | null;
+  workPermitExpiresOn: string | null;
   remindDays: number;
   docNote: string;
   // validation
@@ -241,8 +249,11 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
           const errors: string[] = [];
           if (!str(r[col("ชื่อ-สกุล")])) errors.push("ไม่มีชื่อ-สกุล");
           if (!str(r[col("แผนก")])) errors.push("ไม่มีแผนก");
-          if (docTypeLabel && !docType)
+          if (docTypeLabel === "ใบอนุญาตทำงาน") {
+            errors.push("ใบอนุญาตทำงานถูกรวมลงในเอกสารแล้ว กรุณาระบุประเภทเอกสารเป็น พาสปอร์ตสีแดง/เขียว หรือ บัตรชมพู/10ปี");
+          } else if (docTypeLabel && !docType) {
             errors.push(`ประเภทเอกสาร "${docTypeLabel}" ไม่ถูกต้อง`);
+          }
 
           rows.push({
             rowIndex: i + 1,
@@ -261,6 +272,9 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
             visaExpiresOn: parseDate(r[col("วันหมดอายุวีซ่า")]),
             areaPermitIssuedOn: parseDate(r[col("วันออกใบออกนอกพื้นที่")]),
             areaPermitExpiresOn: parseDate(r[col("วันหมดอายุใบออกนอกพื้นที่")]),
+            workPermitNumber: str(r[col("เลขที่ใบอนุญาตทำงาน")]),
+            workPermitIssuedOn: parseDate(r[col("วันออกใบอนุญาตทำงาน")]),
+            workPermitExpiresOn: parseDate(r[col("วันหมดอายุใบอนุญาตทำงาน")]),
             remindDays: Number(r[col("แจ้งเตือนล่วงหน้า(วัน)")]) || 30,
             docNote: str(r[col("หมายเหตุเอกสาร")]),
             errors,
@@ -284,13 +298,15 @@ export function downloadTemplate(): void {
       "CM-0001", "นาย", "สมชาย ใจดี", "เมียนมา", "ฝ่ายผลิต",
       "1234567890123", "2000-01-15",
       "พาสปอร์ตสีแดง", "ME123456", "2022-03-01", "2027-03-01",
-      "2023-01-01", "2024-01-01", "", "", "30", "",
+      "2023-01-01", "2024-01-01", "", "",
+      "WP-998877", "2023-01-01", "2025-01-01", "30", "",
     ],
     [
-      "CM-0001", "นาย", "สมชาย ใจดี", "เมียนมา", "ฝ่ายผลิต",
-      "1234567890123", "2000-01-15",
-      "ใบอนุญาตทำงาน", "", "", "2024-12-31",
-      "", "", "", "", "30", "",
+      "CM-0002", "นางสาว", "มะลิ สวยงาม", "ลาว", "ฝ่ายแพ็ค",
+      "0012345678901", "1998-05-20",
+      "บัตรชมพู", "PK-554433", "2023-02-15", "2025-02-15",
+      "", "", "", "",
+      "WP-112233", "2023-02-15", "2025-02-15", "30", "",
     ],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);

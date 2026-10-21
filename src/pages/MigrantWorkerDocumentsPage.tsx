@@ -33,7 +33,6 @@ const labels: Record<MigrantDocumentType, string> = {
   PASSPORT_GREEN: "พาสปอร์ตสีเขียว",
   PINK_CARD: "บัตรชมพู",
   TEN_YEAR_CARD: "บัตร 10 ปี",
-  WORK_PERMIT: "ใบอนุญาตทำงาน",
 };
 const TITLES = ["นาย", "นาง", "นางสาว", "MR.", "MRS.", "MS."];
 export interface InitialDocItem {
@@ -46,6 +45,9 @@ export interface InitialDocItem {
   visaExpiresOn: string | null;
   areaPermitIssuedOn: string | null;
   areaPermitExpiresOn: string | null;
+  workPermitNumber: string;
+  workPermitIssuedOn: string | null;
+  workPermitExpiresOn: string | null;
   remindDays: number;
   note: string;
 }
@@ -61,6 +63,9 @@ const blankNewDoc = (
   visaExpiresOn: null,
   areaPermitIssuedOn: null,
   areaPermitExpiresOn: null,
+  workPermitNumber: "",
+  workPermitIssuedOn: null,
+  workPermitExpiresOn: null,
   remindDays: 30,
   note: "",
 });
@@ -91,6 +96,9 @@ const blankDoc = (
   visaExpiresOn: null,
   areaPermitIssuedOn: null,
   areaPermitExpiresOn: null,
+  workPermitNumber: "",
+  workPermitIssuedOn: null,
+  workPermitExpiresOn: null,
   remindDays: 30,
   note: "",
   isActive: true,
@@ -132,12 +140,9 @@ export function MigrantWorkerDocumentsPage() {
   const [importDone, setImportDone] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addDocRow = () => {
-    const hasWorkPermit = workerDocs.some(
-      (d) => d.documentType === "WORK_PERMIT",
-    );
     setWorkerDocs([
       ...workerDocs,
-      blankNewDoc(hasWorkPermit ? "PASSPORT_RED" : "WORK_PERMIT"),
+      blankNewDoc("PASSPORT_RED"),
     ]);
   };
   const removeDocRow = (id: string) => {
@@ -181,12 +186,9 @@ export function MigrantWorkerDocumentsPage() {
           if (d.expiresOn)
             rows.push({
               doc: d,
-              field:
-                d.documentType === "WORK_PERMIT"
-                  ? "วันหมดอายุใบอนุญาต"
-                  : d.documentType.includes("PASSPORT")
-                    ? "วันหมดอายุเล่มพาสปอร์ต"
-                    : "วันหมดอายุบัตร",
+              field: d.documentType.includes("PASSPORT")
+                ? "วันหมดอายุเล่มพาสปอร์ต"
+                : "วันหมดอายุบัตร",
               date: d.expiresOn,
               days: daysUntil(d.expiresOn),
             });
@@ -203,6 +205,13 @@ export function MigrantWorkerDocumentsPage() {
               field: "วันหมดอายุใบออกนอกพื้นที่",
               date: d.areaPermitExpiresOn,
               days: daysUntil(d.areaPermitExpiresOn),
+            });
+          if (d.workPermitExpiresOn)
+            rows.push({
+              doc: d,
+              field: "วันหมดอายุใบอนุญาตทำงาน",
+              date: d.workPermitExpiresOn,
+              days: daysUntil(d.workPermitExpiresOn),
             });
           return rows;
         })
@@ -235,7 +244,7 @@ export function MigrantWorkerDocumentsPage() {
       for (let i = 0; i < workerDocs.length; i++) {
         const d = workerDocs[i];
         const docLabel = labels[d.documentType];
-        if (d.documentType !== "WORK_PERMIT" && !d.documentNumber.trim()) {
+        if (!d.documentNumber.trim()) {
           setToast(
             `กรุณากรอกเลขที่เอกสารสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
           );
@@ -297,6 +306,9 @@ export function MigrantWorkerDocumentsPage() {
             visaExpiresOn: isPassport ? d.visaExpiresOn : null,
             areaPermitIssuedOn: isArea ? d.areaPermitIssuedOn : null,
             areaPermitExpiresOn: isArea ? d.areaPermitExpiresOn : null,
+            workPermitNumber: d.workPermitNumber.trim(),
+            workPermitIssuedOn: d.workPermitIssuedOn,
+            workPermitExpiresOn: d.workPermitExpiresOn,
             remindDays: d.remindDays,
             note: d.note.trim(),
             isActive: true,
@@ -322,10 +334,7 @@ export function MigrantWorkerDocumentsPage() {
       setToast("กรุณาเลือกพนักงาน");
       return;
     }
-    if (
-      docForm.documentType !== "WORK_PERMIT" &&
-      !docForm.documentNumber.trim()
-    ) {
+    if (!docForm.documentNumber.trim()) {
       setToast("กรุณาระบุเลขที่เอกสาร");
       return;
     }
@@ -342,6 +351,9 @@ export function MigrantWorkerDocumentsPage() {
         visaExpiresOn: passport ? docForm.visaExpiresOn : null,
         areaPermitIssuedOn: area ? docForm.areaPermitIssuedOn : null,
         areaPermitExpiresOn: area ? docForm.areaPermitExpiresOn : null,
+        workPermitNumber: docForm.workPermitNumber.trim(),
+        workPermitIssuedOn: docForm.workPermitIssuedOn,
+        workPermitExpiresOn: docForm.workPermitExpiresOn,
         note: docForm.note.trim(),
       });
       setToast("บันทึกเอกสารแล้ว");
@@ -360,7 +372,9 @@ export function MigrantWorkerDocumentsPage() {
       | "visaIssuedOn"
       | "visaExpiresOn"
       | "areaPermitIssuedOn"
-      | "areaPermitExpiresOn",
+      | "areaPermitExpiresOn"
+      | "workPermitIssuedOn"
+      | "workPermitExpiresOn",
     label: string,
   ) => (
     <label>
@@ -438,6 +452,9 @@ export function MigrantWorkerDocumentsPage() {
             visaExpiresOn: isPassport ? row.visaExpiresOn : null,
             areaPermitIssuedOn: isArea ? row.areaPermitIssuedOn : null,
             areaPermitExpiresOn: isArea ? row.areaPermitExpiresOn : null,
+            workPermitNumber: row.workPermitNumber,
+            workPermitIssuedOn: row.workPermitIssuedOn,
+            workPermitExpiresOn: row.workPermitExpiresOn,
             remindDays: row.remindDays,
             note: row.docNote,
             isActive: true,
@@ -591,8 +608,12 @@ export function MigrantWorkerDocumentsPage() {
                         {nameById.get(row.doc.workerId)?.employeeCode}
                       </small>
                     </td>
-                    <td>{labels[row.doc.documentType]}</td>
-                    <td className="mono">{row.doc.documentNumber || "-"}</td>
+                    <td>{labels[row.doc.documentType] ?? row.doc.documentType}</td>
+                    <td className="mono">
+                      {row.field === "วันหมดอายุใบอนุญาตทำงาน"
+                        ? row.doc.workPermitNumber || "-"
+                        : row.doc.documentNumber || "-"}
+                    </td>
                     <td>{row.field}</td>
                     <td>{thaiDate(row.date)}</td>
                     <td>
@@ -662,7 +683,7 @@ export function MigrantWorkerDocumentsPage() {
                       {docs.length
                         ? docs.map((d) => (
                             <span className="document-chip" key={d.id}>
-                              {labels[d.documentType]}
+                              {labels[d.documentType] ?? d.documentType}
                             </span>
                           ))
                         : "-"}
@@ -885,9 +906,7 @@ export function MigrantWorkerDocumentsPage() {
                               </select>
                             </label>
                             <label>
-                              {doc.documentType === "WORK_PERMIT"
-                                ? "เลขที่เอกสาร (ถ้ามี)"
-                                : "เลขที่เอกสาร *"}
+                              เลขที่เอกสาร *
                               <input
                                 value={doc.documentNumber}
                                 onChange={(e) =>
@@ -896,20 +915,16 @@ export function MigrantWorkerDocumentsPage() {
                                   })
                                 }
                                 placeholder={
-                                  doc.documentType === "WORK_PERMIT"
-                                    ? "ระบุเลขที่เอกสาร (เว้นว่างได้)"
-                                    : isPassport
-                                      ? "เช่น ME... หรือ CC..."
-                                      : "ระบุเลขที่เอกสาร"
+                                  isPassport
+                                    ? "เช่น ME... หรือ CC..."
+                                    : "ระบุเลขที่เอกสาร"
                                 }
                               />
                             </label>
                             <label>
-                              {doc.documentType === "WORK_PERMIT"
-                                ? "วันออกใบอนุญาตทำงาน"
-                                : isPassport
-                                  ? "วันออกเล่มพาสปอร์ต"
-                                  : "วันออกบัตร"}
+                              {isPassport
+                                ? "วันออกเล่มพาสปอร์ต"
+                                : "วันออกบัตร"}
                               <input
                                 type="date"
                                 value={doc.issuedOn ?? ""}
@@ -921,11 +936,9 @@ export function MigrantWorkerDocumentsPage() {
                               />
                             </label>
                             <label>
-                              {doc.documentType === "WORK_PERMIT"
-                                ? "วันหมดอายุใบอนุญาตทำงาน *"
-                                : isPassport
-                                  ? "วันหมดอายุเล่มพาสปอร์ต *"
-                                  : "วันหมดอายุบัตร *"}
+                              {isPassport
+                                ? "วันหมดอายุเล่มพาสปอร์ต *"
+                                : "วันหมดอายุบัตร *"}
                               <input
                                 type="date"
                                 value={doc.expiresOn ?? ""}
@@ -996,6 +1009,42 @@ export function MigrantWorkerDocumentsPage() {
                               </>
                             )}
                             <label>
+                              เลขที่ใบอนุญาตทำงาน
+                              <input
+                                value={doc.workPermitNumber}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    workPermitNumber: e.target.value,
+                                  })
+                                }
+                                placeholder="ระบุเลขที่ใบอนุญาตทำงาน (เว้นว่างได้)"
+                              />
+                            </label>
+                            <label>
+                              วันออกใบอนุญาตทำงาน
+                              <input
+                                type="date"
+                                value={doc.workPermitIssuedOn ?? ""}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    workPermitIssuedOn: e.target.value || null,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label>
+                              วันหมดอายุใบอนุญาตทำงาน
+                              <input
+                                type="date"
+                                value={doc.workPermitExpiresOn ?? ""}
+                                onChange={(e) =>
+                                  updateDocRow(doc.id, {
+                                    workPermitExpiresOn: e.target.value || null,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label>
                               แจ้งเตือนล่วงหน้า (วัน)
                               <input
                                 type="number"
@@ -1019,8 +1068,7 @@ export function MigrantWorkerDocumentsPage() {
                       className="btn secondary compact add-doc-btn"
                       onClick={addDocRow}
                     >
-                      <Plus size={15} /> เพิ่มเอกสารอีกฉบับ (เช่น
-                      ใบอนุญาตทำงาน)
+                      <Plus size={15} /> เพิ่มเอกสารอีกฉบับ
                     </button>
                   </div>
                 )}
@@ -1087,20 +1135,16 @@ export function MigrantWorkerDocumentsPage() {
               </select>
             </label>
             <label>
-              {docForm.documentType === "WORK_PERMIT"
-                ? "เลขที่เอกสาร (ถ้ามี)"
-                : "เลขที่เอกสาร *"}
+              เลขที่เอกสาร *
               <input
                 value={docForm.documentNumber}
                 onChange={(e) =>
                   setDocForm({ ...docForm, documentNumber: e.target.value })
                 }
                 placeholder={
-                  docForm.documentType === "WORK_PERMIT"
-                    ? "ระบุเลขที่เอกสาร (เว้นว่างได้)"
-                    : docForm.documentType.includes("PASSPORT")
-                      ? "เช่น ME... หรือ CC..."
-                      : "ระบุเลขที่เอกสาร"
+                  docForm.documentType.includes("PASSPORT")
+                    ? "เช่น ME... หรือ CC..."
+                    : "ระบุเลขที่เอกสาร"
                 }
               />
             </label>
@@ -1118,19 +1162,15 @@ export function MigrantWorkerDocumentsPage() {
             </label>
             {date(
               "issuedOn",
-              docForm.documentType === "WORK_PERMIT"
-                ? "วันออกใบอนุญาตทำงาน *"
-                : docForm.documentType.includes("PASSPORT")
-                  ? "วันออกเล่มพาสปอร์ต *"
-                  : "วันออกบัตร *",
+              docForm.documentType.includes("PASSPORT")
+                ? "วันออกเล่มพาสปอร์ต *"
+                : "วันออกบัตร *",
             )}
             {date(
               "expiresOn",
-              docForm.documentType === "WORK_PERMIT"
-                ? "วันหมดอายุใบอนุญาตทำงาน *"
-                : docForm.documentType.includes("PASSPORT")
-                  ? "วันหมดอายุเล่มพาสปอร์ต *"
-                  : "วันหมดอายุบัตร *",
+              docForm.documentType.includes("PASSPORT")
+                ? "วันหมดอายุเล่มพาสปอร์ต *"
+                : "วันหมดอายุบัตร *",
             )}
             {(docForm.documentType === "PASSPORT_RED" ||
               docForm.documentType === "PASSPORT_GREEN") && (
@@ -1145,6 +1185,18 @@ export function MigrantWorkerDocumentsPage() {
                 {date("areaPermitExpiresOn", "วันหมดอายุใบออกนอกพื้นที่ *")}
               </>
             )}
+            <label>
+              เลขที่ใบอนุญาตทำงาน
+              <input
+                value={docForm.workPermitNumber}
+                onChange={(e) =>
+                  setDocForm({ ...docForm, workPermitNumber: e.target.value })
+                }
+                placeholder="ระบุเลขที่ใบอนุญาตทำงาน (เว้นว่างได้)"
+              />
+            </label>
+            {date("workPermitIssuedOn", "วันออกใบอนุญาตทำงาน")}
+            {date("workPermitExpiresOn", "วันหมดอายุใบอนุญาตทำงาน")}
             <label>
               หมายเหตุ
               <textarea
