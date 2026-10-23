@@ -27,6 +27,7 @@ import {
   Search,
   Settings,
   SlidersHorizontal,
+  LayoutDashboard,
   Tags,
   Users,
   X,
@@ -129,6 +130,7 @@ const titles: Record<string, string> = {
   "/data-tools": "สำรองและกู้คืนข้อมูล",
   "/settings": "ตั้งค่า",
   "/migrant-workers": "เอกสารแรงงานต่างด้าว",
+  "/migrant-dashboard": "Dashboard แรงงานต่างด้าว",
 };
 titles["/"] = "ระบบจัดการสำนักงาน CM";
 const renewalDate = (date: string) =>
@@ -273,6 +275,10 @@ export function AppLayout() {
           {isEmployeeDocumentOfficer && (
             <>
               <span className="nav-section-label">ต่อภาษีพนักงานต่างด้าว</span>
+              <NavLink to="/migrant-dashboard" onClick={() => setOpen(false)}>
+                <LayoutDashboard size={21} />
+                <span>ภาพรวม Dashboard</span>
+              </NavLink>
               <NavLink to="/migrant-workers" onClick={() => setOpen(false)}>
                 <Users size={21} />
                 <span>เอกสารแรงงานต่างด้าว</span>
@@ -413,6 +419,10 @@ export function AppLayout() {
               )}
               <div className="nav-separator" />
               <span className="nav-section-label">ต่อภาษีพนักงานต่างด้าว</span>
+              <NavLink to="/migrant-dashboard" onClick={() => setOpen(false)}>
+                <LayoutDashboard size={21} />
+                <span>ภาพรวม Dashboard</span>
+              </NavLink>
               <NavLink to="/migrant-workers" onClick={() => setOpen(false)}>
                 <Users size={21} />
                 <span>เอกสารแรงงานต่างด้าว</span>

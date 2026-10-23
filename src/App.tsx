@@ -106,6 +106,9 @@ const FulfillmentPage = lazy(() =>
 const MigrantWorkerDocumentsPage = lazy(() =>
   import("./pages/MigrantWorkerDocumentsPage").then((module) => ({ default: module.MigrantWorkerDocumentsPage })),
 );
+const MigrantDashboardPage = lazy(() =>
+  import("./pages/MigrantDashboardPage").then((module) => ({ default: module.MigrantDashboardPage })),
+);
 
 function LoadingShell({ label }: { label: string }) {
   return (
@@ -273,6 +276,7 @@ export default function App() {
               />
             </Route>
             <Route element={<ProtectedRoute roles={["admin", "staff", "employee_document_officer"]} />}>
+              <Route path="migrant-dashboard" element={<MigrantDashboardPage />} />
               <Route path="migrant-workers" element={<MigrantWorkerDocumentsPage />} />
             </Route>
             <Route element={<ProtectedRoute roles={["admin"]} />}>
