@@ -118,6 +118,19 @@ const thaiDate = (date: string) =>
 const status = (days: number, remind: number) =>
   days < 0 ? "expired" : days <= remind ? "due" : "normal";
 
+/** แปลงจำนวนวันเป็น "X วัน / X เดือน Y วัน / X ปี Y เดือน" */
+const formatDays = (absDays: number): string => {
+  if (absDays < 30) return `${absDays} วัน`;
+  const years = Math.floor(absDays / 365);
+  const rem = absDays % 365;
+  const months = Math.floor(rem / 30);
+  const days = rem % 30;
+  if (years > 0) {
+    return months > 0 ? `${years} ปี ${months} เดือน` : `${years} ปี`;
+  }
+  return days > 0 ? `${months} เดือน ${days} วัน` : `${months} เดือน`;
+};
+
 export function MigrantWorkerDocumentsPage() {
   const [workers, setWorkers] = useState<ForeignWorker[]>([]);
   const [documents, setDocuments] = useState<MigrantWorkerDocument[]>([]);
@@ -639,10 +652,10 @@ export function MigrantWorkerDocumentsPage() {
                     <td>
                       <span className={`status status-${state}`}>
                         {row.days < 0
-                          ? `เกิน ${Math.abs(row.days)} วัน`
+                          ? `เกิน ${formatDays(Math.abs(row.days))}`
                           : row.days === 0
                             ? "ครบกำหนดวันนี้"
-                            : `อีก ${row.days} วัน`}
+                            : `อีก ${formatDays(row.days)}`}
                       </span>
                     </td>
                     <td>
