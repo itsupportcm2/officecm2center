@@ -1,15 +1,33 @@
 import {
+  AlertOctagon,
   AlertTriangle,
+  Building2,
+  Calendar,
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
   Download,
   Edit3,
+  ExternalLink,
+  Eye,
   FileDown,
   FilePlus2,
   FileText,
   FileUp,
+  Filter,
+  Globe2,
   Plus,
   RefreshCw,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
+  UserCheck,
+  UserPlus,
   Users,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Toast } from "../components/ui";
@@ -34,7 +52,16 @@ const labels: Record<MigrantDocumentType, string> = {
   PINK_CARD: "บัตรชมพู",
   TEN_YEAR_CARD: "บัตร 10 ปี",
 };
+
+const DOC_COLORS: Record<MigrantDocumentType, string> = {
+  PASSPORT_RED: "#ef4444",
+  PASSPORT_GREEN: "#10b981",
+  PINK_CARD: "#ec4899",
+  TEN_YEAR_CARD: "#8b5cf6",
+};
+
 const TITLES = ["นาย", "นาง", "นางสาว", "MR.", "MRS.", "MS."];
+
 export interface InitialDocItem {
   id: string;
   documentType: MigrantDocumentType;
@@ -51,6 +78,7 @@ export interface InitialDocItem {
   remindDays: number;
   note: string;
 }
+
 const blankNewDoc = (
   type: MigrantDocumentType = "PASSPORT_RED",
 ): InitialDocItem => ({
@@ -69,6 +97,7 @@ const blankNewDoc = (
   remindDays: 30,
   note: "",
 });
+
 const blankWorker = (): Omit<ForeignWorker, "createdAt" | "updatedAt"> => ({
   id: "",
   employeeCode: "",
@@ -83,6 +112,7 @@ const blankWorker = (): Omit<ForeignWorker, "createdAt" | "updatedAt"> => ({
   note: "",
   isActive: true,
 });
+
 const blankDoc = (
   workerId = "",
 ): Omit<MigrantWorkerDocument, "createdAt" | "updatedAt"> => ({
@@ -103,18 +133,21 @@ const blankDoc = (
   note: "",
   isActive: true,
 });
+
 const daysUntil = (date: string) =>
   Math.ceil(
     (new Date(`${date}T00:00:00`).getTime() -
       new Date(new Date().toDateString()).getTime()) /
       86400000,
   );
+
 const thaiDate = (date: string) =>
   new Intl.DateTimeFormat("th-TH", {
     day: "numeric",
     month: "short",
     year: "numeric",
   }).format(new Date(`${date}T00:00:00`));
+
 const status = (days: number, remind: number) =>
   days < 0 ? "expired" : days <= remind ? "due" : "normal";
 
@@ -137,7 +170,20 @@ export function MigrantWorkerDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
-  const [filter, setFilter] = useState<"all" | "expired" | "due">("all");
+
+  // Navigation & View tabs
+  const [viewMode, setViewMode] = useState<"workers" | "expiry" | "documents">("workers");
+  const [expirySubFilter, setExpirySubFilter] = useState<"all" | "expired" | "due" | "caution" | "safe">("all");
+
+  // Filter toolbar
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deptFilter, setDeptFilter] = useState("all");
+  const [docTypeFilter, setDocTypeFilter] = useState("all");
+
+  // Worker detail accordion
+  const [expandedWorkerId, setExpandedWorkerId] = useState<string | null>(null);
+
+  // Forms and Modals
   const [workerForm, setWorkerForm] = useState(blankWorker());
   const [docForm, setDocForm] = useState(blankDoc());
   const [workerOpen, setWorkerOpen] = useState(false);
@@ -146,6 +192,7 @@ export function MigrantWorkerDocumentsPage() {
   const [workerDocs, setWorkerDocs] = useState<InitialDocItem[]>([
     blankNewDoc("PASSPORT_RED"),
   ]);
+
   // Import state
   const [importOpen, setImportOpen] = useState(false);
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
@@ -154,11 +201,9 @@ export function MigrantWorkerDocumentsPage() {
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [importSuccessCount, setImportSuccessCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const addDocRow = () => {
-    setWorkerDocs([
-      ...workerDocs,
-      blankNewDoc("PASSPORT_RED"),
-    ]);
+    setWorkerDocs([...workerDocs, blankNewDoc("PASSPORT_RED")]);
   };
   const removeDocRow = (id: string) => {
     setWorkerDocs(workerDocs.filter((d) => d.id !== id));
@@ -168,6 +213,7 @@ export function MigrantWorkerDocumentsPage() {
       workerDocs.map((d) => (d.id === id ? { ...d, ...updates } : d)),
     );
   };
+
   const load = async () => {
     setLoading(true);
     try {
@@ -180,71 +226,169 @@ export function MigrantWorkerDocumentsPage() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     void load();
   }, []);
-  const nameById = useMemo(
+
+  const workerMap = useMemo(
     () => new Map(workers.map((w) => [w.id, w])),
     [workers],
   );
-  const expiryRows = useMemo(
-    () =>
-      documents
-        .filter((d) => d.isActive)
-        .flatMap((d) => {
-          const rows: {
-            doc: MigrantWorkerDocument;
-            field: string;
-            date: string;
-            days: number;
-          }[] = [];
-          if (d.expiresOn)
-            rows.push({
-              doc: d,
-              field: d.documentType.includes("PASSPORT")
-                ? "วันหมดอายุเล่มพาสปอร์ต"
-                : "วันหมดอายุบัตร",
-              date: d.expiresOn,
-              days: daysUntil(d.expiresOn),
-            });
-          if (d.visaExpiresOn)
-            rows.push({
-              doc: d,
-              field: "วันหมดอายุวีซ่า",
-              date: d.visaExpiresOn,
-              days: daysUntil(d.visaExpiresOn),
-            });
-          if (d.areaPermitExpiresOn)
-            rows.push({
-              doc: d,
-              field: "วันหมดอายุใบออกนอกพื้นที่",
-              date: d.areaPermitExpiresOn,
-              days: daysUntil(d.areaPermitExpiresOn),
-            });
-          if (d.workPermitExpiresOn)
-            rows.push({
-              doc: d,
-              field: "วันหมดอายุใบอนุญาตทำงาน",
-              date: d.workPermitExpiresOn,
-              days: daysUntil(d.workPermitExpiresOn),
-            });
-          return rows;
-        })
-        .sort((a, b) => a.date.localeCompare(b.date)),
-    [documents],
-  );
-  const shown = expiryRows.filter(
-    (row) =>
-      filter === "all" || status(row.days, row.doc.remindDays) === filter,
-  );
-  const expired = expiryRows.filter((r) => r.days < 0).length;
-  const due = expiryRows.filter(
-    (r) => r.days >= 0 && r.days <= r.doc.remindDays,
-  ).length;
+
+  // Expiry calculation across all active documents
+  const expiryRows = useMemo(() => {
+    return documents
+      .filter((d) => d.isActive && workerMap.has(d.workerId))
+      .flatMap((d) => {
+        const rows: {
+          doc: MigrantWorkerDocument;
+          field: string;
+          date: string;
+          days: number;
+        }[] = [];
+        if (d.expiresOn)
+          rows.push({
+            doc: d,
+            field: d.documentType.includes("PASSPORT")
+              ? "วันหมดอายุเล่มพาสปอร์ต"
+              : "วันหมดอายุบัตร",
+            date: d.expiresOn,
+            days: daysUntil(d.expiresOn),
+          });
+        if (d.visaExpiresOn)
+          rows.push({
+            doc: d,
+            field: "วันหมดอายุวีซ่า",
+            date: d.visaExpiresOn,
+            days: daysUntil(d.visaExpiresOn),
+          });
+        if (d.areaPermitExpiresOn)
+          rows.push({
+            doc: d,
+            field: "วันหมดอายุใบออกนอกพื้นที่",
+            date: d.areaPermitExpiresOn,
+            days: daysUntil(d.areaPermitExpiresOn),
+          });
+        if (d.workPermitExpiresOn)
+          rows.push({
+            doc: d,
+            field: "วันหมดอายุใบอนุญาตทำงาน",
+            date: d.workPermitExpiresOn,
+            days: daysUntil(d.workPermitExpiresOn),
+          });
+        return rows;
+      })
+      .sort((a, b) => a.days - b.days);
+  }, [documents, workerMap]);
+
+  // Overall counts for summary
+  const totalActiveWorkers = useMemo(() => workers.filter((w) => w.isActive).length, [workers]);
+  const totalActiveDocs = useMemo(() => documents.filter((d) => d.isActive).length, [documents]);
+  const expiredCount = useMemo(() => expiryRows.filter((r) => r.days < 0).length, [expiryRows]);
+  const dueCount = useMemo(() => expiryRows.filter((r) => r.days >= 0 && r.days <= 30).length, [expiryRows]);
+  const cautionCount = useMemo(() => expiryRows.filter((r) => r.days > 30 && r.days <= 90).length, [expiryRows]);
+  const safeCount = useMemo(() => expiryRows.filter((r) => r.days > 90).length, [expiryRows]);
+
+  // Department list for filters
+  const departmentsList = useMemo(() => {
+    const set = new Set<string>();
+    for (const w of workers) if (w.department) set.add(w.department);
+    return Array.from(set).sort();
+  }, [workers]);
+
+  // Filtered Workers list
+  const filteredWorkers = useMemo(() => {
+    return workers.filter((w) => {
+      if (deptFilter !== "all" && w.department !== deptFilter) return false;
+      if (docTypeFilter !== "all") {
+        const workerDocTypes = documents
+          .filter((d) => d.workerId === w.id && d.isActive)
+          .map((d) => d.documentType);
+        if (!workerDocTypes.includes(docTypeFilter as MigrantDocumentType)) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const docs = documents.filter((d) => d.workerId === w.id && d.isActive);
+        const matchDoc = docs.some(
+          (d) =>
+            d.documentNumber.toLowerCase().includes(q) ||
+            d.workPermitNumber.toLowerCase().includes(q),
+        );
+        const matchWorker =
+          w.fullName.toLowerCase().includes(q) ||
+          w.employeeCode.toLowerCase().includes(q) ||
+          w.department.toLowerCase().includes(q) ||
+          (w.nationalId && w.nationalId.toLowerCase().includes(q)) ||
+          (w.nationality && w.nationality.toLowerCase().includes(q));
+        if (!matchDoc && !matchWorker) return false;
+      }
+      return true;
+    });
+  }, [workers, documents, deptFilter, docTypeFilter, searchQuery]);
+
+  // Filtered Expiry Rows
+  const filteredExpiryRows = useMemo(() => {
+    return expiryRows.filter((row) => {
+      const worker = workerMap.get(row.doc.workerId);
+      if (!worker) return false;
+
+      if (expirySubFilter === "expired" && row.days >= 0) return false;
+      if (expirySubFilter === "due" && (row.days < 0 || row.days > 30)) return false;
+      if (expirySubFilter === "caution" && (row.days <= 30 || row.days > 90)) return false;
+      if (expirySubFilter === "safe" && row.days <= 90) return false;
+
+      if (deptFilter !== "all" && worker.department !== deptFilter) return false;
+      if (docTypeFilter !== "all" && row.doc.documentType !== docTypeFilter) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const match =
+          worker.fullName.toLowerCase().includes(q) ||
+          worker.employeeCode.toLowerCase().includes(q) ||
+          worker.department.toLowerCase().includes(q) ||
+          row.doc.documentNumber.toLowerCase().includes(q) ||
+          row.doc.workPermitNumber.toLowerCase().includes(q) ||
+          row.field.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [expiryRows, workerMap, expirySubFilter, deptFilter, docTypeFilter, searchQuery]);
+
+  // Filtered All Documents list
+  const filteredAllDocs = useMemo(() => {
+    return documents.filter((doc) => {
+      const worker = workerMap.get(doc.workerId);
+      if (!worker) return false;
+
+      if (deptFilter !== "all" && worker.department !== deptFilter) return false;
+      if (docTypeFilter !== "all" && doc.documentType !== docTypeFilter) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const match =
+          worker.fullName.toLowerCase().includes(q) ||
+          worker.employeeCode.toLowerCase().includes(q) ||
+          worker.department.toLowerCase().includes(q) ||
+          doc.documentNumber.toLowerCase().includes(q) ||
+          doc.workPermitNumber.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [documents, workerMap, deptFilter, docTypeFilter, searchQuery]);
+
   const editDoc = (doc: MigrantWorkerDocument) => {
     setDocForm({ ...doc });
     setDocOpen(true);
   };
+
+  const openAddDocForWorker = (workerId: string) => {
+    setDocForm(blankDoc(workerId));
+    setDocOpen(true);
+  };
+
   const saveWorker = async () => {
     if (!workerForm.employeeCode.trim() || !workerForm.fullName.trim()) {
       setToast("กรุณากรอกรหัสพนักงานและชื่อ-สกุล");
@@ -260,31 +404,22 @@ export function MigrantWorkerDocumentsPage() {
         const d = workerDocs[i];
         const docLabel = labels[d.documentType];
         if (!d.documentNumber.trim()) {
-          setToast(
-            `กรุณากรอกเลขที่เอกสารสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
-          );
+          setToast(`กรุณากรอกเลขที่เอกสารสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
           return;
         }
         if (!d.expiresOn) {
-          setToast(
-            `กรุณาระบุวันหมดอายุสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
-          );
+          setToast(`กรุณาระบุวันหมดอายุสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
           return;
         }
         if (
-          (d.documentType === "PASSPORT_RED" ||
-            d.documentType === "PASSPORT_GREEN") &&
+          (d.documentType === "PASSPORT_RED" || d.documentType === "PASSPORT_GREEN") &&
           !d.visaExpiresOn
         ) {
-          setToast(
-            `กรุณาระบุวันหมดอายุวีซ่าสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
-          );
+          setToast(`กรุณาระบุวันหมดอายุวีซ่าสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
           return;
         }
         if (d.documentType === "TEN_YEAR_CARD" && !d.areaPermitExpiresOn) {
-          setToast(
-            `กรุณาระบุวันหมดอายุใบออกนอกพื้นที่สำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`,
-          );
+          setToast(`กรุณาระบุวันหมดอายุใบออกนอกพื้นที่สำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
           return;
         }
       }
@@ -307,8 +442,7 @@ export function MigrantWorkerDocumentsPage() {
       if (!workerForm.id && includeDocs && workerDocs.length > 0) {
         for (const d of workerDocs) {
           const isPassport =
-            d.documentType === "PASSPORT_RED" ||
-            d.documentType === "PASSPORT_GREEN";
+            d.documentType === "PASSPORT_RED" || d.documentType === "PASSPORT_GREEN";
           const isArea = d.documentType === "TEN_YEAR_CARD";
           await migrantWorkerService.saveDocument({
             id: "",
@@ -344,6 +478,7 @@ export function MigrantWorkerDocumentsPage() {
       setSaving(false);
     }
   };
+
   const saveDoc = async () => {
     if (!docForm.workerId) {
       setToast("กรุณาเลือกพนักงาน");
@@ -356,8 +491,7 @@ export function MigrantWorkerDocumentsPage() {
     setSaving(true);
     try {
       const passport =
-        docForm.documentType === "PASSPORT_RED" ||
-        docForm.documentType === "PASSPORT_GREEN";
+        docForm.documentType === "PASSPORT_RED" || docForm.documentType === "PASSPORT_GREEN";
       const area = docForm.documentType === "TEN_YEAR_CARD";
       await migrantWorkerService.saveDocument({
         ...docForm,
@@ -380,30 +514,7 @@ export function MigrantWorkerDocumentsPage() {
       setSaving(false);
     }
   };
-  const date = (
-    key:
-      | "issuedOn"
-      | "expiresOn"
-      | "visaIssuedOn"
-      | "visaExpiresOn"
-      | "areaPermitIssuedOn"
-      | "areaPermitExpiresOn"
-      | "workPermitIssuedOn"
-      | "workPermitExpiresOn",
-    label: string,
-  ) => (
-    <label>
-      {label}
-      <input
-        type="date"
-        value={docForm[key] ?? ""}
-        onChange={(e) =>
-          setDocForm({ ...docForm, [key]: e.target.value || null })
-        }
-      />
-    </label>
-  );
-  // ---- Import handler ----
+
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -431,9 +542,7 @@ export function MigrantWorkerDocumentsPage() {
     const errorsList: string[] = [];
 
     try {
-      // Group by employeeCode to avoid duplicate worker creation
-      const workerCodeMap = new Map<string, string>(); // code -> id
-      // Existing workers
+      const workerCodeMap = new Map<string, string>();
       for (const w of workers) workerCodeMap.set(w.employeeCode, w.id);
 
       for (const row of validRows) {
@@ -460,8 +569,7 @@ export function MigrantWorkerDocumentsPage() {
 
           if (row.documentType) {
             const isPassport =
-              row.documentType === "PASSPORT_RED" ||
-              row.documentType === "PASSPORT_GREEN";
+              row.documentType === "PASSPORT_RED" || row.documentType === "PASSPORT_GREEN";
             const isArea = row.documentType === "TEN_YEAR_CARD";
             await migrantWorkerService.saveDocument({
               id: "",
@@ -505,51 +613,47 @@ export function MigrantWorkerDocumentsPage() {
     }
   };
 
+  const renderDateField = (
+    key:
+      | "issuedOn"
+      | "expiresOn"
+      | "visaIssuedOn"
+      | "visaExpiresOn"
+      | "areaPermitIssuedOn"
+      | "areaPermitExpiresOn"
+      | "workPermitIssuedOn"
+      | "workPermitExpiresOn",
+    label: string,
+  ) => (
+    <label>
+      {label}
+      <input
+        type="date"
+        value={docForm[key] ?? ""}
+        onChange={(e) => setDocForm({ ...docForm, [key]: e.target.value || null })}
+      />
+    </label>
+  );
+
   return (
-    <section className="page migrant-documents-page">
-      <div className="page-heading">
-        <div>
+    <div className="mwp-container">
+      {/* Hero Header */}
+      <section className="mwp-hero">
+        <div className="mwp-hero-content">
+          <div className="mwp-hero-badge">
+            <ShieldCheck size={14} />
+            <span>ระบบบริหารจัดการข้อมูลแรงงานและเอกสารสำคัญ</span>
+          </div>
           <h1>เอกสารแรงงานต่างด้าว</h1>
-          <p>จัดการข้อมูลพนักงาน เอกสาร และวันครบกำหนดต่ออายุ</p>
+          <p className="mwp-hero-desc">
+            บันทึกประวัติพนักงาน ตรวจสอบวันหมดอายุพาสปอร์ต วีซ่า และใบอนุญาตทำงาน พร้อมระบบแจ้งเตือนเชิงรุก
+          </p>
         </div>
-        <div className="page-actions">
+
+        <div className="mwp-hero-actions">
           <button
-            className="btn secondary"
-            onClick={() => void load()}
-            disabled={loading}
-          >
-            <RefreshCw size={17} /> รีเฟรช
-          </button>
-          {/* Export buttons */}
-          <button
-            className="btn secondary"
-            onClick={() => exportToExcel(workers, documents)}
-            disabled={!workers.length}
-            title="ดาวน์โหลดเป็น Excel"
-          >
-            <FileDown size={17} /> Excel
-          </button>
-          <button
-            className="btn secondary"
-            onClick={() => exportToCSV(workers, documents)}
-            disabled={!workers.length}
-            title="ดาวน์โหลดเป็น CSV"
-          >
-            <Download size={17} /> CSV
-          </button>
-          {/* Import button */}
-          <button
-            className="btn secondary"
-            onClick={() => {
-              setImportRows([]);
-              setImportDone(false);
-              setImportOpen(true);
-            }}
-          >
-            <FileUp size={17} /> นำเข้าข้อมูล
-          </button>
-          <button
-            className="btn secondary"
+            type="button"
+            className="mwp-btn-hero-primary"
             onClick={() => {
               setWorkerForm(blankWorker());
               setWorkerDocs([blankNewDoc("PASSPORT_RED")]);
@@ -557,204 +661,912 @@ export function MigrantWorkerDocumentsPage() {
               setWorkerOpen(true);
             }}
           >
-            <Users size={17} /> เพิ่มพนักงาน
+            <UserPlus size={17} />
+            <span>เพิ่มพนักงานใหม่</span>
           </button>
+
           <button
-            className="btn primary"
+            type="button"
+            className="mwp-btn-hero-glass"
             onClick={() => {
               setDocForm(blankDoc(workers.find((w) => w.isActive)?.id ?? ""));
               setDocOpen(true);
             }}
             disabled={!workers.length}
           >
-            <FilePlus2 size={17} /> เพิ่มเอกสาร
+            <FilePlus2 size={16} />
+            <span>เพิ่มเอกสาร</span>
+          </button>
+
+          <button
+            type="button"
+            className="mwp-btn-hero-glass"
+            onClick={() => {
+              setImportRows([]);
+              setImportDone(false);
+              setImportOpen(true);
+            }}
+          >
+            <FileUp size={16} />
+            <span>นำเข้าไฟล์</span>
+          </button>
+
+          <button
+            type="button"
+            className="mwp-btn-hero-glass"
+            onClick={() => exportToExcel(workers, documents)}
+            disabled={!workers.length}
+            title="ดาวน์โหลด Excel"
+          >
+            <FileDown size={16} />
+            <span>Excel</span>
+          </button>
+
+          <button
+            type="button"
+            className="mwp-btn-hero-glass"
+            onClick={() => exportToCSV(workers, documents)}
+            disabled={!workers.length}
+            title="ดาวน์โหลด CSV"
+          >
+            <Download size={16} />
+            <span>CSV</span>
+          </button>
+
+          <button
+            type="button"
+            className="mwp-btn-hero-glass"
+            onClick={() => void load()}
+            disabled={loading}
+            title="รีเฟรชข้อมูล"
+          >
+            <RefreshCw size={16} className={loading ? "spin" : ""} />
           </button>
         </div>
-      </div>
-      <div className="summary-grid">
-        <article className="summary-card">
-          <span>พนักงานที่ใช้งาน</span>
-          <b>{workers.filter((w) => w.isActive).length}</b>
-          <small>คน</small>
-        </article>
-        <article className="summary-card danger">
-          <span>เอกสารหมดอายุ</span>
-          <b>{expired}</b>
-          <small>รายการ</small>
-        </article>
-        <article className="summary-card warning">
-          <span>ใกล้ครบกำหนด</span>
-          <b>{due}</b>
-          <small>รายการ</small>
-        </article>
-        <article className="summary-card">
-          <span>เอกสารที่บันทึก</span>
-          <b>{documents.filter((d) => d.isActive).length}</b>
-          <small>ฉบับ</small>
-        </article>
-      </div>
-      <div className="card">
-        <div className="card-header">
-          <div>
-            <h2>
-              <AlertTriangle size={20} /> แจ้งเตือนเอกสารใกล้ครบกำหนด
-            </h2>
-            <p>คำนวณตามจำนวนวันแจ้งเตือนที่กำหนดในแต่ละเอกสาร</p>
+      </section>
+
+      {/* 4 Clickable Quick-Filter Summary Cards */}
+      <section className="mwp-stats-grid">
+        <div
+          className={`mwp-stat-card mwp-stat-blue ${viewMode === "workers" ? "active" : ""}`}
+          onClick={() => {
+            setViewMode("workers");
+            setDeptFilter("all");
+            setDocTypeFilter("all");
+          }}
+          title="คลิกเพื่อดูรายชื่อพนักงานทั้งหมด"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">พนักงานที่ใช้งาน</span>
+            <div className="mwp-stat-icon">
+              <Users size={18} />
+            </div>
           </div>
-          <div className="filter-tabs">
-            {(["all", "expired", "due"] as const).map((v) => (
-              <button
-                key={v}
-                className={filter === v ? "active" : ""}
-                onClick={() => setFilter(v)}
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val">{totalActiveWorkers.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">คน</span>
+          </div>
+          <div className="mwp-stat-hint">
+            <span>คลิกเพื่อดูรายชื่อพนักงาน</span>
+          </div>
+        </div>
+
+        <div
+          className={`mwp-stat-card mwp-stat-teal ${viewMode === "documents" ? "active" : ""}`}
+          onClick={() => {
+            setViewMode("documents");
+            setDeptFilter("all");
+            setDocTypeFilter("all");
+          }}
+          title="คลิกเพื่อดูเอกสารทั้งหมดในระบบ"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">เอกสารในระบบ</span>
+            <div className="mwp-stat-icon">
+              <FileText size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val">{totalActiveDocs.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">ฉบับ</span>
+          </div>
+          <div className="mwp-stat-hint">
+            <span>คลิกเพื่อดูเอกสารทุกฉบับ</span>
+          </div>
+        </div>
+
+        <div
+          className={`mwp-stat-card mwp-stat-red ${viewMode === "expiry" && expirySubFilter === "expired" ? "active" : ""}`}
+          onClick={() => {
+            setViewMode("expiry");
+            setExpirySubFilter("expired");
+          }}
+          title="คลิกเพื่อดูรายการที่หมดอายุแล้ว"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">เอกสารหมดอายุ</span>
+            <div className="mwp-stat-icon">
+              <AlertOctagon size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val">{expiredCount.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#dc2626", fontWeight: 600 }}>
+            <AlertTriangle size={12} />
+            <span>ต้องดำเนินการต่ออายุด่วน</span>
+          </div>
+        </div>
+
+        <div
+          className={`mwp-stat-card mwp-stat-orange ${viewMode === "expiry" && expirySubFilter === "due" ? "active" : ""}`}
+          onClick={() => {
+            setViewMode("expiry");
+            setExpirySubFilter("due");
+          }}
+          title="คลิกเพื่อดูรายการที่ใกล้ครบกำหนด"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">ใกล้ครบกำหนด (≤ 30 วัน)</span>
+            <div className="mwp-stat-icon">
+              <CalendarClock size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val">{dueCount.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#ea580c", fontWeight: 600 }}>
+            <Clock size={12} />
+            <span>ระยะเตรียมเอกสารล่วงหน้า</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Container Card */}
+      <div className="mwp-main-card">
+        {/* Navigation Tabs Header */}
+        <div className="mwp-view-nav">
+          <div className="mwp-view-tabs">
+            <button
+              type="button"
+              className={`mwp-view-tab-btn ${viewMode === "workers" ? "active" : ""}`}
+              onClick={() => setViewMode("workers")}
+            >
+              <Users size={16} />
+              <span>รายชื่อพนักงานและเอกสาร</span>
+              <span className="mwp-view-tab-badge">{filteredWorkers.length}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`mwp-view-tab-btn ${viewMode === "expiry" ? "active" : ""}`}
+              onClick={() => setViewMode("expiry")}
+            >
+              <AlertTriangle size={16} />
+              <span>ติดตามวันครบกำหนด</span>
+              <span
+                className="mwp-view-tab-badge"
+                style={{
+                  background: expiredCount > 0 ? "#fee2e2" : undefined,
+                  color: expiredCount > 0 ? "#dc2626" : undefined,
+                }}
               >
-                {v === "all"
-                  ? "ทั้งหมด"
-                  : v === "expired"
-                    ? "หมดอายุ"
-                    : "ใกล้ครบกำหนด"}
+                {expiredCount + dueCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={`mwp-view-tab-btn ${viewMode === "documents" ? "active" : ""}`}
+              onClick={() => setViewMode("documents")}
+            >
+              <FileText size={16} />
+              <span>เอกสารทั้งหมดในระบบ</span>
+              <span className="mwp-view-tab-badge">{filteredAllDocs.length}</span>
+            </button>
+          </div>
+
+          {/* Sub-filter pills (only for expiry view) */}
+          {viewMode === "expiry" && (
+            <div className="mwp-sub-pills">
+              <button
+                type="button"
+                className={`mwp-sub-pill ${expirySubFilter === "all" ? "active" : ""}`}
+                onClick={() => setExpirySubFilter("all")}
+              >
+                ทั้งหมด ({expiryRows.length})
               </button>
-            ))}
+              <button
+                type="button"
+                className={`mwp-sub-pill ${expirySubFilter === "expired" ? "active" : ""}`}
+                style={{ color: expirySubFilter !== "expired" && expiredCount > 0 ? "#dc2626" : undefined }}
+                onClick={() => setExpirySubFilter("expired")}
+              >
+                หมดอายุแล้ว ({expiredCount})
+              </button>
+              <button
+                type="button"
+                className={`mwp-sub-pill ${expirySubFilter === "due" ? "active" : ""}`}
+                onClick={() => setExpirySubFilter("due")}
+              >
+                ใกล้ครบ ≤ 30 วัน ({dueCount})
+              </button>
+              <button
+                type="button"
+                className={`mwp-sub-pill ${expirySubFilter === "caution" ? "active" : ""}`}
+                onClick={() => setExpirySubFilter("caution")}
+              >
+                31 - 90 วัน ({cautionCount})
+              </button>
+              <button
+                type="button"
+                className={`mwp-sub-pill ${expirySubFilter === "safe" ? "active" : ""}`}
+                onClick={() => setExpirySubFilter("safe")}
+              >
+                ปลอดภัย &gt; 90 วัน ({safeCount})
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Unified Search & Filter Toolbar */}
+        <div className="mwp-toolbar">
+          <div className="mwp-search-wrap">
+            <Search size={16} className="mwp-search-icon" />
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อ-สกุล, รหัสบุคลากร, แผนก, สัญชาติ หรือเลขที่เอกสาร..."
+              className="mwp-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#94a3b8",
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Building2 size={15} color="#64748b" />
+            <select
+              className="mwp-select"
+              value={deptFilter}
+              onChange={(e) => setDeptFilter(e.target.value)}
+            >
+              <option value="all">ทุกแผนก ({departmentsList.length})</option>
+              {departmentsList.map((d) => (
+                <option key={d} value={d}>
+                  แผนก {d}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Filter size={15} color="#64748b" />
+            <select
+              className="mwp-select"
+              value={docTypeFilter}
+              onChange={(e) => setDocTypeFilter(e.target.value)}
+            >
+              <option value="all">ทุกประเภทเอกสาร</option>
+              {Object.entries(labels).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ fontSize: "0.82rem", color: "#64748b", marginLeft: "auto", fontWeight: 600 }}>
+            {viewMode === "workers" && `พบ ${filteredWorkers.length} คน`}
+            {viewMode === "expiry" && `พบ ${filteredExpiryRows.length} รายการ`}
+            {viewMode === "documents" && `พบ ${filteredAllDocs.length} ฉบับ`}
           </div>
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>พนักงาน</th>
-                <th>เอกสาร</th>
-                <th>เลขที่</th>
-                <th>รายการ</th>
-                <th>วันครบกำหนด</th>
-                <th>สถานะ</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((row) => {
-                const state = status(row.days, row.doc.remindDays);
-                return (
-                  <tr key={`${row.doc.id}-${row.field}`}>
-                    <td>
-                      <b>{nameById.get(row.doc.workerId)?.fullName ?? "-"}</b>
-                      <small>
-                        {nameById.get(row.doc.workerId)?.employeeCode}
-                      </small>
-                    </td>
-                    <td>{labels[row.doc.documentType] ?? row.doc.documentType}</td>
-                    <td className="mono">
-                      {row.field === "วันหมดอายุใบอนุญาตทำงาน"
-                        ? row.doc.workPermitNumber || "-"
-                        : row.doc.documentNumber || "-"}
-                    </td>
-                    <td>{row.field}</td>
-                    <td>{thaiDate(row.date)}</td>
-                    <td>
-                      <span className={`status status-${state}`}>
-                        {row.days < 0
-                          ? `เกิน ${formatDays(Math.abs(row.days))}`
-                          : row.days === 0
-                            ? "ครบกำหนดวันนี้"
-                            : `อีก ${formatDays(row.days)}`}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="icon-action"
-                        onClick={() => editDoc(row.doc)}
-                      >
-                        <Edit3 size={15} /> ต่ออายุ/แก้ไข
-                      </button>
+
+        {/* ============================================================ */}
+        {/* VIEW 1: Worker Directory with Expandable Document Drawer     */}
+        {/* ============================================================ */}
+        {viewMode === "workers" && (
+          <div className="mwp-table-wrap">
+            <table className="mwp-table">
+              <thead>
+                <tr>
+                  <th>พนักงาน</th>
+                  <th>เลขบัตรประชาชน / ID</th>
+                  <th>แผนก</th>
+                  <th>เอกสารที่บันทึกไว้</th>
+                  <th style={{ textAlign: "right" }}>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: "40px" }}>
+                      <RefreshCw size={22} className="spin" color="#175cd3" />
+                      <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดข้อมูลพนักงาน...</div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {!loading && !shown.length && (
-            <div className="empty">ไม่พบรายการตามตัวกรอง</div>
-          )}
-          {loading && <div className="empty">กำลังโหลดข้อมูล...</div>}
-        </div>
-      </div>
-      <div className="card">
-        <div className="card-header">
-          <div>
-            <h2>
-              <Users size={20} /> รายชื่อแรงงานต่างด้าว
-            </h2>
-            <p>กดเพิ่มเอกสารหรือแก้ไขข้อมูลได้จากรายการนี้</p>
-          </div>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>รหัสพนักงาน</th>
-                <th>ชื่อ-นามสกุล</th>
-                <th>เลขบัตรประชาชน</th>
-                <th>แผนก</th>
-                <th>เอกสาร</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {workers.map((w) => {
-                const docs = documents.filter(
-                  (d) => d.workerId === w.id && d.isActive,
-                );
-                return (
-                  <tr key={w.id}>
-                    <td className="mono">{w.employeeCode}</td>
-                    <td>
-                      <b>{[w.title, w.fullName].filter(Boolean).join(" ")}</b>
-                      {!w.isActive && <small>ระงับการใช้งาน</small>}
+                ) : filteredWorkers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: "40px" }}>
+                      <div style={{ color: "#64748b", fontWeight: 600 }}>ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไข</div>
                     </td>
-                    <td className="mono">{w.nationalId || "-"}</td>
-                    <td>{w.department}</td>
-                    <td>
-                      {docs.length
-                        ? docs.map((d) => (
-                            <span className="document-chip" key={d.id}>
-                              {labels[d.documentType] ?? d.documentType}
+                  </tr>
+                ) : (
+                  filteredWorkers.map((w) => {
+                    const workerDocsList = documents.filter(
+                      (d) => d.workerId === w.id && d.isActive,
+                    );
+                    const isExpanded = expandedWorkerId === w.id;
+                    const initial = w.fullName.trim() ? w.fullName.trim()[0] : "W";
+
+                    // Check if any document has expired or is due
+                    const hasExpiredDoc = workerDocsList.some((d) => {
+                      if (d.expiresOn && daysUntil(d.expiresOn) < 0) return true;
+                      if (d.visaExpiresOn && daysUntil(d.visaExpiresOn) < 0) return true;
+                      if (d.workPermitExpiresOn && daysUntil(d.workPermitExpiresOn) < 0) return true;
+                      return false;
+                    });
+                    const hasDueDoc = !hasExpiredDoc && workerDocsList.some((d) => {
+                      if (d.expiresOn && daysUntil(d.expiresOn) <= 30) return true;
+                      if (d.visaExpiresOn && daysUntil(d.visaExpiresOn) <= 30) return true;
+                      if (d.workPermitExpiresOn && daysUntil(d.workPermitExpiresOn) <= 30) return true;
+                      return false;
+                    });
+
+                    return (
+                      <>
+                        <tr key={w.id} style={{ background: isExpanded ? "#f8fafc" : undefined }}>
+                          <td>
+                            <div className="mwp-worker-cell">
+                              <div className="mwp-avatar">{initial}</div>
+                              <div className="mwp-worker-info">
+                                <span className="mwp-worker-name">
+                                  {[w.title, w.fullName].filter(Boolean).join(" ")}
+                                </span>
+                                <span className="mwp-worker-meta">
+                                  <span>รหัส: {w.employeeCode}</span>
+                                  {w.nationality && <span>• {w.nationality}</span>}
+                                  {!w.isActive && (
+                                    <span style={{ color: "#dc2626", fontWeight: 700 }}>• ระงับ</span>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td>
+                            <span className="mono" style={{ fontSize: "0.85rem" }}>
+                              {w.nationalId || "-"}
                             </span>
-                          ))
-                        : "-"}
-                    </td>
-                    <td>
-                      <button
-                        className="icon-action"
-                        onClick={() => {
-                          setWorkerForm({ ...w });
-                          setIncludeDocs(false);
-                          setWorkerOpen(true);
-                        }}
-                      >
-                        <Edit3 size={15} /> แก้ไข
-                      </button>
-                      <button
-                        className="icon-action"
-                        onClick={() => {
-                          setDocForm(blankDoc(w.id));
-                          setDocOpen(true);
-                        }}
-                      >
-                        <Plus size={15} /> เอกสาร
-                      </button>
+                          </td>
+
+                          <td>
+                            <span className="mwp-dept-badge">{w.department || "-"}</span>
+                          </td>
+
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              {workerDocsList.length === 0 ? (
+                                <span style={{ color: "#94a3b8", fontSize: "0.82rem" }}>ไม่มีเอกสาร</span>
+                              ) : (
+                                workerDocsList.map((d) => (
+                                  <span
+                                    key={d.id}
+                                    className="mwp-doc-pill"
+                                    style={{
+                                      background: `${DOC_COLORS[d.documentType]}12`,
+                                      color: DOC_COLORS[d.documentType],
+                                      border: `1px solid ${DOC_COLORS[d.documentType]}35`,
+                                    }}
+                                  >
+                                    {labels[d.documentType]}
+                                  </span>
+                                ))
+                              )}
+                              {hasExpiredDoc && (
+                                <span
+                                  className="mwp-status-pill mwp-status-pill-expired"
+                                  title="มีเอกสารหมดอายุแล้ว"
+                                >
+                                  🚨 หมดอายุ
+                                </span>
+                              )}
+                              {hasDueDoc && (
+                                <span
+                                  className="mwp-status-pill mwp-status-pill-due"
+                                  title="มีเอกสารใกล้ครบกำหนด 30 วัน"
+                                >
+                                  ⚠️ ใกล้ครบ
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          <td style={{ textAlign: "right" }}>
+                            <div className="mwp-action-group">
+                              <button
+                                type="button"
+                                className={`mwp-btn-action ${isExpanded ? "mwp-btn-action-primary" : ""}`}
+                                onClick={() =>
+                                  setExpandedWorkerId(isExpanded ? null : w.id)
+                                }
+                                title="ดูรายละเอียดเอกสาร"
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <span>ซ่อนเอกสาร</span>
+                                    <ChevronUp size={14} />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>เอกสาร ({workerDocsList.length})</span>
+                                    <ChevronDown size={14} />
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                className="mwp-btn-action"
+                                onClick={() => openAddDocForWorker(w.id)}
+                                title="เพิ่มเอกสารให้พนักงานคนนี้"
+                              >
+                                <Plus size={14} />
+                                <span>เพิ่มเอกสาร</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                className="mwp-btn-action"
+                                onClick={() => {
+                                  setWorkerForm({ ...w });
+                                  setIncludeDocs(false);
+                                  setWorkerOpen(true);
+                                }}
+                                title="แก้ไขข้อมูลส่วนตัว"
+                              >
+                                <Edit3 size={14} />
+                                <span>แก้ไข</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expandable Document Drawer Row */}
+                        {isExpanded && (
+                          <tr key={`${w.id}-expanded`} className="mwp-expand-row">
+                            <td colSpan={5}>
+                              <div className="mwp-expand-container">
+                                <div className="mwp-expand-header">
+                                  <div className="mwp-expand-title">
+                                    <FileText size={16} color="#175cd3" />
+                                    <span>
+                                      เอกสารประจำตัวของ: <b>{w.fullName}</b> ({workerDocsList.length} ฉบับ)
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="mwp-btn-action mwp-btn-action-primary"
+                                    onClick={() => openAddDocForWorker(w.id)}
+                                  >
+                                    <Plus size={14} />
+                                    <span>เพิ่มเอกสารฉบับใหม่</span>
+                                  </button>
+                                </div>
+
+                                {workerDocsList.length === 0 ? (
+                                  <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>
+                                    พนักงานคนนี้ยังไม่มีเอกสารในระบบ กดปุ่ม "เพิ่มเอกสารฉบับใหม่" ด้านบนเพื่อเพิ่มข้อมูล
+                                  </div>
+                                ) : (
+                                  workerDocsList.map((doc) => {
+                                    const passportExpDays = doc.expiresOn ? daysUntil(doc.expiresOn) : null;
+                                    const visaExpDays = doc.visaExpiresOn ? daysUntil(doc.visaExpiresOn) : null;
+                                    const workPermitExpDays = doc.workPermitExpiresOn ? daysUntil(doc.workPermitExpiresOn) : null;
+
+                                    return (
+                                      <div key={doc.id} className="mwp-doc-mini-card">
+                                        <div className="mwp-doc-mini-left">
+                                          <span
+                                            className="mwp-doc-pill"
+                                            style={{
+                                              background: `${DOC_COLORS[doc.documentType]}15`,
+                                              color: DOC_COLORS[doc.documentType],
+                                              border: `1px solid ${DOC_COLORS[doc.documentType]}40`,
+                                              fontWeight: 700,
+                                            }}
+                                          >
+                                            {labels[doc.documentType]}
+                                          </span>
+                                          <div>
+                                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                                              เลขที่: {doc.documentNumber || "-"}
+                                            </div>
+                                            {doc.workPermitNumber && (
+                                              <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                                                ใบอนุญาตทำงาน: {doc.workPermitNumber}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div className="mwp-doc-mini-dates">
+                                          {doc.expiresOn && (
+                                            <div>
+                                              <span style={{ color: "#64748b", fontSize: "0.72rem" }}>
+                                                {doc.documentType.includes("PASSPORT") ? "หมดอายุพาสปอร์ต:" : "หมดอายุบัตร:"}
+                                              </span>
+                                              <div style={{ fontWeight: 600 }}>{thaiDate(doc.expiresOn)}</div>
+                                              {passportExpDays !== null && (
+                                                <span
+                                                  className={`mwp-status-pill ${
+                                                    passportExpDays < 0
+                                                      ? "mwp-status-pill-expired"
+                                                      : passportExpDays <= 30
+                                                        ? "mwp-status-pill-due"
+                                                        : "mwp-status-pill-normal"
+                                                  }`}
+                                                >
+                                                  {passportExpDays < 0
+                                                    ? `เกิน ${formatDays(Math.abs(passportExpDays))}`
+                                                    : `อีก ${formatDays(passportExpDays)}`}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {doc.visaExpiresOn && (
+                                            <div>
+                                              <span style={{ color: "#64748b", fontSize: "0.72rem" }}>หมดอายุวีซ่า:</span>
+                                              <div style={{ fontWeight: 600 }}>{thaiDate(doc.visaExpiresOn)}</div>
+                                              {visaExpDays !== null && (
+                                                <span
+                                                  className={`mwp-status-pill ${
+                                                    visaExpDays < 0
+                                                      ? "mwp-status-pill-expired"
+                                                      : visaExpDays <= 30
+                                                        ? "mwp-status-pill-due"
+                                                        : "mwp-status-pill-normal"
+                                                  }`}
+                                                >
+                                                  {visaExpDays < 0
+                                                    ? `เกิน ${formatDays(Math.abs(visaExpDays))}`
+                                                    : `อีก ${formatDays(visaExpDays)}`}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {doc.workPermitExpiresOn && (
+                                            <div>
+                                              <span style={{ color: "#64748b", fontSize: "0.72rem" }}>หมดอายุ Work Permit:</span>
+                                              <div style={{ fontWeight: 600 }}>{thaiDate(doc.workPermitExpiresOn)}</div>
+                                              {workPermitExpDays !== null && (
+                                                <span
+                                                  className={`mwp-status-pill ${
+                                                    workPermitExpDays < 0
+                                                      ? "mwp-status-pill-expired"
+                                                      : workPermitExpDays <= 30
+                                                        ? "mwp-status-pill-due"
+                                                        : "mwp-status-pill-normal"
+                                                  }`}
+                                                >
+                                                  {workPermitExpDays < 0
+                                                    ? `เกิน ${formatDays(Math.abs(workPermitExpDays))}`
+                                                    : `อีก ${formatDays(workPermitExpDays)}`}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          className="mwp-btn-action"
+                                          onClick={() => editDoc(doc)}
+                                        >
+                                          <Edit3 size={13} />
+                                          <span>ต่ออายุ/แก้ไข</span>
+                                        </button>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* VIEW 2: Expiry & Renewals Timeline Watchlist                */}
+        {/* ============================================================ */}
+        {viewMode === "expiry" && (
+          <div className="mwp-table-wrap">
+            <table className="mwp-table">
+              <thead>
+                <tr>
+                  <th>พนักงาน</th>
+                  <th>แผนก</th>
+                  <th>ประเภทเอกสาร</th>
+                  <th>เลขที่</th>
+                  <th>รายการที่ต้องต่ออายุ</th>
+                  <th>วันครบกำหนด</th>
+                  <th>ระยะเวลาคงเหลือ</th>
+                  <th style={{ textAlign: "right" }}>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: "center", padding: "40px" }}>
+                      <RefreshCw size={22} className="spin" color="#175cd3" />
+                      <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดข้อมูลวันครบกำหนด...</div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {!loading && !workers.length && (
-            <div className="empty">ยังไม่มีข้อมูลพนักงาน</div>
-          )}
-        </div>
+                ) : filteredExpiryRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: "center", padding: "40px" }}>
+                      <div style={{ color: "#16a34a", fontWeight: 700, fontSize: "1rem" }}>
+                        ✓ ไม่พบเอกสารในเงื่อนไขการแจ้งเตือนนี้
+                      </div>
+                      <div style={{ color: "#64748b", fontSize: "0.82rem", marginTop: "4px" }}>
+                        ไม่มีรายการที่ต้องเฝ้าระวังหรือตรงกับตัวกรองที่เลือก
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredExpiryRows.map((row) => {
+                    const worker = workerMap.get(row.doc.workerId);
+                    if (!worker) return null;
+                    const initial = worker.fullName.trim() ? worker.fullName.trim()[0] : "W";
+                    const isExp = row.days < 0;
+                    const isDue30 = row.days >= 0 && row.days <= 30;
+                    const isDue90 = row.days > 30 && row.days <= 90;
+
+                    let statusClass = "mwp-status-pill-normal";
+                    let statusText = `อีก ${formatDays(row.days)}`;
+                    if (isExp) {
+                      statusClass = "mwp-status-pill-expired";
+                      statusText = `เกิน ${formatDays(Math.abs(row.days))}`;
+                    } else if (row.days === 0) {
+                      statusClass = "mwp-status-pill-due";
+                      statusText = "ครบกำหนดวันนี้!";
+                    } else if (isDue30) {
+                      statusClass = "mwp-status-pill-due";
+                      statusText = `อีก ${formatDays(row.days)}`;
+                    } else if (isDue90) {
+                      statusClass = "mwp-status-pill-caution";
+                      statusText = `อีก ${formatDays(row.days)}`;
+                    }
+
+                    return (
+                      <tr
+                        key={`${row.doc.id}-${row.field}`}
+                        className={isExp ? "mdb-row-expired-highlight" : ""}
+                      >
+                        <td>
+                          <div className="mwp-worker-cell">
+                            <div className="mwp-avatar">{initial}</div>
+                            <div className="mwp-worker-info">
+                              <span className="mwp-worker-name">{worker.fullName}</span>
+                              <span className="mwp-worker-meta">
+                                <span>รหัส: {worker.employeeCode}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="mwp-dept-badge">{worker.department || "-"}</span>
+                        </td>
+
+                        <td>
+                          <span
+                            className="mwp-doc-pill"
+                            style={{
+                              background: `${DOC_COLORS[row.doc.documentType]}12`,
+                              color: DOC_COLORS[row.doc.documentType],
+                              border: `1px solid ${DOC_COLORS[row.doc.documentType]}35`,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {labels[row.doc.documentType]}
+                          </span>
+                        </td>
+
+                        <td className="mono" style={{ fontSize: "0.85rem" }}>
+                          {row.field === "วันหมดอายุใบอนุญาตทำงาน"
+                            ? row.doc.workPermitNumber || "-"
+                            : row.doc.documentNumber || "-"}
+                        </td>
+
+                        <td>
+                          <span style={{ fontWeight: 600, color: "#334155" }}>{row.field}</span>
+                        </td>
+
+                        <td>
+                          <span style={{ fontWeight: 700, color: "#0f172a" }}>{thaiDate(row.date)}</span>
+                        </td>
+
+                        <td>
+                          <span className={`mwp-status-pill ${statusClass}`}>{statusText}</span>
+                        </td>
+
+                        <td style={{ textAlign: "right" }}>
+                          <button
+                            type="button"
+                            className="mwp-btn-action"
+                            onClick={() => editDoc(row.doc)}
+                            title="ต่ออายุหรือแก้ไขเอกสารนี้"
+                          >
+                            <Edit3 size={13} />
+                            <span>ต่ออายุ/แก้ไข</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* VIEW 3: All Documents Table                                */}
+        {/* ============================================================ */}
+        {viewMode === "documents" && (
+          <div className="mwp-table-wrap">
+            <table className="mwp-table">
+              <thead>
+                <tr>
+                  <th>ประเภทเอกสาร</th>
+                  <th>เลขที่เอกสาร</th>
+                  <th>ผู้ถือครอง (พนักงาน)</th>
+                  <th>แผนก</th>
+                  <th>วันออกเอกสาร</th>
+                  <th>วันหมดอายุเอกสาร</th>
+                  <th>Work Permit</th>
+                  <th>วันหมดอายุ Work Permit</th>
+                  <th style={{ textAlign: "right" }}>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
+                      <RefreshCw size={22} className="spin" color="#175cd3" />
+                      <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดเอกสาร...</div>
+                    </td>
+                  </tr>
+                ) : filteredAllDocs.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
+                      <div style={{ color: "#64748b", fontWeight: 600 }}>ไม่พบเอกสารตามเงื่อนไขที่ค้นหา</div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAllDocs.map((doc) => {
+                    const worker = workerMap.get(doc.workerId);
+                    const daysLeft = doc.expiresOn ? daysUntil(doc.expiresOn) : null;
+
+                    return (
+                      <tr key={doc.id}>
+                        <td>
+                          <span
+                            className="mwp-doc-pill"
+                            style={{
+                              background: `${DOC_COLORS[doc.documentType]}12`,
+                              color: DOC_COLORS[doc.documentType],
+                              border: `1px solid ${DOC_COLORS[doc.documentType]}35`,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {labels[doc.documentType]}
+                          </span>
+                        </td>
+
+                        <td className="mono" style={{ fontWeight: 700 }}>
+                          {doc.documentNumber || "-"}
+                        </td>
+
+                        <td>
+                          <b>{worker?.fullName ?? "-"}</b>
+                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                            รหัส: {worker?.employeeCode ?? "-"}
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="mwp-dept-badge">{worker?.department || "-"}</span>
+                        </td>
+
+                        <td>{doc.issuedOn ? thaiDate(doc.issuedOn) : "-"}</td>
+
+                        <td>
+                          {doc.expiresOn ? (
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{thaiDate(doc.expiresOn)}</div>
+                              {daysLeft !== null && (
+                                <span
+                                  className={`mwp-status-pill ${
+                                    daysLeft < 0
+                                      ? "mwp-status-pill-expired"
+                                      : daysLeft <= 30
+                                        ? "mwp-status-pill-due"
+                                        : "mwp-status-pill-normal"
+                                  }`}
+                                  style={{ fontSize: "0.72rem", padding: "2px 8px" }}
+                                >
+                                  {daysLeft < 0
+                                    ? `เกิน ${formatDays(Math.abs(daysLeft))}`
+                                    : `อีก ${formatDays(daysLeft)}`}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+
+                        <td className="mono">{doc.workPermitNumber || "-"}</td>
+
+                        <td>{doc.workPermitExpiresOn ? thaiDate(doc.workPermitExpiresOn) : "-"}</td>
+
+                        <td style={{ textAlign: "right" }}>
+                          <button
+                            type="button"
+                            className="mwp-btn-action"
+                            onClick={() => editDoc(doc)}
+                            title="แก้ไขเอกสาร"
+                          >
+                            <Edit3 size={13} />
+                            <span>แก้ไข</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      {/* ============================================================ */}
+      {/* Worker Modal (Add / Edit Worker + Initial Documents)         */}
+      {/* ============================================================ */}
       {workerOpen && (
         <Modal
-          title={workerForm.id ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงานและเอกสาร"}
+          title={workerForm.id ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงานใหม่และเอกสาร"}
           onClose={() => setWorkerOpen(false)}
         >
           <div className="modal-body form-stack">
@@ -762,7 +1574,7 @@ export function MigrantWorkerDocumentsPage() {
               <h3 className="section-title">
                 <Users size={16} /> ข้อมูลพนักงาน
               </h3>
-              <div className="form-grid" style={{ marginTop: "10px" }}>
+              <div className="form-grid" style={{ marginTop: "12px" }}>
                 <label>
                   รหัสบุคลากร *
                   <input
@@ -773,7 +1585,7 @@ export function MigrantWorkerDocumentsPage() {
                         employeeCode: e.target.value,
                       })
                     }
-                    placeholder="เช่น CM-1234"
+                    placeholder="เช่น CM-1234 หรือ EMP-001"
                   />
                 </label>
                 <label>
@@ -791,9 +1603,7 @@ export function MigrantWorkerDocumentsPage() {
                       </option>
                     ))}
                     {workerForm.title && !TITLES.includes(workerForm.title) && (
-                      <option value={workerForm.title}>
-                        {workerForm.title}
-                      </option>
+                      <option value={workerForm.title}>{workerForm.title}</option>
                     )}
                   </select>
                 </label>
@@ -804,7 +1614,7 @@ export function MigrantWorkerDocumentsPage() {
                     onChange={(e) =>
                       setWorkerForm({ ...workerForm, fullName: e.target.value })
                     }
-                    placeholder="ชื่อและนามสกุล"
+                    placeholder="ระบุชื่อและนามสกุล"
                   />
                 </label>
                 <label>
@@ -820,7 +1630,9 @@ export function MigrantWorkerDocumentsPage() {
                   >
                     <option value="">เลือกแผนก</option>
                     {DEPARTMENTS.map((x) => (
-                      <option key={x}>{x}</option>
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -834,6 +1646,7 @@ export function MigrantWorkerDocumentsPage() {
                         nationality: e.target.value,
                       })
                     }
+                    placeholder="เช่น เมียนมา, กัมพูชา, ลาว"
                   />
                 </label>
                 <label>
@@ -859,7 +1672,7 @@ export function MigrantWorkerDocumentsPage() {
                         nationalId: e.target.value,
                       })
                     }
-                    placeholder="เลข 13 หลัก หรือเลขประจำตัว"
+                    placeholder="เลขประจำตัว 13 หลัก หรือเลขบัตรชมพู"
                   />
                 </label>
                 <label className="checkbox-row full">
@@ -873,16 +1686,16 @@ export function MigrantWorkerDocumentsPage() {
                       })
                     }
                   />{" "}
-                  ใช้งานข้อมูลพนักงานนี้
+                  เปิดใช้งานข้อมูลพนักงานนี้
                 </label>
               </div>
             </div>
 
             {!workerForm.id && (
-              <div className="doc-section-wrapper">
+              <div className="doc-section-wrapper" style={{ marginTop: "16px" }}>
                 <div className="section-title-bar">
                   <h3 className="section-title">
-                    <FileText size={16} /> ข้อมูลเอกสาร
+                    <FileText size={16} /> บันทึกเอกสารเริ่มต้นพร้อมกัน
                   </h3>
                   <label className="checkbox-inline">
                     <input
@@ -926,8 +1739,7 @@ export function MigrantWorkerDocumentsPage() {
                                 value={doc.documentType}
                                 onChange={(e) =>
                                   updateDocRow(doc.id, {
-                                    documentType: e.target
-                                      .value as MigrantDocumentType,
+                                    documentType: e.target.value as MigrantDocumentType,
                                   })
                                 }
                               >
@@ -955,9 +1767,7 @@ export function MigrantWorkerDocumentsPage() {
                               />
                             </label>
                             <label>
-                              {isPassport
-                                ? "วันออกเล่มพาสปอร์ต"
-                                : "วันออกบัตร"}
+                              {isPassport ? "วันออกเล่มพาสปอร์ต" : "วันออกบัตร"}
                               <input
                                 type="date"
                                 value={doc.issuedOn ?? ""}
@@ -969,9 +1779,7 @@ export function MigrantWorkerDocumentsPage() {
                               />
                             </label>
                             <label>
-                              {isPassport
-                                ? "วันหมดอายุเล่มพาสปอร์ต *"
-                                : "วันหมดอายุบัตร *"}
+                              {isPassport ? "วันหมดอายุเล่มพาสปอร์ต *" : "วันหมดอายุบัตร *"}
                               <input
                                 type="date"
                                 value={doc.expiresOn ?? ""}
@@ -1003,8 +1811,7 @@ export function MigrantWorkerDocumentsPage() {
                                     value={doc.visaExpiresOn ?? ""}
                                     onChange={(e) =>
                                       updateDocRow(doc.id, {
-                                        visaExpiresOn:
-                                          e.target.value || null,
+                                        visaExpiresOn: e.target.value || null,
                                       })
                                     }
                                   />
@@ -1020,8 +1827,7 @@ export function MigrantWorkerDocumentsPage() {
                                     value={doc.areaPermitIssuedOn ?? ""}
                                     onChange={(e) =>
                                       updateDocRow(doc.id, {
-                                        areaPermitIssuedOn:
-                                          e.target.value || null,
+                                        areaPermitIssuedOn: e.target.value || null,
                                       })
                                     }
                                   />
@@ -1033,8 +1839,7 @@ export function MigrantWorkerDocumentsPage() {
                                     value={doc.areaPermitExpiresOn ?? ""}
                                     onChange={(e) =>
                                       updateDocRow(doc.id, {
-                                        areaPermitExpiresOn:
-                                          e.target.value || null,
+                                        areaPermitExpiresOn: e.target.value || null,
                                       })
                                     }
                                   />
@@ -1109,10 +1914,7 @@ export function MigrantWorkerDocumentsPage() {
             )}
           </div>
           <div className="modal-actions">
-            <button
-              className="btn secondary"
-              onClick={() => setWorkerOpen(false)}
-            >
+            <button className="btn secondary" onClick={() => setWorkerOpen(false)}>
               ยกเลิก
             </button>
             <button
@@ -1125,9 +1927,13 @@ export function MigrantWorkerDocumentsPage() {
           </div>
         </Modal>
       )}
+
+      {/* ============================================================ */}
+      {/* Document Modal (Add / Edit Document)                         */}
+      {/* ============================================================ */}
       {docOpen && (
         <Modal
-          title={docForm.id ? "ต่ออายุหรือแก้ไขเอกสาร" : "เพิ่มเอกสาร"}
+          title={docForm.id ? "ต่ออายุหรือแก้ไขเอกสาร" : "เพิ่มเอกสารใหม่"}
           onClose={() => setDocOpen(false)}
         >
           <div className="modal-body form-grid">
@@ -1135,16 +1941,14 @@ export function MigrantWorkerDocumentsPage() {
               พนักงาน *
               <select
                 value={docForm.workerId}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, workerId: e.target.value })
-                }
+                onChange={(e) => setDocForm({ ...docForm, workerId: e.target.value })}
               >
                 <option value="">เลือกพนักงาน</option>
                 {workers
                   .filter((w) => w.isActive)
                   .map((w) => (
                     <option value={w.id} key={w.id}>
-                      {w.employeeCode} — {w.fullName}
+                      {w.employeeCode} — {w.fullName} ({w.department})
                     </option>
                   ))}
               </select>
@@ -1171,9 +1975,7 @@ export function MigrantWorkerDocumentsPage() {
               เลขที่เอกสาร *
               <input
                 value={docForm.documentNumber}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, documentNumber: e.target.value })
-                }
+                onChange={(e) => setDocForm({ ...docForm, documentNumber: e.target.value })}
                 placeholder={
                   docForm.documentType.includes("PASSPORT")
                     ? "เช่น ME... หรือ CC..."
@@ -1188,18 +1990,16 @@ export function MigrantWorkerDocumentsPage() {
                 min="0"
                 max="365"
                 value={docForm.remindDays}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, remindDays: Number(e.target.value) })
-                }
+                onChange={(e) => setDocForm({ ...docForm, remindDays: Number(e.target.value) })}
               />
             </label>
-            {date(
+            {renderDateField(
               "issuedOn",
               docForm.documentType.includes("PASSPORT")
-                ? "วันออกเล่มพาสปอร์ต *"
-                : "วันออกบัตร *",
+                ? "วันออกเล่มพาสปอร์ต"
+                : "วันออกบัตร",
             )}
-            {date(
+            {renderDateField(
               "expiresOn",
               docForm.documentType.includes("PASSPORT")
                 ? "วันหมดอายุเล่มพาสปอร์ต *"
@@ -1208,46 +2008,41 @@ export function MigrantWorkerDocumentsPage() {
             {(docForm.documentType === "PASSPORT_RED" ||
               docForm.documentType === "PASSPORT_GREEN") && (
               <>
-                {date("visaIssuedOn", "วันออกวีซ่า")}
-                {date("visaExpiresOn", "วันหมดอายุวีซ่า *")}
+                {renderDateField("visaIssuedOn", "วันออกวีซ่า")}
+                {renderDateField("visaExpiresOn", "วันหมดอายุวีซ่า *")}
               </>
             )}
             {docForm.documentType === "TEN_YEAR_CARD" && (
               <>
-                {date("areaPermitIssuedOn", "วันออกใบออกนอกพื้นที่ *")}
-                {date("areaPermitExpiresOn", "วันหมดอายุใบออกนอกพื้นที่ *")}
+                {renderDateField("areaPermitIssuedOn", "วันออกใบออกนอกพื้นที่ *")}
+                {renderDateField("areaPermitExpiresOn", "วันหมดอายุใบออกนอกพื้นที่ *")}
               </>
             )}
             <label>
               เลขที่ใบอนุญาตทำงาน
               <input
                 value={docForm.workPermitNumber}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, workPermitNumber: e.target.value })
-                }
+                onChange={(e) => setDocForm({ ...docForm, workPermitNumber: e.target.value })}
                 placeholder="ระบุเลขที่ใบอนุญาตทำงาน (เว้นว่างได้)"
               />
             </label>
-            {date("workPermitIssuedOn", "วันออกใบอนุญาตทำงาน")}
-            {date("workPermitExpiresOn", "วันหมดอายุใบอนุญาตทำงาน")}
-            <label>
+            {renderDateField("workPermitIssuedOn", "วันออกใบอนุญาตทำงาน")}
+            {renderDateField("workPermitExpiresOn", "วันหมดอายุใบอนุญาตทำงาน")}
+            <label style={{ gridColumn: "1 / -1" }}>
               หมายเหตุ
               <textarea
                 value={docForm.note}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, note: e.target.value })
-                }
+                onChange={(e) => setDocForm({ ...docForm, note: e.target.value })}
+                rows={2}
               />
             </label>
-            <label className="checkbox-row">
+            <label className="checkbox-row" style={{ gridColumn: "1 / -1" }}>
               <input
                 type="checkbox"
                 checked={docForm.isActive}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, isActive: e.target.checked })
-                }
+                onChange={(e) => setDocForm({ ...docForm, isActive: e.target.checked })}
               />{" "}
-              ใช้งานเอกสารนี้
+              เปิดใช้งานเอกสารนี้
             </label>
           </div>
           <div className="modal-actions">
@@ -1264,7 +2059,10 @@ export function MigrantWorkerDocumentsPage() {
           </div>
         </Modal>
       )}
-      {/* Import Modal */}
+
+      {/* ============================================================ */}
+      {/* Import Modal                                                 */}
+      {/* ============================================================ */}
       {importOpen && (
         <Modal title="นำเข้าข้อมูลจากไฟล์" onClose={() => setImportOpen(false)}>
           <div className="modal-body import-modal-body">
@@ -1277,6 +2075,7 @@ export function MigrantWorkerDocumentsPage() {
               <button
                 className="btn secondary compact"
                 onClick={downloadTemplate}
+                type="button"
               >
                 <Download size={15} /> ดาวน์โหลด Template (.xlsx)
               </button>
@@ -1390,11 +2189,13 @@ export function MigrantWorkerDocumentsPage() {
             <button
               className="btn secondary"
               onClick={() => setImportOpen(false)}
+              type="button"
             >
               ปิด
             </button>
             <button
               className="btn primary"
+              type="button"
               disabled={
                 importing ||
                 importDone ||
@@ -1404,15 +2205,13 @@ export function MigrantWorkerDocumentsPage() {
             >
               {importing
                 ? "กำลังนำเข้า..."
-                : `นำเข้า ${
-                    importRows.filter((r) => r.errors.length === 0).length
-                  } แถว`}
+                : `นำเข้า ${importRows.filter((r) => r.errors.length === 0).length} แถว`}
             </button>
           </div>
         </Modal>
       )}
 
       {toast && <Toast message={toast} />}
-    </section>
+    </div>
   );
 }
