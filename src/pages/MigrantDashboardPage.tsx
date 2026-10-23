@@ -16,13 +16,16 @@ import {
   ShieldAlert,
   ShieldCheck,
   TrendingUp,
+  UserCheck,
   Users,
 } from "lucide-react";
 import {
   migrantWorkerService,
+  getWorkerGender,
   type ForeignWorker,
   type MigrantDocumentType,
   type MigrantWorkerDocument,
+  type WorkerGender,
 } from "../services/migrantWorkerService";
 
 const labels: Record<MigrantDocumentType, string> = {
@@ -84,6 +87,7 @@ export function MigrantDashboardPage() {
   const [activeTab, setActiveTab] = useState<"urgent" | "expired" | "due" | "caution" | "all">("urgent");
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState<"all" | "MALE" | "FEMALE">("all");
 
   const load = async () => {
     try {
@@ -117,6 +121,28 @@ export function MigrantDashboardPage() {
       if (w.department) set.add(w.department);
     }
     return Array.from(set).sort();
+  }, [activeWorkers]);
+
+  // Gender statistics
+  const genderStats = useMemo(() => {
+    let male = 0;
+    let female = 0;
+    let other = 0;
+    for (const w of activeWorkers) {
+      const g = getWorkerGender(w);
+      if (g === "MALE") male++;
+      else if (g === "FEMALE") female++;
+      else other++;
+    }
+    const total = activeWorkers.length || 1;
+    return {
+      male,
+      female,
+      other,
+      malePct: Math.round((male / total) * 100),
+      femalePct: Math.round((female / total) * 100),
+      otherPct: Math.round((other / total) * 100),
+    };
   }, [activeWorkers]);
 
   const expiryRows = useMemo(() => {
@@ -210,6 +236,10 @@ export function MigrantDashboardPage() {
       list = list.filter((r) => r.worker.department === deptFilter);
     }
 
+    if (genderFilter !== "all") {
+      list = list.filter((r) => getWorkerGender(r.worker) === genderFilter);
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(
@@ -223,7 +253,7 @@ export function MigrantDashboardPage() {
     }
 
     return list;
-  }, [expiryRows, activeTab, deptFilter, searchQuery, expired, due30, due90]);
+  }, [expiryRows, activeTab, deptFilter, genderFilter, searchQuery, expired, due30, due90]);
 
   const nowFormatted = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
@@ -243,7 +273,7 @@ export function MigrantDashboardPage() {
           </div>
           <h1>Dashboard ภาพรวมและสถานะเอกสารแรงงานต่างด้าว</h1>
           <p className="mdb-hero-desc">
-            ศูนย์ตรวจสอบและติดตามวันหมดอายุพาสปอร์ต, วีซ่า (Visa) และใบอนุญาตทำงาน (Work Permit) อย่างแม่นยำ
+            ศูนย์ตรวจสอบและติดตามวันหมดอายุพาสปอร์ต, วีซ่า (Visa) และใบอนุญาตทำงาน (Work Permit) พร้อมสถิติภาพรวม
           </p>
           <div className="mdb-hero-meta">
             <div className="mdb-hero-meta-item">
@@ -295,7 +325,9 @@ export function MigrantDashboardPage() {
             <span className="mdb-kpi-unit">คน</span>
           </div>
           <div className="mdb-kpi-footer">
-            <span>แรงงานที่ปฏิบัติงาน</span>
+            <span style={{ fontWeight: 600, color: "#1e293b" }}>
+              👨 ชาย {genderStats.male} • 👩 หญิง {genderStats.female}
+            </span>
             <span className="mdb-kpi-pill" style={{ background: "#eff6ff", color: "#175cd3" }}>
               ใช้งานอยู่
             </span>
@@ -406,9 +438,68 @@ export function MigrantDashboardPage() {
         </div>
       </section>
 
-      {/* Visual Analytics Row: 3 Panels */}
+      {/* Visual Analytics Grid: 4 Panels including Gender */}
       <section className="mdb-analytics-grid">
-        {/* Panel 1: Document Type Breakdown with SVG Donut Ring */}
+        {/* Panel 1: Gender Distribution */}
+        <div className="mdb-panel">
+          <div className="mdb-panel-header">
+            <div className="mdb-panel-title">
+              <div className="mdb-panel-title-icon" style={{ background: "#fdf2f8", color: "#db2777" }}>
+                <Users size={18} />
+              </div>
+              <div>
+                <h2>สัดส่วนเพศ (ชาย / หญิง)</h2>
+                <p>จำนวนแรงงานจำแนกตามเพศ</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mdb-gender-box">
+            <div className="mdb-gender-bar-container">
+              <div className="mdb-gender-dual-track">
+                <div
+                  className="mdb-gender-bar-male"
+                  style={{ width: `${genderStats.malePct}%` }}
+                  title={`ชาย ${genderStats.male} คน (${genderStats.malePct}%)`}
+                />
+                <div
+                  className="mdb-gender-bar-female"
+                  style={{ width: `${genderStats.femalePct}%` }}
+                  title={`หญิง ${genderStats.female} คน (${genderStats.femalePct}%)`}
+                />
+                {genderStats.otherPct > 0 && (
+                  <div
+                    className="mdb-gender-bar-other"
+                    style={{ width: `${genderStats.otherPct}%` }}
+                    title={`ไม่ระบุ ${genderStats.other} คน (${genderStats.otherPct}%)`}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="mdb-gender-stat-grid">
+              <div className="mdb-gender-stat-card mdb-gender-stat-male">
+                <div className="mdb-gender-stat-icon">👨</div>
+                <div className="mdb-gender-stat-info">
+                  <span className="mdb-gender-stat-label">พนักงานชาย</span>
+                  <span className="mdb-gender-stat-val">{genderStats.male} คน</span>
+                  <span className="mdb-gender-stat-pct">{genderStats.malePct}% ของทั้งหมด</span>
+                </div>
+              </div>
+
+              <div className="mdb-gender-stat-card mdb-gender-stat-female">
+                <div className="mdb-gender-stat-icon">👩</div>
+                <div className="mdb-gender-stat-info">
+                  <span className="mdb-gender-stat-label">พนักงานหญิง</span>
+                  <span className="mdb-gender-stat-val">{genderStats.female} คน</span>
+                  <span className="mdb-gender-stat-pct">{genderStats.femalePct}% ของทั้งหมด</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Panel 2: Document Type Breakdown with SVG Donut Ring */}
         <div className="mdb-panel">
           <div className="mdb-panel-header">
             <div className="mdb-panel-title">
@@ -477,7 +568,7 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        {/* Panel 2: Department Rankings */}
+        {/* Panel 3: Department Rankings */}
         <div className="mdb-panel">
           <div className="mdb-panel-header">
             <div className="mdb-panel-title">
@@ -514,7 +605,7 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        {/* Panel 3: Nationality Distribution */}
+        {/* Panel 4: Nationality Distribution */}
         <div className="mdb-panel">
           <div className="mdb-panel-header">
             <div className="mdb-panel-title">
@@ -577,7 +668,13 @@ export function MigrantDashboardPage() {
               onClick={() => setActiveTab("expired")}
             >
               <span>หมดอายุแล้ว</span>
-              <span className="mdb-tab-badge" style={{ background: activeTab === "expired" ? undefined : "#fee2e2", color: activeTab === "expired" ? undefined : "#dc2626" }}>
+              <span
+                className="mdb-tab-badge"
+                style={{
+                  background: activeTab === "expired" ? undefined : "#fee2e2",
+                  color: activeTab === "expired" ? undefined : "#dc2626",
+                }}
+              >
                 {expired.length}
               </span>
             </button>
@@ -608,7 +705,7 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        {/* Filter Controls Bar */}
+        {/* Filter Controls Bar with Gender Filter */}
         <div className="mdb-controls-bar">
           <div className="mdb-search-box">
             <Search size={16} className="mdb-search-icon" />
@@ -622,7 +719,7 @@ export function MigrantDashboardPage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Filter size={15} color="#64748b" />
+            <Building2 size={15} color="#64748b" />
             <select
               className="mdb-select"
               value={deptFilter}
@@ -634,6 +731,19 @@ export function MigrantDashboardPage() {
                   แผนก {d}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Users size={15} color="#64748b" />
+            <select
+              className="mdb-select"
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value as any)}
+            >
+              <option value="all">ทุกเพศ (ชาย/หญิง)</option>
+              <option value="MALE">👨 เฉพาะชาย ({genderStats.male})</option>
+              <option value="FEMALE">👩 เฉพาะหญิง ({genderStats.female})</option>
             </select>
           </div>
 
@@ -666,6 +776,7 @@ export function MigrantDashboardPage() {
               <thead>
                 <tr>
                   <th>พนักงาน</th>
+                  <th>เพศ</th>
                   <th>แผนก</th>
                   <th>ประเภทเอกสาร</th>
                   <th>รายการที่ต้องต่ออายุ</th>
@@ -680,6 +791,7 @@ export function MigrantDashboardPage() {
                   const isDue30 = r.days >= 0 && r.days <= 30;
                   const isDue90 = r.days > 30 && r.days <= 90;
                   const initial = r.worker.fullName.trim() ? r.worker.fullName.trim()[0] : "W";
+                  const gender = getWorkerGender(r.worker);
 
                   let statusClass = "mdb-status-pill-normal";
                   let statusText = `อีก ${formatDays(r.days)}`;
@@ -713,6 +825,16 @@ export function MigrantDashboardPage() {
                             </span>
                           </div>
                         </div>
+                      </td>
+
+                      <td>
+                        {gender === "MALE" ? (
+                          <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
+                        ) : gender === "FEMALE" ? (
+                          <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
+                        ) : (
+                          <span className="mwp-gender-badge mwp-gender-unknown">-</span>
+                        )}
                       </td>
 
                       <td>

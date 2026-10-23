@@ -56,6 +56,59 @@ export interface MigrantSnapshot {
   history: MigrantDocumentHistory[];
 }
 
+export type WorkerGender = "MALE" | "FEMALE" | "UNKNOWN";
+
+export const GENDER_LABELS: Record<WorkerGender, string> = {
+  MALE: "ชาย",
+  FEMALE: "หญิง",
+  UNKNOWN: "ไม่ระบุ",
+};
+
+export const getWorkerGender = (worker: { title?: string | null; fullName?: string }): WorkerGender => {
+  const t = (worker.title || "").trim().toLowerCase();
+  const name = (worker.fullName || "").trim().toLowerCase();
+
+  if (
+    t === "นาย" ||
+    t === "mr." ||
+    t === "mr" ||
+    t === "ชาย" ||
+    t.startsWith("นาย")
+  ) {
+    return "MALE";
+  }
+  if (
+    t === "นาง" ||
+    t === "นางสาว" ||
+    t === "น.ส." ||
+    t === "น.ส" ||
+    t === "ms." ||
+    t === "ms" ||
+    t === "mrs." ||
+    t === "mrs" ||
+    t === "miss" ||
+    t === "หญิง" ||
+    t.startsWith("นาง") ||
+    t.startsWith("นางสาว")
+  ) {
+    return "FEMALE";
+  }
+
+  if (name.startsWith("นาย ") || name.startsWith("mr. ") || name.startsWith("mr ")) return "MALE";
+  if (
+    name.startsWith("นาง ") ||
+    name.startsWith("นางสาว ") ||
+    name.startsWith("น.ส. ") ||
+    name.startsWith("ms. ") ||
+    name.startsWith("mrs. ") ||
+    name.startsWith("miss ")
+  ) {
+    return "FEMALE";
+  }
+
+  return "UNKNOWN";
+};
+
 const worker = (row: any): ForeignWorker => ({
   id: String(row.id),
   employeeCode: String(row.employee_code),

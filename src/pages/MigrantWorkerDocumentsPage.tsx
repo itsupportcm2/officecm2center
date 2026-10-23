@@ -34,9 +34,11 @@ import { Modal, Toast } from "../components/ui";
 import { DEPARTMENTS } from "../constants/departments";
 import {
   migrantWorkerService,
+  getWorkerGender,
   type ForeignWorker,
   type MigrantDocumentType,
   type MigrantWorkerDocument,
+  type WorkerGender,
 } from "../services/migrantWorkerService";
 import {
   downloadTemplate,
@@ -178,6 +180,7 @@ export function MigrantWorkerDocumentsPage() {
   // Filter toolbar
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState<"all" | "MALE" | "FEMALE">("all");
   const [docTypeFilter, setDocTypeFilter] = useState("all");
 
   // Worker detail accordion
@@ -290,6 +293,21 @@ export function MigrantWorkerDocumentsPage() {
   const cautionCount = useMemo(() => expiryRows.filter((r) => r.days > 30 && r.days <= 90).length, [expiryRows]);
   const safeCount = useMemo(() => expiryRows.filter((r) => r.days > 90).length, [expiryRows]);
 
+  // Gender counts
+  const genderStats = useMemo(() => {
+    let male = 0;
+    let female = 0;
+    let other = 0;
+    for (const w of workers) {
+      if (!w.isActive) continue;
+      const g = getWorkerGender(w);
+      if (g === "MALE") male++;
+      else if (g === "FEMALE") female++;
+      else other++;
+    }
+    return { male, female, other };
+  }, [workers]);
+
   // Department list for filters
   const departmentsList = useMemo(() => {
     const set = new Set<string>();
@@ -301,6 +319,7 @@ export function MigrantWorkerDocumentsPage() {
   const filteredWorkers = useMemo(() => {
     return workers.filter((w) => {
       if (deptFilter !== "all" && w.department !== deptFilter) return false;
+      if (genderFilter !== "all" && getWorkerGender(w) !== genderFilter) return false;
       if (docTypeFilter !== "all") {
         const workerDocTypes = documents
           .filter((d) => d.workerId === w.id && d.isActive)
@@ -325,7 +344,7 @@ export function MigrantWorkerDocumentsPage() {
       }
       return true;
     });
-  }, [workers, documents, deptFilter, docTypeFilter, searchQuery]);
+  }, [workers, documents, deptFilter, genderFilter, docTypeFilter, searchQuery]);
 
   // Filtered Expiry Rows
   const filteredExpiryRows = useMemo(() => {
@@ -339,6 +358,7 @@ export function MigrantWorkerDocumentsPage() {
       if (expirySubFilter === "safe" && row.days <= 90) return false;
 
       if (deptFilter !== "all" && worker.department !== deptFilter) return false;
+      if (genderFilter !== "all" && getWorkerGender(worker) !== genderFilter) return false;
       if (docTypeFilter !== "all" && row.doc.documentType !== docTypeFilter) return false;
 
       if (searchQuery.trim()) {
@@ -354,7 +374,7 @@ export function MigrantWorkerDocumentsPage() {
       }
       return true;
     });
-  }, [expiryRows, workerMap, expirySubFilter, deptFilter, docTypeFilter, searchQuery]);
+  }, [expiryRows, workerMap, expirySubFilter, deptFilter, genderFilter, docTypeFilter, searchQuery]);
 
   // Filtered All Documents list
   const filteredAllDocs = useMemo(() => {
@@ -363,6 +383,7 @@ export function MigrantWorkerDocumentsPage() {
       if (!worker) return false;
 
       if (deptFilter !== "all" && worker.department !== deptFilter) return false;
+      if (genderFilter !== "all" && getWorkerGender(worker) !== genderFilter) return false;
       if (docTypeFilter !== "all" && doc.documentType !== docTypeFilter) return false;
 
       if (searchQuery.trim()) {
@@ -377,7 +398,7 @@ export function MigrantWorkerDocumentsPage() {
       }
       return true;
     });
-  }, [documents, workerMap, deptFilter, docTypeFilter, searchQuery]);
+  }, [documents, workerMap, deptFilter, genderFilter, docTypeFilter, searchQuery]);
 
   const editDoc = (doc: MigrantWorkerDocument) => {
     setDocForm({ ...doc });
@@ -725,13 +746,14 @@ export function MigrantWorkerDocumentsPage() {
         </div>
       </section>
 
-      {/* 4 Clickable Quick-Filter Summary Cards */}
+      {/* 4 Clickable Quick-Filter Summary Cards with Gender display */}
       <section className="mwp-stats-grid">
         <div
           className={`mwp-stat-card mwp-stat-blue ${viewMode === "workers" ? "active" : ""}`}
           onClick={() => {
             setViewMode("workers");
             setDeptFilter("all");
+            setGenderFilter("all");
             setDocTypeFilter("all");
           }}
           title="คลิกเพื่อดูรายชื่อพนักงานทั้งหมด"
@@ -746,8 +768,10 @@ export function MigrantWorkerDocumentsPage() {
             <span className="mwp-stat-val">{totalActiveWorkers.toLocaleString("th-TH")}</span>
             <span className="mwp-stat-unit">คน</span>
           </div>
-          <div className="mwp-stat-hint">
-            <span>คลิกเพื่อดูรายชื่อพนักงาน</span>
+          <div className="mwp-stat-hint" style={{ color: "#1e293b", fontWeight: 700 }}>
+            <span>👨 ชาย {genderStats.male}</span>
+            <span style={{ color: "#cbd5e1" }}>•</span>
+            <span>👩 หญิง {genderStats.female}</span>
           </div>
         </div>
 
@@ -756,6 +780,7 @@ export function MigrantWorkerDocumentsPage() {
           onClick={() => {
             setViewMode("documents");
             setDeptFilter("all");
+            setGenderFilter("all");
             setDocTypeFilter("all");
           }}
           title="คลิกเพื่อดูเอกสารทั้งหมดในระบบ"
@@ -911,7 +936,7 @@ export function MigrantWorkerDocumentsPage() {
           )}
         </div>
 
-        {/* Unified Search & Filter Toolbar */}
+        {/* Unified Search & Filter Toolbar with Gender filter */}
         <div className="mwp-toolbar">
           <div className="mwp-search-wrap">
             <Search size={16} className="mwp-search-icon" />
@@ -940,6 +965,19 @@ export function MigrantWorkerDocumentsPage() {
                 <X size={14} />
               </button>
             )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Users size={15} color="#64748b" />
+            <select
+              className="mwp-select"
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value as any)}
+            >
+              <option value="all">ทุกเพศ (ชาย/หญิง)</option>
+              <option value="MALE">👨 เฉพาะชาย ({genderStats.male})</option>
+              <option value="FEMALE">👩 เฉพาะหญิง ({genderStats.female})</option>
+            </select>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -990,6 +1028,7 @@ export function MigrantWorkerDocumentsPage() {
               <thead>
                 <tr>
                   <th>พนักงาน</th>
+                  <th>เพศ</th>
                   <th>เลขบัตรประชาชน / ID</th>
                   <th>แผนก</th>
                   <th>เอกสารที่บันทึกไว้</th>
@@ -999,14 +1038,14 @@ export function MigrantWorkerDocumentsPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: "40px" }}>
+                    <td colSpan={6} style={{ textAlign: "center", padding: "40px" }}>
                       <RefreshCw size={22} className="spin" color="#175cd3" />
                       <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดข้อมูลพนักงาน...</div>
                     </td>
                   </tr>
                 ) : filteredWorkers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: "40px" }}>
+                    <td colSpan={6} style={{ textAlign: "center", padding: "40px" }}>
                       <div style={{ color: "#64748b", fontWeight: 600 }}>ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไข</div>
                     </td>
                   </tr>
@@ -1017,6 +1056,7 @@ export function MigrantWorkerDocumentsPage() {
                     );
                     const isExpanded = expandedWorkerId === w.id;
                     const initial = w.fullName.trim() ? w.fullName.trim()[0] : "W";
+                    const gender = getWorkerGender(w);
 
                     // Check if any document has expired or is due
                     const hasExpiredDoc = workerDocsList.some((d) => {
@@ -1051,6 +1091,16 @@ export function MigrantWorkerDocumentsPage() {
                                 </span>
                               </div>
                             </div>
+                          </td>
+
+                          <td>
+                            {gender === "MALE" ? (
+                              <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
+                            ) : gender === "FEMALE" ? (
+                              <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
+                            ) : (
+                              <span className="mwp-gender-badge mwp-gender-unknown">-</span>
+                            )}
                           </td>
 
                           <td>
@@ -1154,7 +1204,7 @@ export function MigrantWorkerDocumentsPage() {
                         {/* Expandable Document Drawer Row */}
                         {isExpanded && (
                           <tr key={`${w.id}-expanded`} className="mwp-expand-row">
-                            <td colSpan={5}>
+                            <td colSpan={6}>
                               <div className="mwp-expand-container">
                                 <div className="mwp-expand-header">
                                   <div className="mwp-expand-title">
@@ -1313,6 +1363,7 @@ export function MigrantWorkerDocumentsPage() {
               <thead>
                 <tr>
                   <th>พนักงาน</th>
+                  <th>เพศ</th>
                   <th>แผนก</th>
                   <th>ประเภทเอกสาร</th>
                   <th>เลขที่</th>
@@ -1325,14 +1376,14 @@ export function MigrantWorkerDocumentsPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "40px" }}>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
                       <RefreshCw size={22} className="spin" color="#175cd3" />
                       <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดข้อมูลวันครบกำหนด...</div>
                     </td>
                   </tr>
                 ) : filteredExpiryRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "40px" }}>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
                       <div style={{ color: "#16a34a", fontWeight: 700, fontSize: "1rem" }}>
                         ✓ ไม่พบเอกสารในเงื่อนไขการแจ้งเตือนนี้
                       </div>
@@ -1349,6 +1400,7 @@ export function MigrantWorkerDocumentsPage() {
                     const isExp = row.days < 0;
                     const isDue30 = row.days >= 0 && row.days <= 30;
                     const isDue90 = row.days > 30 && row.days <= 90;
+                    const gender = getWorkerGender(worker);
 
                     let statusClass = "mwp-status-pill-normal";
                     let statusText = `อีก ${formatDays(row.days)}`;
@@ -1381,6 +1433,16 @@ export function MigrantWorkerDocumentsPage() {
                               </span>
                             </div>
                           </div>
+                        </td>
+
+                        <td>
+                          {gender === "MALE" ? (
+                            <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
+                          ) : gender === "FEMALE" ? (
+                            <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
+                          ) : (
+                            <span className="mwp-gender-badge mwp-gender-unknown">-</span>
+                          )}
                         </td>
 
                         <td>
@@ -1450,6 +1512,7 @@ export function MigrantWorkerDocumentsPage() {
                   <th>ประเภทเอกสาร</th>
                   <th>เลขที่เอกสาร</th>
                   <th>ผู้ถือครอง (พนักงาน)</th>
+                  <th>เพศ</th>
                   <th>แผนก</th>
                   <th>วันออกเอกสาร</th>
                   <th>วันหมดอายุเอกสาร</th>
@@ -1461,14 +1524,14 @@ export function MigrantWorkerDocumentsPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
+                    <td colSpan={10} style={{ textAlign: "center", padding: "40px" }}>
                       <RefreshCw size={22} className="spin" color="#175cd3" />
                       <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดเอกสาร...</div>
                     </td>
                   </tr>
                 ) : filteredAllDocs.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
+                    <td colSpan={10} style={{ textAlign: "center", padding: "40px" }}>
                       <div style={{ color: "#64748b", fontWeight: 600 }}>ไม่พบเอกสารตามเงื่อนไขที่ค้นหา</div>
                     </td>
                   </tr>
@@ -1476,6 +1539,7 @@ export function MigrantWorkerDocumentsPage() {
                   filteredAllDocs.map((doc) => {
                     const worker = workerMap.get(doc.workerId);
                     const daysLeft = doc.expiresOn ? daysUntil(doc.expiresOn) : null;
+                    const gender = worker ? getWorkerGender(worker) : "UNKNOWN";
 
                     return (
                       <tr key={doc.id}>
@@ -1502,6 +1566,16 @@ export function MigrantWorkerDocumentsPage() {
                           <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
                             รหัส: {worker?.employeeCode ?? "-"}
                           </div>
+                        </td>
+
+                        <td>
+                          {gender === "MALE" ? (
+                            <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
+                          ) : gender === "FEMALE" ? (
+                            <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
+                          ) : (
+                            <span className="mwp-gender-badge mwp-gender-unknown">-</span>
+                          )}
                         </td>
 
                         <td>
@@ -1589,7 +1663,7 @@ export function MigrantWorkerDocumentsPage() {
                   />
                 </label>
                 <label>
-                  คำนำหน้า
+                  คำนำหน้า (ระบุเพศ)
                   <select
                     value={workerForm.title}
                     onChange={(e) =>
@@ -1599,7 +1673,7 @@ export function MigrantWorkerDocumentsPage() {
                     <option value="">เลือกคำนำหน้า</option>
                     {TITLES.map((t) => (
                       <option key={t} value={t}>
-                        {t}
+                        {t} {t === "นาย" || t === "MR." ? "(ชาย)" : "(หญิง)"}
                       </option>
                     ))}
                     {workerForm.title && !TITLES.includes(workerForm.title) && (
