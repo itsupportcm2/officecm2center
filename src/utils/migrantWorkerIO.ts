@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { DEPARTMENTS } from "../constants/departments";
 import type {
   ForeignWorker,
   MigrantDocumentType,
@@ -39,6 +40,37 @@ const DOC_TYPE_MAP: Record<MigrantDocumentType, string> = {
 const DOC_TYPE_REVERSE: Record<string, MigrantDocumentType> = Object.fromEntries(
   Object.entries(DOC_TYPE_MAP).map(([k, v]) => [v, k as MigrantDocumentType])
 );
+
+// Thai aliases and shorthand to valid uppercase department codes
+const DEPT_MAP: Record<string, string> = {
+  "ฝ่ายผลิต": "PR", "ผลิต": "PR", "production": "PR", "pr": "PR",
+  "ฝ่ายแพ็ค": "PA", "แพ็ค": "PA", "บรรจุ": "PA", "packing": "PA", "pa": "PA",
+  "บุคคล": "HR", "ฝ่ายบุคคล": "HR", "hr": "HR",
+  "ไอที": "IT", "สารสนเทศ": "IT", "it": "IT",
+  "คลัง": "ST", "สโตร์": "ST", "ฝ่ายคลัง": "ST", "store": "ST", "st": "ST",
+  "จัดซื้อ": "PC", "ฝ่ายจัดซื้อ": "PC", "purchase": "PC", "pc": "PC",
+  "บัญชี": "AC", "ฝ่ายบัญชี": "AC", "account": "AC", "ac": "AC",
+  "การเงิน": "AP", "ฝ่ายการเงิน": "AP", "ap": "AP",
+  "ช่าง": "MC", "ซ่อมบำรุง": "MC", "mc": "MC",
+  "ควบคุมคุณภาพ": "QC", "คิวซี": "QC", "qc": "QC",
+  "วิจัย": "R&D", "r&d": "R&D", "rd": "R&D",
+  "วัตถุดิบ": "RM", "rm": "RM",
+  "บริการ": "SERVICE", "service": "SERVICE",
+  "dc": "DC", "lab": "LAB", "ec": "EC", "se": "SE", "o&e": "O&E",
+};
+
+function normalizeDepartment(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  const upper = trimmed.toUpperCase();
+  if (DEPARTMENTS.includes(upper as (typeof DEPARTMENTS)[number])) {
+    return upper;
+  }
+  const lower = trimmed.toLowerCase();
+  if (DEPT_MAP[lower]) return DEPT_MAP[lower];
+  if (DEPT_MAP[trimmed]) return DEPT_MAP[trimmed];
+  return upper;
+}
 
 // ---- Export helpers ----
 function toRows(
@@ -191,6 +223,14 @@ function parseDate(val: unknown): string | null {
     }
   }
 
+  // DD/MM/YYYY or DD-MM-YYYY
+  const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (dmy) {
+    const dd = dmy[1].padStart(2, "0");
+    const mm = dmy[2].padStart(2, "0");
+    return `${dmy[3]}-${mm}-${dd}`;
+  }
+
   // Try native parsing as last resort
   const parsed = new Date(s);
   if (!isNaN(parsed.getTime())) {
@@ -223,12 +263,17 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
         }
 
         // Find header row (first row with รหัสพนักงาน)
-        let headerIdx = 0;
-        for (let i = 0; i < Math.min(raw.length, 5); i++) {
+        let headerIdx = -1;
+        for (let i = 0; i < Math.min(raw.length, 10); i++) {
           if (raw[i].some((c) => String(c).includes("รหัสพนักงาน"))) {
             headerIdx = i;
             break;
           }
+        }
+
+        if (headerIdx === -1) {
+          // Fallback to first row
+          headerIdx = 0;
         }
 
         const headers = (raw[headerIdx] as unknown[]).map((h) =>
@@ -242,17 +287,48 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
           const employeeCode = str(r[col("รหัสพนักงาน")]);
           if (!employeeCode) continue; // skip empty rows
 
+          const rawDept = str(r[col("แผนก")]);
+          const normalizedDept = normalizeDepartment(rawDept);
+
           const docTypeLabel = str(r[col("ประเภทเอกสาร")]);
           const docType: MigrantDocumentType | null =
             DOC_TYPE_REVERSE[docTypeLabel] ?? null;
 
+          const docNumber = str(r[col("เลขที่เอกสาร")]);
+          const issuedOn = parseDate(r[col("วันออกเอกสาร")]);
+          const expiresOn = parseDate(r[col("วันหมดอายุเอกสาร")]);
+          const visaIssuedOn = parseDate(r[col("วันออกวีซ่า")]);
+          const visaExpiresOn = parseDate(r[col("วันหมดอายุวีซ่า")]);
+          const areaPermitIssuedOn = parseDate(r[col("วันออกใบออกนอกพื้นที่")]);
+          const areaPermitExpiresOn = parseDate(r[col("วันหมดอายุใบออกนอกพื้นที่")]);
+          const workPermitNumber = str(r[col("เลขที่ใบอนุญาตทำงาน")]);
+          const workPermitIssuedOn = parseDate(r[col("วันออกใบอนุญาตทำงาน")]);
+          const workPermitExpiresOn = parseDate(r[col("วันหมดอายุใบอนุญาตทำงาน")]);
+
           const errors: string[] = [];
           if (!str(r[col("ชื่อ-สกุล")])) errors.push("ไม่มีชื่อ-สกุล");
-          if (!str(r[col("แผนก")])) errors.push("ไม่มีแผนก");
+          if (!normalizedDept) {
+            errors.push("ไม่มีแผนก");
+          } else if (!DEPARTMENTS.includes(normalizedDept as (typeof DEPARTMENTS)[number])) {
+            errors.push(`แผนก "${rawDept}" ไม่ถูกต้อง (ใช้: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`);
+          }
+
           if (docTypeLabel === "ใบอนุญาตทำงาน") {
-            errors.push("ใบอนุญาตทำงานถูกรวมลงในเอกสารแล้ว กรุณาระบุประเภทเอกสารเป็น พาสปอร์ตสีแดง/เขียว หรือ บัตรชมพู/10ปี");
+            errors.push("ใบอนุญาตทำงานถูกรวมลงในเอกสารแล้ว กรุณาระบุประเภทเป็น พาสปอร์ตสีแดง/เขียว หรือ บัตรชมพู/10ปี");
           } else if (docTypeLabel && !docType) {
             errors.push(`ประเภทเอกสาร "${docTypeLabel}" ไม่ถูกต้อง`);
+          }
+
+          // Document specific checks if a document type is chosen
+          if (docType) {
+            if (!docNumber) errors.push("กรุณากรอกเลขที่เอกสาร");
+            if (!expiresOn) errors.push("กรุณาระบุวันหมดอายุเอกสาร");
+            if ((docType === "PASSPORT_RED" || docType === "PASSPORT_GREEN") && !visaExpiresOn) {
+              errors.push("พาสปอร์ตต้องระบุวันหมดอายุวีซ่า");
+            }
+            if (docType === "TEN_YEAR_CARD" && !areaPermitExpiresOn) {
+              errors.push("บัตร 10 ปีต้องระบุวันหมดอายุใบออกนอกพื้นที่");
+            }
           }
 
           rows.push({
@@ -261,20 +337,20 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
             title: str(r[col("คำนำหน้า")]),
             fullName: str(r[col("ชื่อ-สกุล")]),
             nationality: str(r[col("สัญชาติ")]),
-            department: str(r[col("แผนก")]),
+            department: normalizedDept || rawDept,
             nationalId: str(r[col("เลขบัตรประชาชน")]),
             birthDate: parseDate(r[col("วันเกิด")]),
             documentType: docType,
-            documentNumber: str(r[col("เลขที่เอกสาร")]),
-            issuedOn: parseDate(r[col("วันออกเอกสาร")]),
-            expiresOn: parseDate(r[col("วันหมดอายุเอกสาร")]),
-            visaIssuedOn: parseDate(r[col("วันออกวีซ่า")]),
-            visaExpiresOn: parseDate(r[col("วันหมดอายุวีซ่า")]),
-            areaPermitIssuedOn: parseDate(r[col("วันออกใบออกนอกพื้นที่")]),
-            areaPermitExpiresOn: parseDate(r[col("วันหมดอายุใบออกนอกพื้นที่")]),
-            workPermitNumber: str(r[col("เลขที่ใบอนุญาตทำงาน")]),
-            workPermitIssuedOn: parseDate(r[col("วันออกใบอนุญาตทำงาน")]),
-            workPermitExpiresOn: parseDate(r[col("วันหมดอายุใบอนุญาตทำงาน")]),
+            documentNumber: docNumber,
+            issuedOn,
+            expiresOn,
+            visaIssuedOn,
+            visaExpiresOn,
+            areaPermitIssuedOn,
+            areaPermitExpiresOn,
+            workPermitNumber,
+            workPermitIssuedOn,
+            workPermitExpiresOn,
             remindDays: Number(r[col("แจ้งเตือนล่วงหน้า(วัน)")]) || 30,
             docNote: str(r[col("หมายเหตุเอกสาร")]),
             errors,
@@ -295,18 +371,18 @@ export function downloadTemplate(): void {
   const rows = [
     EXPORT_HEADERS,
     [
-      "CM-0001", "นาย", "สมชาย ใจดี", "เมียนมา", "ฝ่ายผลิต",
+      "CM-0001", "นาย", "สมชาย ใจดี", "เมียนมา", "PR",
       "1234567890123", "2000-01-15",
       "พาสปอร์ตสีแดง", "ME123456", "2022-03-01", "2027-03-01",
       "2023-01-01", "2024-01-01", "", "",
-      "WP-998877", "2023-01-01", "2025-01-01", "30", "",
+      "WP-998877", "2023-01-01", "2025-01-01", "30", "ฝ่ายผลิต (PR)",
     ],
     [
-      "CM-0002", "นางสาว", "มะลิ สวยงาม", "ลาว", "ฝ่ายแพ็ค",
+      "CM-0002", "นางสาว", "มะลิ สวยงาม", "ลาว", "PA",
       "0012345678901", "1998-05-20",
       "บัตรชมพู", "PK-554433", "2023-02-15", "2025-02-15",
       "", "", "", "",
-      "WP-112233", "2023-02-15", "2025-02-15", "30", "",
+      "WP-112233", "2023-02-15", "2025-02-15", "30", "ฝ่ายแพ็ค (PA)",
     ],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);

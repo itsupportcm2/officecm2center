@@ -131,13 +131,23 @@ export const migrantWorkerService = {
       p_note: input.note,
       p_is_active: input.isActive,
     });
-    if (error) throw error;
+    if (error) {
+      if (error.message?.includes("invalid department")) {
+        throw new Error(`แผนก "${input.department}" ไม่ถูกต้องในระบบ (ต้องเป็นหนึ่งใน: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`);
+      }
+      if (error.message?.includes("employee code already exists")) {
+        throw new Error(`รหัสพนักงาน "${input.employeeCode}" มีอยู่แล้วในระบบ`);
+      }
+      throw error;
+    }
     return worker(data);
   },
   async saveDocument(
     input: Omit<MigrantWorkerDocument, "createdAt" | "updatedAt">,
   ): Promise<void> {
     if (!supabase) throw new Error("Supabase is not configured");
+    
+    // First try with 16 params (including work permit columns)
     const { error } = await supabase.rpc(
       "save_migrant_worker_document_details",
       {
@@ -159,6 +169,37 @@ export const migrantWorkerService = {
         p_work_permit_expires_on: input.workPermitExpiresOn ?? null,
       },
     );
-    if (error) throw error;
+
+    if (error) {
+      // If function with 16 params not found (migration not yet run in Supabase), fallback to 13 params
+      const isParamMismatch =
+        error.code === "PGRST202" ||
+        error.message?.includes("Could not find the function") ||
+        (error.message?.includes("function") && error.message?.includes("save_migrant_worker_document_details"));
+
+      if (isParamMismatch) {
+        const { error: fallbackError } = await supabase.rpc(
+          "save_migrant_worker_document_details",
+          {
+            p_document_id: input.id || null,
+            p_worker_id: input.workerId,
+            p_document_type: input.documentType,
+            p_document_number: input.documentNumber,
+            p_issued_on: input.issuedOn,
+            p_expires_on: input.expiresOn,
+            p_visa_issued_on: input.visaIssuedOn,
+            p_visa_expires_on: input.visaExpiresOn,
+            p_area_permit_issued_on: input.areaPermitIssuedOn,
+            p_area_permit_expires_on: input.areaPermitExpiresOn,
+            p_remind_days: input.remindDays,
+            p_note: input.note,
+            p_is_active: input.isActive,
+          },
+        );
+        if (fallbackError) throw fallbackError;
+        return;
+      }
+      throw error;
+    }
   },
 };

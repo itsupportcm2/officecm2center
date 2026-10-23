@@ -138,6 +138,8 @@ export function MigrantWorkerDocumentsPage() {
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [importDone, setImportDone] = useState(false);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [importSuccessCount, setImportSuccessCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addDocRow = () => {
     setWorkerDocs([
@@ -396,8 +398,10 @@ export function MigrantWorkerDocumentsPage() {
       const rows = await parseImportFile(file);
       setImportRows(rows);
       setImportDone(false);
-    } catch {
-      setToast("อ่านไฟล์ไม่สำเร็จ กรุณาตรวจสอบรูปแบบไฟล์");
+      setImportErrors([]);
+      setImportSuccessCount(0);
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "อ่านไฟล์ไม่สำเร็จ กรุณาตรวจสอบรูปแบบไฟล์");
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -405,10 +409,14 @@ export function MigrantWorkerDocumentsPage() {
   const runImport = async () => {
     const validRows = importRows.filter((r) => r.errors.length === 0);
     if (!validRows.length) {
-      setToast("ไม่มีแถวที่ถูกต้องสำหรับนำเข้า");
+      setToast("ไม่มีแถวที่ถูกต้องสำหรับนำเข้า กรุณาตรวจสอบข้อผิดพลาดในตารางด้านล่าง");
       return;
     }
     setImporting(true);
+    setImportErrors([]);
+    let success = 0;
+    const errorsList: string[] = [];
+
     try {
       // Group by employeeCode to avoid duplicate worker creation
       const workerCodeMap = new Map<string, string>(); // code -> id
@@ -416,57 +424,69 @@ export function MigrantWorkerDocumentsPage() {
       for (const w of workers) workerCodeMap.set(w.employeeCode, w.id);
 
       for (const row of validRows) {
-        let workerId = workerCodeMap.get(row.employeeCode);
-        if (!workerId) {
-          const saved = await migrantWorkerService.saveWorker({
-            id: "",
-            employeeCode: row.employeeCode,
-            title: row.title,
-            fullName: row.fullName,
-            nationality: row.nationality,
-            department: row.department,
-            organizationUnit: "",
-            nationalId: row.nationalId,
-            birthDate: row.birthDate,
-            position: "",
-            note: "",
-            isActive: true,
-          });
-          workerId = saved.id;
-          workerCodeMap.set(row.employeeCode, workerId);
-        }
+        try {
+          let workerId = workerCodeMap.get(row.employeeCode);
+          if (!workerId) {
+            const saved = await migrantWorkerService.saveWorker({
+              id: "",
+              employeeCode: row.employeeCode,
+              title: row.title,
+              fullName: row.fullName,
+              nationality: row.nationality,
+              department: row.department,
+              organizationUnit: "",
+              nationalId: row.nationalId,
+              birthDate: row.birthDate,
+              position: "",
+              note: "",
+              isActive: true,
+            });
+            workerId = saved.id;
+            workerCodeMap.set(row.employeeCode, workerId);
+          }
 
-        if (row.documentType) {
-          const isPassport =
-            row.documentType === "PASSPORT_RED" ||
-            row.documentType === "PASSPORT_GREEN";
-          const isArea = row.documentType === "TEN_YEAR_CARD";
-          await migrantWorkerService.saveDocument({
-            id: "",
-            workerId,
-            documentType: row.documentType,
-            documentNumber: row.documentNumber,
-            issuedOn: row.issuedOn,
-            expiresOn: row.expiresOn,
-            visaIssuedOn: isPassport ? row.visaIssuedOn : null,
-            visaExpiresOn: isPassport ? row.visaExpiresOn : null,
-            areaPermitIssuedOn: isArea ? row.areaPermitIssuedOn : null,
-            areaPermitExpiresOn: isArea ? row.areaPermitExpiresOn : null,
-            workPermitNumber: row.workPermitNumber,
-            workPermitIssuedOn: row.workPermitIssuedOn,
-            workPermitExpiresOn: row.workPermitExpiresOn,
-            remindDays: row.remindDays,
-            note: row.docNote,
-            isActive: true,
-          });
+          if (row.documentType) {
+            const isPassport =
+              row.documentType === "PASSPORT_RED" ||
+              row.documentType === "PASSPORT_GREEN";
+            const isArea = row.documentType === "TEN_YEAR_CARD";
+            await migrantWorkerService.saveDocument({
+              id: "",
+              workerId,
+              documentType: row.documentType,
+              documentNumber: row.documentNumber,
+              issuedOn: row.issuedOn,
+              expiresOn: row.expiresOn,
+              visaIssuedOn: isPassport ? row.visaIssuedOn : null,
+              visaExpiresOn: isPassport ? row.visaExpiresOn : null,
+              areaPermitIssuedOn: isArea ? row.areaPermitIssuedOn : null,
+              areaPermitExpiresOn: isArea ? row.areaPermitExpiresOn : null,
+              workPermitNumber: row.workPermitNumber,
+              workPermitIssuedOn: row.workPermitIssuedOn,
+              workPermitExpiresOn: row.workPermitExpiresOn,
+              remindDays: row.remindDays,
+              note: row.docNote,
+              isActive: true,
+            });
+          }
+          success++;
+        } catch (rowErr) {
+          const msg = rowErr instanceof Error ? rowErr.message : "บันทึกไม่สำเร็จ";
+          errorsList.push(`แถวที่ ${row.rowIndex} (${row.employeeCode} - ${row.fullName}): ${msg}`);
         }
       }
 
+      setImportSuccessCount(success);
+      setImportErrors(errorsList);
       setImportDone(true);
-      setToast(`นำเข้าสำเร็จ ${validRows.length} แถว`);
+      if (errorsList.length === 0) {
+        setToast(`นำเข้าข้อมูลสำเร็จทั้งหมด ${success} รายการ`);
+      } else {
+        setToast(`นำเข้าสำเร็จ ${success} รายการ, ผิดพลาด ${errorsList.length} รายการ`);
+      }
       await load();
     } catch (err) {
-      setToast(err instanceof Error ? err.message : "นำเข้าไม่สำเร็จ");
+      setToast(err instanceof Error ? err.message : "การนำเข้าขัดข้อง");
     } finally {
       setImporting(false);
     }
@@ -1322,9 +1342,34 @@ export function MigrantWorkerDocumentsPage() {
             )}
 
             {importDone && (
-              <p className="import-success">
-                ✅ นำเข้าข้อมูลสำเร็จแล้ว สามารถปิดหน้าต่างนี้ได้
-              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {importSuccessCount > 0 && (
+                  <p className="import-success">
+                    ✅ นำเข้าข้อมูลสำเร็จ {importSuccessCount} รายการ
+                  </p>
+                )}
+                {importErrors.length > 0 && (
+                  <div
+                    style={{
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      borderRadius: "8px",
+                      padding: "12px 14px",
+                      color: "#991b1b",
+                      fontSize: "0.85rem",
+                      maxHeight: "150px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    <b>⚠️ พบข้อผิดพลาด {importErrors.length} รายการ:</b>
+                    <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                      {importErrors.map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
