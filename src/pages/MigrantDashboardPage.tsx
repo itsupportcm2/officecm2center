@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -10,7 +11,6 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import {
   migrantWorkerService,
   type ForeignWorker,
@@ -19,34 +19,43 @@ import {
 } from "../services/migrantWorkerService";
 
 const labels: Record<MigrantDocumentType, string> = {
-  PASSPORT_RED: "æ“ ªÕ√Ïµ ’·¥ß",
-  PASSPORT_GREEN: "æ“ ªÕ√Ïµ ’‡¢’¬«",
-  PINK_CARD: "∫—µ√™¡æŸ",
-  TEN_YEAR_CARD: "∫—µ√ 10 ª’",
+  PASSPORT_RED: "‡∏û‡∏≤‡∏™‡∏õ‡∏≠‡∏£‡πå‡∏ï‡πÄ‡∏•‡πà‡∏°‡πÅ‡∏î‡∏á",
+  PASSPORT_GREEN: "‡∏û‡∏≤‡∏™‡∏õ‡∏≠‡∏£‡πå‡∏ï‡πÄ‡∏•‡πà‡∏°‡πÄ‡∏Ç‡∏µ‡∏¢‡∏ß",
+  PINK_CARD: "‡∏ö‡∏±‡∏ï‡∏£‡∏ä‡∏°‡∏û‡∏π",
+  TEN_YEAR_CARD: "‡∏ö‡∏±‡∏ï‡∏£ 10 ‡∏õ‡∏µ",
 };
+
 const DOC_COLORS: Record<MigrantDocumentType, string> = {
   PASSPORT_RED: "#ef4444",
-  PASSPORT_GREEN: "#22c55e",
+  PASSPORT_GREEN: "#10b981",
   PINK_CARD: "#ec4899",
   TEN_YEAR_CARD: "#8b5cf6",
 };
 
 const daysUntil = (date: string) =>
   Math.ceil(
-    (new Date(`${date}T00:00:00`).getTime() - new Date(new Date().toDateString()).getTime()) / 86400000,
+    (new Date(`${date}T00:00:00`).getTime() -
+      new Date(new Date().toDateString()).getTime()) /
+      86400000,
   );
+
 const thaiDate = (date: string) =>
-  new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric" }).format(
-    new Date(`${date}T00:00:00`),
-  );
-const formatDays = (abs: number): string => {
-  if (abs < 30) return `${abs} «—π`;
-  const years = Math.floor(abs / 365);
-  const rem = abs % 365;
+  new Intl.DateTimeFormat("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${date}T00:00:00`));
+
+const formatDays = (absDays: number): string => {
+  if (absDays < 30) return `${absDays} ‡∏ß‡∏±‡∏ô`;
+  const years = Math.floor(absDays / 365);
+  const rem = absDays % 365;
   const months = Math.floor(rem / 30);
   const days = rem % 30;
-  if (years > 0) return months > 0 ? `${years} ª’ ${months} ‡¥◊Õπ` : `${years} ª’`;
-  return days > 0 ? `${months} ‡¥◊Õπ ${days} «—π` : `${months} ‡¥◊Õπ`;
+  if (years > 0) {
+    return months > 0 ? `${years} ‡∏õ‡∏µ ${months} ‡πÄ‡∏î‡∏∑‡∏≠‡∏ô` : `${years} ‡∏õ‡∏µ`;
+  }
+  return days > 0 ? `${months} ‡πÄ‡∏î‡∏∑‡∏≠‡∏ô ${days} ‡∏ß‡∏±‡∏ô` : `${months} ‡πÄ‡∏î‡∏∑‡∏≠‡∏ô`;
 };
 
 interface ExpiryRow {
@@ -56,138 +65,61 @@ interface ExpiryRow {
   date: string;
   days: number;
 }
-function buildExpiryRows(workers: ForeignWorker[], documents: MigrantWorkerDocument[]): ExpiryRow[] {
-  const wMap = new Map(workers.map((w) => [w.id, w]));
-  const rows: ExpiryRow[] = [];
-  for (const d of documents) {
-    if (!d.isActive) continue;
-    const w = wMap.get(d.workerId);
-    if (!w) continue;
-    const push = (field: string, date: string | null) => {
-      if (!date) return;
-      rows.push({ worker: w, doc: d, field, date, days: daysUntil(date) });
-    };
-    push(d.documentType.includes("PASSPORT") ? "«—πÀ¡¥Õ“¬ÿ‡≈Ë¡æ“ ªÕ√Ïµ" : "«—πÀ¡¥Õ“¬ÿ∫—µ√", d.expiresOn);
-    push("«—πÀ¡¥Õ“¬ÿ«’´Ë“", d.visaExpiresOn);
-    push("«—πÀ¡¥Õ“¬ÿ„∫ÕÕ°πÕ°æ◊Èπ∑’Ë", d.areaPermitExpiresOn);
-    push("«—πÀ¡¥Õ“¬ÿ„∫Õπÿ≠“µ∑”ß“π", d.workPermitExpiresOn);
-  }
-  return rows.sort((a, b) => a.date.localeCompare(b.date));
-}
-
-function BarChart({ data }: { data: { label: string; value: number; color: string }[] }) {
-  const max = Math.max(...data.map((d) => d.value), 1);
-  return (
-    <div className="mdb-bar-chart">
-      {data.map((d) => (
-        <div key={d.label} className="mdb-bar-row">
-          <span className="mdb-bar-label">{d.label}</span>
-          <div className="mdb-bar-track">
-            <div className="mdb-bar-fill" style={{ width: `${(d.value / max) * 100}%`, background: d.color }} />
-          </div>
-          <span className="mdb-bar-value">{d.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function DonutChart({ slices }: { slices: { label: string; value: number; color: string }[] }) {
-  const total = slices.reduce((s, x) => s + x.value, 0) || 1;
-  let offset = 0;
-  const R = 42;
-  const cx = 56;
-  const cy = 56;
-  const circumference = 2 * Math.PI * R;
-  return (
-    <div className="mdb-donut-wrap">
-      <svg viewBox="0 0 112 112" className="mdb-donut-svg">
-        {slices.map((s) => {
-          const pct = s.value / total;
-          const dash = pct * circumference;
-          const gap = circumference - dash;
-          const rotation = offset * 360 - 90;
-          offset += pct;
-          return (
-            <circle
-              key={s.label}
-              cx={cx}
-              cy={cy}
-              r={R}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={14}
-              strokeDasharray={`${dash} ${gap}`}
-              style={{ transform: `rotate(${rotation}deg)`, transformOrigin: `${cx}px ${cy}px` }}
-            />
-          );
-        })}
-        <text x={cx} y={cy + 6} textAnchor="middle" className="mdb-donut-total">
-          {total}
-        </text>
-      </svg>
-      <div className="mdb-donut-legend">
-        {slices.map((s) => (
-          <div key={s.label} className="mdb-legend-row">
-            <span className="mdb-legend-dot" style={{ background: s.color }} />
-            <span className="mdb-legend-label">{s.label}</span>
-            <span className="mdb-legend-val">{s.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  variant = "default",
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: number | string;
-  sub?: string;
-  variant?: "default" | "danger" | "warning" | "success";
-}) {
-  return (
-    <article className={`mdb-kpi mdb-kpi-${variant}`}>
-      <div className="mdb-kpi-icon"><Icon size={22} /></div>
-      <div className="mdb-kpi-body">
-        <span className="mdb-kpi-label">{label}</span>
-        <b className="mdb-kpi-value">{value}</b>
-        {sub && <small className="mdb-kpi-sub">{sub}</small>}
-      </div>
-    </article>
-  );
-}
 
 export function MigrantDashboardPage() {
   const [workers, setWorkers] = useState<ForeignWorker[]>([]);
-  const [documents, setDocuments] = useState<MigrantWorkerDocument[]>([]);
+  const [docs, setDocs] = useState<MigrantWorkerDocument[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    setLoading(true);
-    setError("");
     try {
-      const data = await migrantWorkerService.load();
-      setWorkers(data.workers);
-      setDocuments(data.documents);
+      setLoading(true);
+      setError(null);
+      const snapshot = await migrantWorkerService.load();
+      setWorkers(snapshot.workers);
+      setDocs(snapshot.documents);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "‚À≈¥¢ÈÕ¡Ÿ≈‰¡Ë ”‡√Á®");
+      setError(e instanceof Error ? e.message : "‡πÇ‡∏´‡∏•‡∏î‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•‡πÑ‡∏°‡πà‡∏™‡∏≥‡πÄ‡∏£‡πá‡∏à");
     } finally {
       setLoading(false);
     }
   };
-  useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    void load();
+  }, []);
 
   const activeWorkers = useMemo(() => workers.filter((w) => w.isActive), [workers]);
-  const activeDocs = useMemo(() => documents.filter((d) => d.isActive), [documents]);
-  const expiryRows = useMemo(() => buildExpiryRows(workers, documents), [workers, documents]);
+  const activeWorkerMap = useMemo(() => new Map(activeWorkers.map((w) => [w.id, w])), [activeWorkers]);
+  const activeDocs = useMemo(
+    () => docs.filter((d) => d.isActive && activeWorkerMap.has(d.workerId)),
+    [docs, activeWorkerMap],
+  );
+
+  const expiryRows = useMemo(() => {
+    const list: ExpiryRow[] = [];
+    const fields: Array<{ key: keyof MigrantWorkerDocument; label: string }> = [
+      { key: "expiresOn", label: "‡∏ß‡∏±‡∏ô‡∏´‡∏°‡∏î‡∏≠‡∏≤‡∏¢‡∏∏‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£/‡∏û‡∏≤‡∏™‡∏õ‡∏≠‡∏£‡πå‡∏ï" },
+      { key: "visaExpiresOn", label: "‡∏ß‡∏±‡∏ô‡∏´‡∏°‡∏î‡∏≠‡∏≤‡∏¢‡∏∏ Visa" },
+      { key: "workPermitExpiresOn", label: "‡∏ß‡∏±‡∏ô‡∏´‡∏°‡∏î‡∏≠‡∏≤‡∏¢‡∏∏‡πÉ‡∏ö‡∏≠‡∏ô‡∏∏‡∏ç‡∏≤‡∏ï‡∏ó‡∏≥‡∏á‡∏≤‡∏ô" },
+      { key: "areaPermitExpiresOn", label: "‡∏ß‡∏±‡∏ô‡∏´‡∏°‡∏î‡∏≠‡∏≤‡∏¢‡∏∏‡πÉ‡∏ö‡∏≠‡∏ô‡∏∏‡∏ç‡∏≤‡∏ï‡∏û‡∏∑‡πâ‡∏ô‡∏ó‡∏µ‡πà/‡∏£‡∏≤‡∏¢‡∏á‡∏≤‡∏ô‡∏ï‡∏±‡∏ß" },
+    ];
+
+    for (const doc of activeDocs) {
+      const worker = activeWorkerMap.get(doc.workerId);
+      if (!worker) continue;
+      for (const f of fields) {
+        const val = doc[f.key];
+        if (typeof val === "string" && val) {
+          const days = daysUntil(val);
+          list.push({ worker, doc, field: f.label, date: val, days });
+        }
+      }
+    }
+    return list.sort((a, b) => a.days - b.days);
+  }, [activeDocs, activeWorkerMap]);
+
   const expired = useMemo(() => expiryRows.filter((r) => r.days < 0), [expiryRows]);
   const dueRows = useMemo(() => expiryRows.filter((r) => r.days >= 0 && r.days <= r.doc.remindDays), [expiryRows]);
   const safeRows = useMemo(() => expiryRows.filter((r) => r.days > r.doc.remindDays), [expiryRows]);
@@ -202,7 +134,10 @@ export function MigrantDashboardPage() {
 
   const deptData = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const w of activeWorkers) counts.set(w.department, (counts.get(w.department) ?? 0) + 1);
+    for (const w of activeWorkers) {
+      const dept = w.department || "‡πÑ‡∏°‡πà‡∏£‡∏∞‡∏ö‡∏∏";
+      counts.set(dept, (counts.get(dept) ?? 0) + 1);
+    }
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
@@ -212,7 +147,7 @@ export function MigrantDashboardPage() {
   const natData = useMemo(() => {
     const counts = new Map<string, number>();
     for (const w of activeWorkers) {
-      const nat = w.nationality || "‰¡Ë√–∫ÿ";
+      const nat = w.nationality || "‡πÑ‡∏°‡πà‡∏£‡∏∞‡∏ö‡∏∏";
       counts.set(nat, (counts.get(nat) ?? 0) + 1);
     }
     return [...counts.entries()]
@@ -224,59 +159,92 @@ export function MigrantDashboardPage() {
   const upcomingTop = useMemo(() => [...dueRows, ...safeRows].slice(0, 10), [dueRows, safeRows]);
 
   const now = new Intl.DateTimeFormat("th-TH", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   }).format(new Date());
 
   return (
     <section className="page mdb-page">
       <div className="page-heading">
         <div>
-          <h1>Dashboard ? µËÕ¿“…’·√ßß“πµË“ß¥È“«</h1>
+          <h1>Dashboard ‡∏†‡∏≤‡∏û‡∏£‡∏ß‡∏°‡πÅ‡∏£‡∏á‡∏á‡∏≤‡∏ô‡∏ï‡πà‡∏≤‡∏á‡∏î‡πâ‡∏≤‡∏ß</h1>
           <p className="mdb-subtitle">{now}</p>
         </div>
         <button className="btn secondary" onClick={() => void load()} disabled={loading}>
-          <RefreshCw size={16} className={loading ? "spin" : ""} /> √’‡ø√™
+          <RefreshCw size={16} className={loading ? "spin" : ""} /> ‡∏£‡∏µ‡πÄ‡∏ü‡∏£‡∏ä
         </button>
       </div>
 
       {error && <div className="mdb-error">{error}</div>}
 
       <div className="mdb-kpi-grid">
-        <KpiCard icon={Users} label="æπ—°ß“π∑’Ë„™Èß“π" value={activeWorkers.length} sub="§π" />
-        <KpiCard icon={FileText} label="‡Õ° “√∑—ÈßÀ¡¥" value={activeDocs.length} sub="©∫—∫" />
-        <KpiCard icon={XCircle} label="‡Õ° “√À¡¥Õ“¬ÿ" value={expired.length} sub="√“¬°“√"
-          variant={expired.length > 0 ? "danger" : "default"} />
-        <KpiCard icon={AlertTriangle} label="„°≈È§√∫°”Àπ¥" value={dueRows.length} sub="√“¬°“√"
-          variant={dueRows.length > 0 ? "warning" : "default"} />
-        <KpiCard icon={CheckCircle2} label="‡Õ° “√ª≈Õ¥¿—¬" value={safeRows.length} sub="√“¬°“√"
-          variant="success" />
-        <KpiCard icon={TrendingUp} label="√“¬°“√·®Èß‡µ◊Õπ∑—ÈßÀ¡¥" value={expiryRows.length} sub="√“¬°“√" />
+        <KpiCard icon={Users} label="‡∏û‡∏ô‡∏±‡∏Å‡∏á‡∏≤‡∏ô‡∏ó‡∏µ‡πà‡πÉ‡∏ä‡πâ‡∏á‡∏≤‡∏ô" value={activeWorkers.length} sub="‡∏Ñ‡∏ô" />
+        <KpiCard icon={FileText} label="‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£‡∏ó‡∏±‡πâ‡∏á‡∏´‡∏°‡∏î" value={activeDocs.length} sub="‡∏â‡∏ö‡∏±‡∏ö" />
+        <KpiCard
+          icon={XCircle}
+          label="‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£‡∏´‡∏°‡∏î‡∏≠‡∏≤‡∏¢‡∏∏"
+          value={expired.length}
+          sub="‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£"
+          variant={expired.length > 0 ? "danger" : "default"}
+        />
+        <KpiCard
+          icon={AlertTriangle}
+          label="‡πÉ‡∏Å‡∏•‡πâ‡∏Ñ‡∏£‡∏ö‡∏Å‡∏≥‡∏´‡∏ô‡∏î"
+          value={dueRows.length}
+          sub="‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£"
+          variant={dueRows.length > 0 ? "warning" : "default"}
+        />
+        <KpiCard icon={CheckCircle2} label="‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£‡∏õ‡∏•‡∏≠‡∏î‡∏†‡∏±‡∏¢" value={safeRows.length} sub="‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£" variant="success" />
+        <KpiCard icon={TrendingUp} label="‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡πÅ‡∏à‡πâ‡∏á‡πÄ‡∏ï‡∏∑‡∏≠‡∏ô‡∏ó‡∏±‡πâ‡∏á‡∏´‡∏°‡∏î" value={expiryRows.length} sub="‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£" />
       </div>
 
       <div className="mdb-charts-row">
         <div className="card mdb-chart-card">
           <div className="card-header">
-            <div><h2><FileText size={18} /> ª√–‡¿∑‡Õ° “√</h2><p> —¥ Ë«π‡Õ° “√∑’Ë„™Èß“πÕ¬ŸË</p></div>
+            <div>
+              <h2><FileText size={18} /> ‡∏õ‡∏£‡∏∞‡πÄ‡∏†‡∏ó‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£</h2>
+              <p>‡∏™‡∏±‡∏î‡∏™‡πà‡∏ß‡∏ô‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£‡∏ó‡∏µ‡πà‡πÉ‡∏ä‡πâ‡∏á‡∏≤‡∏ô‡∏≠‡∏¢‡∏π‡πà</p>
+            </div>
           </div>
-          {loading ? <div className="mdb-loading">°”≈—ß‚À≈¥...</div>
-            : docTypeSlices.length === 0 ? <div className="mdb-empty">¬—ß‰¡Ë¡’¢ÈÕ¡Ÿ≈</div>
-            : <DonutChart slices={docTypeSlices} />}
+          {loading ? (
+            <div className="mdb-loading">‡∏Å‡∏≥‡∏•‡∏±‡∏á‡πÇ‡∏´‡∏•‡∏î...</div>
+          ) : docTypeSlices.length === 0 ? (
+            <div className="mdb-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•</div>
+          ) : (
+            <DonutChart slices={docTypeSlices} />
+          )}
         </div>
         <div className="card mdb-chart-card">
           <div className="card-header">
-            <div><h2><Building2 size={18} /> ·ºπ°</h2><p>®”π«πæπ—°ß“π·µË≈–·ºπ° ( Ÿß ÿ¥ 10)</p></div>
+            <div>
+              <h2><Building2 size={18} /> ‡πÅ‡∏ú‡∏ô‡∏Å</h2>
+              <p>‡∏à‡∏≥‡∏ô‡∏ß‡∏ô‡∏û‡∏ô‡∏±‡∏Å‡∏á‡∏≤‡∏ô‡∏ï‡∏≤‡∏°‡πÅ‡∏ú‡∏ô‡∏Å (‡∏™‡∏π‡∏á‡∏™‡∏∏‡∏î 10)</p>
+            </div>
           </div>
-          {loading ? <div className="mdb-loading">°”≈—ß‚À≈¥...</div>
-            : deptData.length === 0 ? <div className="mdb-empty">¬—ß‰¡Ë¡’¢ÈÕ¡Ÿ≈</div>
-            : <BarChart data={deptData} />}
+          {loading ? (
+            <div className="mdb-loading">‡∏Å‡∏≥‡∏•‡∏±‡∏á‡πÇ‡∏´‡∏•‡∏î...</div>
+          ) : deptData.length === 0 ? (
+            <div className="mdb-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•</div>
+          ) : (
+            <BarChart data={deptData} />
+          )}
         </div>
         <div className="card mdb-chart-card">
           <div className="card-header">
-            <div><h2><Users size={18} />  —≠™“µ‘</h2><p>®”π«πæπ—°ß“π·µË≈– —≠™“µ‘</p></div>
+            <div>
+              <h2><Users size={18} /> ‡∏™‡∏±‡∏ç‡∏ä‡∏≤‡∏ï‡∏¥</h2>
+              <p>‡∏à‡∏≥‡∏ô‡∏ß‡∏ô‡∏û‡∏ô‡∏±‡∏Å‡∏á‡∏≤‡∏ô‡∏ï‡∏≤‡∏°‡∏™‡∏±‡∏ç‡∏ä‡∏≤‡∏ï‡∏¥</p>
+            </div>
           </div>
-          {loading ? <div className="mdb-loading">°”≈—ß‚À≈¥...</div>
-            : natData.length === 0 ? <div className="mdb-empty">¬—ß‰¡Ë¡’¢ÈÕ¡Ÿ≈</div>
-            : <BarChart data={natData} />}
+          {loading ? (
+            <div className="mdb-loading">‡∏Å‡∏≥‡∏•‡∏±‡∏á‡πÇ‡∏´‡∏•‡∏î...</div>
+          ) : natData.length === 0 ? (
+            <div className="mdb-empty">‡∏¢‡∏±‡∏á‡πÑ‡∏°‡πà‡∏°‡∏µ‡∏Ç‡πâ‡∏≠‡∏°‡∏π‡∏•</div>
+          ) : (
+            <BarChart data={natData} />
+          )}
         </div>
       </div>
 
@@ -284,17 +252,31 @@ export function MigrantDashboardPage() {
         <div className="card">
           <div className="card-header">
             <div>
-              <h2 className="mdb-danger-title"><ShieldAlert size={19} /> ‡Õ° “√À¡¥Õ“¬ÿ·≈È« ({expired.length} √“¬°“√)</h2>
-              <p>µÈÕß¥”‡π‘π°“√µËÕÕ“¬ÿ‚¥¬¥Ë«π</p>
+              <h2 className="mdb-danger-title">
+                <ShieldAlert size={19} /> ‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£‡∏´‡∏°‡∏î‡∏≠‡∏≤‡∏¢‡∏∏‡πÅ‡∏•‡πâ‡∏ß ({expired.length} ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£)
+              </h2>
+              <p>‡∏ï‡πâ‡∏≠‡∏á‡∏î‡∏≥‡πÄ‡∏ô‡∏¥‡∏ô‡∏Å‡∏≤‡∏£‡∏ï‡πà‡∏≠‡∏≠‡∏≤‡∏¢‡∏∏‡πÇ‡∏î‡∏¢‡∏î‡πà‡∏ß‡∏ô</p>
             </div>
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>æπ—°ß“π</th><th>·ºπ°</th><th>ª√–‡¿∑‡Õ° “√</th><th>√“¬°“√</th><th>«—πÀ¡¥Õ“¬ÿ</th><th>‡°‘π¡“</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>‡∏û‡∏ô‡∏±‡∏Å‡∏á‡∏≤‡∏ô</th>
+                  <th>‡πÅ‡∏ú‡∏ô‡∏Å</th>
+                  <th>‡∏õ‡∏£‡∏∞‡πÄ‡∏†‡∏ó‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£</th>
+                  <th>‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£</th>
+                  <th>‡∏ß‡∏±‡∏ô‡∏ó‡∏µ‡πà‡∏´‡∏°‡∏î‡∏≠‡∏≤‡∏¢‡∏∏</th>
+                  <th>‡πÄ‡∏Å‡∏¥‡∏ô‡πÑ‡∏õ</th>
+                </tr>
+              </thead>
               <tbody>
                 {expired.map((r) => (
                   <tr key={`${r.doc.id}-${r.field}`} className="mdb-row-expired">
-                    <td><b>{r.worker.fullName}</b><small>{r.worker.employeeCode}</small></td>
+                    <td>
+                      <b>{r.worker.fullName}</b>
+                      <small>{r.worker.employeeCode}</small>
+                    </td>
                     <td>{r.worker.department}</td>
                     <td>
                       <span className="mdb-doc-badge" style={{ background: DOC_COLORS[r.doc.documentType] }}>
@@ -303,7 +285,9 @@ export function MigrantDashboardPage() {
                     </td>
                     <td>{r.field}</td>
                     <td>{thaiDate(r.date)}</td>
-                    <td><span className="status status-expired">‡°‘π {formatDays(Math.abs(r.days))}</span></td>
+                    <td>
+                      <span className="status status-expired">‡πÄ‡∏Å‡∏¥‡∏ô {formatDays(Math.abs(r.days))}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -314,20 +298,37 @@ export function MigrantDashboardPage() {
 
       <div className="card">
         <div className="card-header">
-          <div><h2><CalendarClock size={19} /> √“¬°“√∑’Ë®–∂÷ß°”Àπ¥ (10 Õ—π¥—∫·√°)</h2><p>‡√’¬ßµ“¡«—π§√∫°”Àπ¥®“°„°≈È ÿ¥</p></div>
+          <div>
+            <h2><CalendarClock size={19} /> ‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£‡∏ó‡∏µ‡πà‡∏à‡∏∞‡∏ñ‡∏∂‡∏á‡∏Å‡∏≥‡∏´‡∏ô‡∏î (10 ‡∏≠‡∏±‡∏ô‡∏î‡∏±‡∏ö‡πÅ‡∏£‡∏Å)</h2>
+            <p>‡πÄ‡∏£‡∏µ‡∏¢‡∏á‡∏ï‡∏≤‡∏°‡∏ß‡∏±‡∏ô‡∏Ñ‡∏£‡∏ö‡∏Å‡∏≥‡∏´‡∏ô‡∏î‡∏ó‡∏µ‡πà‡πÉ‡∏Å‡∏•‡πâ‡∏ó‡∏µ‡πà‡∏™‡∏∏‡∏î</p>
+          </div>
         </div>
         <div className="table-wrap">
-          {loading ? <div className="mdb-loading">°”≈—ß‚À≈¥...</div>
-          : upcomingTop.length === 0 ? <div className="mdb-empty">‰¡Ë¡’‡Õ° “√∑’Ë®–§√∫°”Àπ¥„π‡√Á«Ê π’È</div>
-          : (
+          {loading ? (
+            <div className="mdb-loading">‡∏Å‡∏≥‡∏•‡∏±‡∏á‡πÇ‡∏´‡∏•‡∏î...</div>
+          ) : upcomingTop.length === 0 ? (
+            <div className="mdb-empty">‡πÑ‡∏°‡πà‡∏°‡∏µ‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£‡∏ó‡∏µ‡πà‡∏à‡∏∞‡∏Ñ‡∏£‡∏ö‡∏Å‡∏≥‡∏´‡∏ô‡∏î‡πÄ‡∏£‡πá‡∏ß‡πÜ ‡∏ô‡∏µ‡πâ</div>
+          ) : (
             <table>
-              <thead><tr><th>æπ—°ß“π</th><th>·ºπ°</th><th>ª√–‡¿∑‡Õ° “√</th><th>√“¬°“√</th><th>«—π§√∫°”Àπ¥</th><th>§ß‡À≈◊Õ</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>‡∏û‡∏ô‡∏±‡∏Å‡∏á‡∏≤‡∏ô</th>
+                  <th>‡πÅ‡∏ú‡∏ô‡∏Å</th>
+                  <th>‡∏õ‡∏£‡∏∞‡πÄ‡∏†‡∏ó‡πÄ‡∏≠‡∏Å‡∏™‡∏≤‡∏£</th>
+                  <th>‡∏£‡∏≤‡∏¢‡∏Å‡∏≤‡∏£</th>
+                  <th>‡∏ß‡∏±‡∏ô‡∏Ñ‡∏£‡∏ö‡∏Å‡∏≥‡∏´‡∏ô‡∏î</th>
+                  <th>‡∏£‡∏∞‡∏¢‡∏∞‡πÄ‡∏ß‡∏•‡∏≤</th>
+                </tr>
+              </thead>
               <tbody>
                 {upcomingTop.map((r) => {
                   const state = r.days <= r.doc.remindDays ? "due" : "normal";
                   return (
                     <tr key={`${r.doc.id}-${r.field}`}>
-                      <td><b>{r.worker.fullName}</b><small>{r.worker.employeeCode}</small></td>
+                      <td>
+                        <b>{r.worker.fullName}</b>
+                        <small>{r.worker.employeeCode}</small>
+                      </td>
                       <td>{r.worker.department}</td>
                       <td>
                         <span className="mdb-doc-badge" style={{ background: DOC_COLORS[r.doc.documentType] }}>
@@ -338,7 +339,7 @@ export function MigrantDashboardPage() {
                       <td>{thaiDate(r.date)}</td>
                       <td>
                         <span className={`status status-${state}`}>
-                          {r.days === 0 ? "§√∫°”Àπ¥«—ππ’È" : `Õ’° ${formatDays(r.days)}`}
+                          {r.days === 0 ? "‡∏Ñ‡∏£‡∏ö‡∏Å‡∏≥‡∏´‡∏ô‡∏î‡∏ß‡∏±‡∏ô‡∏ô‡∏µ‡πâ" : `‡∏≠‡∏µ‡∏Å ${formatDays(r.days)}`}
                         </span>
                       </td>
                     </tr>
@@ -350,5 +351,89 @@ export function MigrantDashboardPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  variant = "default",
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: number;
+  sub: string;
+  variant?: "default" | "danger" | "warning" | "success";
+}) {
+  return (
+    <div className={`card mdb-kpi-card mdb-kpi-${variant}`}>
+      <div className="mdb-kpi-header">
+        <span className="mdb-kpi-label">{label}</span>
+        <div className="mdb-kpi-icon-wrap">
+          <Icon size={18} />
+        </div>
+      </div>
+      <div className="mdb-kpi-value">
+        {value.toLocaleString("th-TH")} <span className="mdb-kpi-sub">{sub}</span>
+      </div>
+    </div>
+  );
+}
+
+function BarChart({ data }: { data: Array<{ label: string; value: number; color: string }> }) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return (
+    <div className="mdb-bar-chart">
+      {data.map((d) => (
+        <div key={d.label} className="mdb-bar-item">
+          <div className="mdb-bar-label">
+            <span>{d.label}</span>
+            <b>{d.value}</b>
+          </div>
+          <div className="mdb-bar-track">
+            <div
+              className="mdb-bar-fill"
+              style={{ width: `${(d.value / max) * 100}%`, background: d.color }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DonutChart({ slices }: { slices: Array<{ label: string; value: number; color: string }> }) {
+  const total = slices.reduce((acc, s) => acc + s.value, 0);
+  if (total === 0) return null;
+
+  let acc = 0;
+  const gradientParts = slices.map((s) => {
+    const start = (acc / total) * 100;
+    acc += s.value;
+    const end = (acc / total) * 100;
+    return `${s.color} ${start}% ${end}%`;
+  });
+  const conic = `conic-gradient(${gradientParts.join(", ")})`;
+
+  return (
+    <div className="mdb-donut-wrap">
+      <div className="mdb-donut" style={{ background: conic }}>
+        <div className="mdb-donut-hole">
+          <b>{total}</b>
+          <small>‡∏â‡∏ö‡∏±‡∏ö</small>
+        </div>
+      </div>
+      <div className="mdb-donut-legend">
+        {slices.map((s) => (
+          <div key={s.label} className="mdb-donut-legend-item">
+            <span className="mdb-donut-dot" style={{ background: s.color }} />
+            <span className="mdb-donut-legend-label">{s.label}</span>
+            <b>{s.value}</b>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
