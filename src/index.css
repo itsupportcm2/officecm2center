@@ -7165,3 +7165,282 @@ body,
   font-weight: 600;
   color: #64748b;
 }
+
+
+/* ========================================================= */
+/* Print Stylesheet for Filtered Migrant Worker Reports       */
+/* ========================================================= */
+
+/* Normal Screen: Hide print-only sheet */
+@media screen {
+  .mwp-print-sheet {
+    display: none !important;
+  }
+  .mwp-btn-print {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  .mwp-btn-print:hover {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+    box-shadow: 0 3px 8px rgba(15,23,42,0.18);
+  }
+}
+
+/* Print View Mode (A4 Landscape) */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Sarabun", sans-serif !important;
+    font-size: 9pt !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide all unnecessary UI elements */
+  .app-sidebar,
+  .app-header,
+  .mwp-hero,
+  .mwp-stats-grid,
+  .mwp-main-card,
+  .btn,
+  .icon-btn,
+  .toast,
+  .modal-backdrop,
+  .modal-container,
+  .renewal-news-backdrop {
+    display: none !important;
+  }
+
+  /* Display print sheet */
+  .mwp-print-sheet {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Print Header */
+  .mwp-print-header {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+
+  .mwp-print-brand-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .mwp-print-company {
+    font-size: 14pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .mwp-print-dept {
+    font-size: 8.5pt;
+    color: #475569;
+    margin-top: 2px;
+  }
+
+  .mwp-print-date {
+    font-size: 8pt;
+    color: #64748b;
+    text-align: right;
+  }
+
+  .mwp-print-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 6px 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Print Filter Context Bar */
+  .mwp-print-meta-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 8px;
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 12px;
+    font-size: 8.5pt;
+  }
+
+  .mwp-print-criteria-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .mwp-print-criterion {
+    display: flex;
+    gap: 4px;
+  }
+
+  .mwp-print-criterion-label {
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .mwp-print-criterion-val {
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .mwp-print-counts {
+    text-align: right;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  /* Print Table */
+  .mwp-print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8pt !important;
+    margin-bottom: 16px;
+  }
+
+  .mwp-print-table thead {
+    display: table-header-group !important;
+  }
+
+  .mwp-print-table tr {
+    page-break-inside: avoid !important;
+  }
+
+  .mwp-print-table th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #94a3b8 !important;
+    padding: 5px 6px !important;
+    font-weight: 700 !important;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .mwp-print-table td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 4px 6px !important;
+    color: #1e293b !important;
+    vertical-align: middle;
+  }
+
+  .mwp-print-table tbody tr:nth-child(even) {
+    background: #fafafa !important;
+  }
+
+  /* Highlight Overdue/Due in Print */
+  .print-row-expired td {
+    background: #fef2f2 !important;
+    color: #991b1b !important;
+  }
+
+  .print-row-due td {
+    background: #fffbeb !important;
+    color: #92400e !important;
+  }
+
+  .print-badge-danger {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border: 1px solid #f87171 !important;
+    font-weight: 700;
+    font-size: 7.5pt;
+  }
+
+  .print-badge-warning {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #fef3c7 !important;
+    color: #d97706 !important;
+    border: 1px solid #fcd34d !important;
+    font-weight: 700;
+    font-size: 7.5pt;
+  }
+
+  .print-badge-normal {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #f0fdf4 !important;
+    color: #16a34a !important;
+    border: 1px solid #86efac !important;
+    font-weight: 600;
+    font-size: 7.5pt;
+  }
+
+  /* Signatures block */
+  .mwp-print-signatures {
+    page-break-inside: avoid !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 24px;
+    padding-top: 10px;
+  }
+
+  .mwp-print-sign-box {
+    border: 1px dashed #94a3b8;
+    border-radius: 6px;
+    padding: 14px 18px;
+    text-align: center;
+    font-size: 8.5pt;
+    color: #334155;
+  }
+
+  .mwp-print-sign-line {
+    margin-bottom: 8px;
+    color: #64748b;
+  }
+
+  .mwp-print-sign-name {
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .mwp-print-sign-role {
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+  }
+
+  .mwp-print-sign-date {
+    font-size: 8pt;
+    color: #64748b;
+  }
+}

@@ -19,6 +19,7 @@ import {
   Filter,
   Globe2,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   ShieldAlert,
@@ -737,6 +738,15 @@ export function MigrantWorkerDocumentsPage() {
           <button
             type="button"
             className="mwp-btn-hero-glass"
+            onClick={() => window.print()}
+            title="พิมพ์รายงานตามตัวกรองที่เลือก (A4 Landscape / Save PDF)"
+          >
+            <Printer size={16} />
+            <span>พิมพ์รายงาน</span>
+          </button>
+          <button
+            type="button"
+            className="mwp-btn-hero-glass"
             onClick={() => void load()}
             disabled={loading}
             title="รีเฟรชข้อมูล"
@@ -1012,10 +1022,21 @@ export function MigrantWorkerDocumentsPage() {
             </select>
           </div>
 
-          <div style={{ fontSize: "0.82rem", color: "#64748b", marginLeft: "auto", fontWeight: 600 }}>
-            {viewMode === "workers" && `พบ ${filteredWorkers.length} คน`}
-            {viewMode === "expiry" && `พบ ${filteredExpiryRows.length} รายการ`}
-            {viewMode === "documents" && `พบ ${filteredAllDocs.length} ฉบับ`}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
+            <span style={{ fontSize: "0.82rem", color: "#64748b", fontWeight: 600 }}>
+              {viewMode === "workers" && `พบ ${filteredWorkers.length} คน`}
+              {viewMode === "expiry" && `พบ ${filteredExpiryRows.length} รายการ`}
+              {viewMode === "documents" && `พบ ${filteredAllDocs.length} ฉบับ`}
+            </span>
+            <button
+              type="button"
+              className="mwp-btn-print"
+              onClick={() => window.print()}
+              title="พิมพ์รายงานข้อมูลที่กรองอยู่ (A4 Landscape / บันทึก PDF)"
+            >
+              <Printer size={15} />
+              <span>พิมพ์รายงาน</span>
+            </button>
           </div>
         </div>
 
@@ -2284,6 +2305,270 @@ export function MigrantWorkerDocumentsPage() {
           </div>
         </Modal>
       )}
+
+      {/* ======================================================== */}
+      {/* PRINT-ONLY REPORT SHEET (A4 Landscape Formatted Report)   */}
+      {/* ======================================================== */}
+      <div className="mwp-print-sheet" aria-hidden="true">
+        {/* Header */}
+        <header className="mwp-print-header">
+          <div className="mwp-print-brand-row">
+            <div>
+              <h1 className="mwp-print-company">บริษัท ซีเอ็ม โฟรเซ่นฟู้ด จำกัด (CM FROZEN FOOD CO., LTD.)</h1>
+              <div className="mwp-print-dept">ฝ่ายบริหารทรัพยากรบุคคลและเอกสารแรงงานต่างด้าว (HR & Migrant Worker Management)</div>
+            </div>
+            <div className="mwp-print-date">
+              <div>วันที่พิมพ์รายงาน: {new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</div>
+              <div>เวลา: {new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.</div>
+            </div>
+          </div>
+          <h2 className="mwp-print-title">
+            {viewMode === "expiry" && "📋 รายงานติดตามวันหมดอายุเอกสารแรงงานต่างด้าว (Expiration & Renewal Watchlist)"}
+            {viewMode === "workers" && "📋 รายงานประวัติพนักงานและสถานะเอกสารแรงงานต่างด้าว (Foreign Worker Directory)"}
+            {viewMode === "documents" && "📋 ทะเบียนเอกสารแรงงานต่างด้าวทั้งหมด (Migrant Worker Document Registry)"}
+          </h2>
+        </header>
+
+        {/* Filter Criteria & Count Summary Bar */}
+        <div className="mwp-print-meta-grid">
+          <div className="mwp-print-criteria-list">
+            <div className="mwp-print-criterion">
+              <span className="mwp-print-criterion-label">แผนก:</span>
+              <span className="mwp-print-criterion-val">{deptFilter === "all" ? "ทุกแผนก" : `แผนก ${deptFilter}`}</span>
+            </div>
+            <div className="mwp-print-criterion">
+              <span className="mwp-print-criterion-label">เพศ:</span>
+              <span className="mwp-print-criterion-val">{genderFilter === "all" ? "ทุกเพศ" : genderFilter === "MALE" ? "ชาย" : "หญิง"}</span>
+            </div>
+            <div className="mwp-print-criterion">
+              <span className="mwp-print-criterion-label">ประเภทเอกสาร:</span>
+              <span className="mwp-print-criterion-val">{docTypeFilter === "all" ? "ทุกประเภท" : labels[docTypeFilter as MigrantDocumentType] || docTypeFilter}</span>
+            </div>
+            {viewMode === "expiry" && (
+              <div className="mwp-print-criterion">
+                <span className="mwp-print-criterion-label">สถานะวันครบกำหนด:</span>
+                <span className="mwp-print-criterion-val">
+                  {expirySubFilter === "all" && "ทั้งหมด"}
+                  {expirySubFilter === "expired" && "หมดอายุแล้ว"}
+                  {expirySubFilter === "due" && "ใกล้ครบกำหนด (≤ 30 วัน)"}
+                  {expirySubFilter === "caution" && "เตือนล่วงหน้า (31-90 วัน)"}
+                  {expirySubFilter === "safe" && "ปกติ (> 90 วัน)"}
+                </span>
+              </div>
+            )}
+            {searchQuery.trim() && (
+              <div className="mwp-print-criterion">
+                <span className="mwp-print-criterion-label">คำค้นหา:</span>
+                <span className="mwp-print-criterion-val">"{searchQuery.trim()}"</span>
+              </div>
+            )}
+          </div>
+          <div className="mwp-print-counts">
+            {viewMode === "workers" && (
+              <>
+                รวม {filteredWorkers.length} คน (ชาย {filteredWorkers.filter((w) => getWorkerGender(w) === "MALE").length} คน / หญิง {filteredWorkers.filter((w) => getWorkerGender(w) === "FEMALE").length} คน)
+              </>
+            )}
+            {viewMode === "expiry" && (
+              <>
+                รวม {filteredExpiryRows.length} รายการ ({(() => {
+                  const ws = new Set(filteredExpiryRows.map((r) => r.doc.workerId));
+                  return `พนักงาน ${ws.size} คน`;
+                })()})
+              </>
+            )}
+            {viewMode === "documents" && (
+              <>
+                รวม {filteredAllDocs.length} ฉบับ
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* View 1: EXPIRY REPORT TABLE */}
+        {viewMode === "expiry" && (
+          <table className="mwp-print-table">
+            <thead>
+              <tr>
+                <th style={{ width: "35px", textAlign: "center" }}>ลำดับ</th>
+                <th style={{ width: "75px" }}>รหัสพนักงาน</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th style={{ width: "45px", textAlign: "center" }}>เพศ</th>
+                <th style={{ width: "55px" }}>สัญชาติ</th>
+                <th style={{ width: "65px" }}>แผนก</th>
+                <th>รายการที่ต้องติดตาม</th>
+                <th>เลขที่เอกสาร</th>
+                <th style={{ width: "90px", textAlign: "center" }}>วันครบกำหนด</th>
+                <th style={{ width: "105px", textAlign: "center" }}>ระยะเวลา</th>
+                <th style={{ width: "70px", textAlign: "center" }}>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredExpiryRows.length === 0 ? (
+                <tr>
+                  <td colSpan={11} style={{ textAlign: "center", padding: "16px" }}>
+                    ไม่พบรายการเอกสารที่ตรงตามเงื่อนไขที่เลือก
+                  </td>
+                </tr>
+              ) : (
+                filteredExpiryRows.map((row, idx) => {
+                  const worker = workerMap.get(row.doc.workerId);
+                  const gender = worker ? getWorkerGender(worker) : "UNKNOWN";
+                  return (
+                    <tr
+                      key={`print-exp-${row.doc.id}-${row.field}-${idx}`}
+                      className={row.days < 0 ? "print-row-expired" : row.days <= 30 ? "print-row-due" : ""}
+                    >
+                      <td style={{ textAlign: "center" }}>{idx + 1}</td>
+                      <td><b>{worker?.employeeCode || "-"}</b></td>
+                      <td>{worker?.fullName || "-"}</td>
+                      <td style={{ textAlign: "center" }}>{gender === "MALE" ? "ชาย" : gender === "FEMALE" ? "หญิง" : "-"}</td>
+                      <td>{worker?.nationality || "-"}</td>
+                      <td>{worker?.department || "-"}</td>
+                      <td><b>{row.field}</b></td>
+                      <td>{row.doc.documentNumber || "-"}</td>
+                      <td style={{ textAlign: "center" }}>{thaiDate(row.date)}</td>
+                      <td style={{ textAlign: "center" }}>
+                        {row.days < 0
+                          ? `เกิน ${formatDays(Math.abs(row.days))}`
+                          : row.days === 0
+                            ? "ครบกำหนดวันนี้"
+                            : `อีก ${formatDays(row.days)}`}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        {row.days < 0 ? (
+                          <span className="print-badge-danger">หมดอายุ</span>
+                        ) : row.days <= 30 ? (
+                          <span className="print-badge-warning">ใกล้ครบ</span>
+                        ) : (
+                          <span className="print-badge-normal">ปกติ</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {/* View 2: WORKER DIRECTORY REPORT TABLE */}
+        {viewMode === "workers" && (
+          <table className="mwp-print-table">
+            <thead>
+              <tr>
+                <th style={{ width: "35px", textAlign: "center" }}>ลำดับ</th>
+                <th style={{ width: "75px" }}>รหัส</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th style={{ width: "45px", textAlign: "center" }}>เพศ</th>
+                <th style={{ width: "55px" }}>สัญชาติ</th>
+                <th style={{ width: "65px" }}>แผนก</th>
+                <th>เอกสารประจำตัว (เลขที่)</th>
+                <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุเล่ม</th>
+                <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุวีซ่า</th>
+                <th>เลขที่ใบอนุญาตทำงาน</th>
+                <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุใบงาน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredWorkers.length === 0 ? (
+                <tr>
+                  <td colSpan={11} style={{ textAlign: "center", padding: "16px" }}>
+                    ไม่พบรายชื่อพนักงานที่ตรงตามเงื่อนไขที่เลือก
+                  </td>
+                </tr>
+              ) : (
+                filteredWorkers.map((w, idx) => {
+                  const docs = documents.filter((d) => d.workerId === w.id && d.isActive);
+                  const primaryDoc = docs[0];
+                  const gender = getWorkerGender(w);
+                  return (
+                    <tr key={`print-w-${w.id}`}>
+                      <td style={{ textAlign: "center" }}>{idx + 1}</td>
+                      <td><b>{w.employeeCode}</b></td>
+                      <td>{w.fullName}</td>
+                      <td style={{ textAlign: "center" }}>{gender === "MALE" ? "ชาย" : gender === "FEMALE" ? "หญิง" : "-"}</td>
+                      <td>{w.nationality || "-"}</td>
+                      <td>{w.department}</td>
+                      <td>{primaryDoc ? `${labels[primaryDoc.documentType] || primaryDoc.documentType} (${primaryDoc.documentNumber})` : "ไม่มีเอกสาร"}</td>
+                      <td style={{ textAlign: "center" }}>{primaryDoc?.expiresOn ? thaiDate(primaryDoc.expiresOn) : "-"}</td>
+                      <td style={{ textAlign: "center" }}>{primaryDoc?.visaExpiresOn ? thaiDate(primaryDoc.visaExpiresOn) : "-"}</td>
+                      <td>{primaryDoc?.workPermitNumber || "-"}</td>
+                      <td style={{ textAlign: "center" }}>{primaryDoc?.workPermitExpiresOn ? thaiDate(primaryDoc.workPermitExpiresOn) : "-"}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {/* View 3: ALL DOCUMENTS REGISTRY TABLE */}
+        {viewMode === "documents" && (
+          <table className="mwp-print-table">
+            <thead>
+              <tr>
+                <th style={{ width: "35px", textAlign: "center" }}>ลำดับ</th>
+                <th style={{ width: "75px" }}>รหัส</th>
+                <th>พนักงาน</th>
+                <th style={{ width: "45px", textAlign: "center" }}>เพศ</th>
+                <th style={{ width: "65px" }}>แผนก</th>
+                <th>ประเภทเอกสาร</th>
+                <th>เลขที่เอกสาร</th>
+                <th style={{ width: "85px", textAlign: "center" }}>หมดอายุเล่ม/บัตร</th>
+                <th style={{ width: "85px", textAlign: "center" }}>หมดอายุวีซ่า</th>
+                <th>เลขที่ใบอนุญาตทำงาน</th>
+                <th style={{ width: "85px", textAlign: "center" }}>หมดอายุใบงาน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAllDocs.length === 0 ? (
+                <tr>
+                  <td colSpan={11} style={{ textAlign: "center", padding: "16px" }}>
+                    ไม่พบเอกสารที่ตรงตามเงื่อนไขที่เลือก
+                  </td>
+                </tr>
+              ) : (
+                filteredAllDocs.map((doc, idx) => {
+                  const worker = workerMap.get(doc.workerId);
+                  const gender = worker ? getWorkerGender(worker) : "UNKNOWN";
+                  return (
+                    <tr key={`print-doc-${doc.id}`}>
+                      <td style={{ textAlign: "center" }}>{idx + 1}</td>
+                      <td><b>{worker?.employeeCode || "-"}</b></td>
+                      <td>{worker?.fullName || "-"}</td>
+                      <td style={{ textAlign: "center" }}>{gender === "MALE" ? "ชาย" : gender === "FEMALE" ? "หญิง" : "-"}</td>
+                      <td>{worker?.department || "-"}</td>
+                      <td>{labels[doc.documentType] || doc.documentType}</td>
+                      <td>{doc.documentNumber}</td>
+                      <td style={{ textAlign: "center" }}>{doc.expiresOn ? thaiDate(doc.expiresOn) : "-"}</td>
+                      <td style={{ textAlign: "center" }}>{doc.visaExpiresOn ? thaiDate(doc.visaExpiresOn) : "-"}</td>
+                      <td>{doc.workPermitNumber || "-"}</td>
+                      <td style={{ textAlign: "center" }}>{doc.workPermitExpiresOn ? thaiDate(doc.workPermitExpiresOn) : "-"}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {/* Signatures Block */}
+        <div className="mwp-print-signatures">
+          <div className="mwp-print-sign-box">
+            <div className="mwp-print-sign-line">ลงชื่อ ................................................................</div>
+            <div className="mwp-print-sign-name">( ................................................................ )</div>
+            <div className="mwp-print-sign-role">ผู้จัดทำรายงาน / เจ้าหน้าที่ต่อสัญญาเอกสาร</div>
+            <div className="mwp-print-sign-date">วันที่ ........ / ........ / ................</div>
+          </div>
+          <div className="mwp-print-sign-box">
+            <div className="mwp-print-sign-line">ลงชื่อ ................................................................</div>
+            <div className="mwp-print-sign-name">( ................................................................ )</div>
+            <div className="mwp-print-sign-role">ผู้ตรวจสอบรายงาน / ผู้จัดการฝ่ายทรัพยากรบุคคล</div>
+            <div className="mwp-print-sign-date">วันที่ ........ / ........ / ................</div>
+          </div>
+        </div>
+      </div>
 
       {toast && <Toast message={toast} />}
     </div>
