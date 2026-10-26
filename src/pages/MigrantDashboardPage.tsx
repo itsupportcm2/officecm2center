@@ -325,7 +325,7 @@ export function MigrantDashboardPage() {
             <span className="mdb-kpi-unit">คน</span>
           </div>
           <div className="mdb-kpi-footer">
-            <span style={{ fontWeight: 600, color: "#1e293b" }}>
+            <span style={{ fontWeight: 600 }} className="mdb-kpi-subtext">
               👨 ชาย {genderStats.male} • 👩 หญิง {genderStats.female}
             </span>
             <span className="mdb-kpi-pill" style={{ background: "#eff6ff", color: "#175cd3" }}>
@@ -747,7 +747,7 @@ export function MigrantDashboardPage() {
             </select>
           </div>
 
-          <div style={{ fontSize: "0.8rem", color: "#64748b", marginLeft: "auto" }}>
+          <div style={{ fontSize: "0.8rem", marginLeft: "auto" }} className="mdb-count-text">
             แสดงผล <b>{filteredRows.length}</b> รายการ
           </div>
         </div>

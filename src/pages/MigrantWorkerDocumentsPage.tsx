@@ -778,7 +778,7 @@ export function MigrantWorkerDocumentsPage() {
             <span className="mwp-stat-val">{totalActiveWorkers.toLocaleString("th-TH")}</span>
             <span className="mwp-stat-unit">คน</span>
           </div>
-          <div className="mwp-stat-hint" style={{ color: "#1e293b", fontWeight: 700 }}>
+          <div className="mwp-stat-hint mwp-stat-hint-active">
             <span>👨 ชาย {genderStats.male}</span>
             <span style={{ color: "#cbd5e1" }}>•</span>
             <span>👩 หญิง {genderStats.female}</span>
@@ -1023,7 +1023,7 @@ export function MigrantWorkerDocumentsPage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
-            <span style={{ fontSize: "0.82rem", color: "#64748b", fontWeight: 600 }}>
+            <span style={{ fontSize: "0.82rem", fontWeight: 600 }} className="mwp-count-text">
               {viewMode === "workers" && `พบ ${filteredWorkers.length} คน`}
               {viewMode === "expiry" && `พบ ${filteredExpiryRows.length} รายการ`}
               {viewMode === "documents" && `พบ ${filteredAllDocs.length} ฉบับ`}
@@ -1061,13 +1061,13 @@ export function MigrantWorkerDocumentsPage() {
                   <tr>
                     <td colSpan={6} style={{ textAlign: "center", padding: "40px" }}>
                       <RefreshCw size={22} className="spin" color="#175cd3" />
-                      <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดข้อมูลพนักงาน...</div>
+                      <div style={{ marginTop: "8px" }} className="mwp-muted-text">กำลังโหลดข้อมูลพนักงาน...</div>
                     </td>
                   </tr>
                 ) : filteredWorkers.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: "center", padding: "40px" }}>
-                      <div style={{ color: "#64748b", fontWeight: 600 }}>ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไข</div>
+                      <div style={{ fontWeight: 600 }} className="mwp-muted-text">ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไข</div>
                     </td>
                   </tr>
                 ) : (
@@ -1095,7 +1095,7 @@ export function MigrantWorkerDocumentsPage() {
 
                     return (
                       <>
-                        <tr key={w.id} style={{ background: isExpanded ? "#f8fafc" : undefined }}>
+                        <tr key={w.id} className={isExpanded ? "mwp-row-expanded" : undefined}>
                           <td>
                             <div className="mwp-worker-cell">
                               <div className="mwp-avatar">{initial}</div>
@@ -1137,7 +1137,7 @@ export function MigrantWorkerDocumentsPage() {
                           <td>
                             <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                               {workerDocsList.length === 0 ? (
-                                <span style={{ color: "#94a3b8", fontSize: "0.82rem" }}>ไม่มีเอกสาร</span>
+                                <span style={{ fontSize: "0.82rem" }} className="mwp-muted-text">ไม่มีเอกสาร</span>
                               ) : (
                                 workerDocsList.map((d) => (
                                   <span

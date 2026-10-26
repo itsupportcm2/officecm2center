@@ -7858,3 +7858,413 @@ body,
 [data-theme="dark"] .renewal-news-modal footer {
   border-top-color: var(--border-line) !important;
 }
+
+
+/* ========================================================= */
+/* ENHANCED HIGH-CONTRAST DARK MODE RULES                     */
+/* ========================================================= */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] small {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] b,
+[data-theme="dark"] strong {
+  color: #f8fafc;
+}
+
+/* Text utility classes */
+[data-theme="dark"] .mwp-count-text,
+[data-theme="dark"] .mdb-count-text,
+[data-theme="dark"] .mdb-kpi-subtext {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-stat-hint-active {
+  color: #f8fafc !important;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .mwp-muted-text,
+[data-theme="dark"] .muted,
+[data-theme="dark"] .text-muted {
+  color: #94a3b8 !important;
+}
+
+/* Dashboard KPI & Panels */
+[data-theme="dark"] .mdb-panel {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mdb-panel-header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mdb-panel-title h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-panel-title p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-kpi-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-kpi-title {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mdb-kpi-unit {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-kpi-footer {
+  color: #94a3b8 !important;
+  border-top-color: #223250 !important;
+}
+
+/* Donut & Stats */
+[data-theme="dark"] .mdb-donut-center-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-donut-center-label {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-donut-item-name {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .mdb-donut-item-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-donut-item-track,
+[data-theme="dark"] .mdb-dept-bar-wrap {
+  background: #1e2c4a !important;
+}
+
+/* Department Rank List */
+[data-theme="dark"] .mdb-dept-rank {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mdb-dept-badge {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-dept-count {
+  color: #f8fafc !important;
+}
+
+/* Nationality Cards */
+[data-theme="dark"] .mdb-nat-card {
+  background: #18233c !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mdb-nat-card:hover {
+  background: #1e2c4a !important;
+}
+
+[data-theme="dark"] .mdb-nat-name {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-nat-count {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-nat-pct {
+  color: #94a3b8 !important;
+}
+
+/* Watchlist & Table Card */
+[data-theme="dark"] .mdb-watchlist-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mdb-watchlist-title h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-watchlist-title p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-controls-bar {
+  background: #0d1527 !important;
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .mdb-tab-btn {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-tab-btn:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-tab-btn.active {
+  background: #1e3a8a !important;
+  color: #bfdbfe !important;
+}
+
+/* Gender distribution card on Dashboard */
+[data-theme="dark"] .mdb-gender-dual-track {
+  background: #1e2c4a !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-male {
+  background: #0f1f3d !important;
+  border-color: #1e3a8a !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-female {
+  background: #331024 !important;
+  border-color: #701a4f !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-male .mdb-gender-stat-icon {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-female .mdb-gender-stat-icon {
+  background: #701a4f !important;
+  color: #f472b6 !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-pct {
+  color: #94a3b8 !important;
+}
+
+/* Migrant Worker Document Page Components */
+[data-theme="dark"] .mwp-stat-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-stat-title {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-stat-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-stat-unit {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mwp-stat-hint {
+  border-top-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-main-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-view-nav {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn.active {
+  color: #60a5fa !important;
+  border-bottom-color: #60a5fa !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-badge {
+  background: #18233c !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-toolbar {
+  background: #0d1527 !important;
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-search-input,
+[data-theme="dark"] .mwp-select,
+[data-theme="dark"] .mdb-search-input,
+[data-theme="dark"] .mdb-select {
+  background: #131d33 !important;
+  border-color: #2a3c60 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-search-input::placeholder,
+[data-theme="dark"] .mdb-search-input::placeholder {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] select option {
+  background: #131d33 !important;
+  color: #f8fafc !important;
+}
+
+/* Tables and Rows in Dark Mode */
+[data-theme="dark"] .mwp-table th,
+[data-theme="dark"] .mdb-watchlist-table th,
+[data-theme="dark"] .table th {
+  background: #18233c !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .mwp-table td,
+[data-theme="dark"] .mdb-watchlist-table td,
+[data-theme="dark"] .table td {
+  border-bottom: 1px solid #1e2c4a !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .mwp-table tbody tr:hover,
+[data-theme="dark"] .mdb-watchlist-table tbody tr:hover,
+[data-theme="dark"] .table tbody tr:hover {
+  background: #192742 !important;
+}
+
+[data-theme="dark"] .mwp-row-expanded,
+[data-theme="dark"] .mwp-expand-row td {
+  background: #0a1120 !important;
+  border-bottom-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-expand-container {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-expand-header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-expand-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-doc-mini-card {
+  background: #0d1527 !important;
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-doc-mini-dates {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-worker-name {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-worker-meta {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mwp-dept-badge {
+  background: #1e2c4a !important;
+  border-color: #2a3c60 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-btn-action,
+[data-theme="dark"] .mwp-btn-print {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-btn-action:hover,
+[data-theme="dark"] .mwp-btn-print:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+/* Modals & Forms in Dark Mode */
+[data-theme="dark"] .modal-container,
+[data-theme="dark"] .modal-box {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .modal-header h2,
+[data-theme="dark"] .modal-header h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .modal-close {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .modal-close:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .form-grid label {
+  color: #cbd5e1 !important;
+}
+
+/* Renewal Alert News Popup in Dark Mode */
+[data-theme="dark"] .renewal-news-modal {
+  background: #131d33 !important;
+  border: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .renewal-news-list article {
+  background: #18233c !important;
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .renewal-news-list b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .renewal-news-list p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .renewal-news-modal > footer {
+  border-top-color: #223250 !important;
+}
