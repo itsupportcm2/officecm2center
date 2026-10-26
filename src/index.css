@@ -8268,3 +8268,676 @@ body,
 [data-theme="dark"] .renewal-news-modal > footer {
   border-top-color: #223250 !important;
 }
+
+
+/* ========================================================= */
+/* UNIVERSAL COMPLETE DARK MODE OVERRIDES (ALL PAGES)        */
+/* ========================================================= */
+
+/* Metric Cards & Dashboard Overview */
+[data-theme="dark"] .metric-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .metric-card strong {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .metric-card span {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .metric-card small,
+[data-theme="dark"] .detail-stock small,
+[data-theme="dark"] .report-cards small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .metric-icon.navy {
+  background: #1e293b !important;
+  color: #93c5fd !important;
+}
+[data-theme="dark"] .metric-icon.teal {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+}
+[data-theme="dark"] .metric-icon.amber {
+  background: #78350f !important;
+  color: #fcd34d !important;
+}
+[data-theme="dark"] .metric-icon.red {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+[data-theme="dark"] .metric-icon.blue {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+/* Common Card & Card Head */
+[data-theme="dark"] .card-head {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .card-head h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .card-head p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .card-head > a {
+  color: #60a5fa !important;
+}
+
+/* Codes, SKUs, and IDs */
+[data-theme="dark"] .mono {
+  color: #cbd5e1 !important;
+}
+
+/* Search Bars & Inputs across all pages */
+[data-theme="dark"] .search,
+[data-theme="dark"] .admin-search {
+  background: #131d33 !important;
+  border-color: #2a3c60 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .search input,
+[data-theme="dark"] .admin-search input {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .search input::placeholder,
+[data-theme="dark"] .admin-search input::placeholder {
+  color: #64748b !important;
+}
+
+/* Filter toolbars */
+[data-theme="dark"] .filters select,
+[data-theme="dark"] .filters input,
+[data-theme="dark"] .report-range input {
+  background: #131d33 !important;
+  border-color: #2a3c60 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .filters > span {
+  color: #94a3b8 !important;
+}
+
+/* Status & Role Badges in Dark Mode */
+[data-theme="dark"] .status-normal,
+[data-theme="dark"] .tx-in {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+  border: 1px solid #059669;
+}
+
+[data-theme="dark"] .status-low,
+[data-theme="dark"] .tx-adjust {
+  background: #78350f !important;
+  color: #fcd34d !important;
+  border: 1px solid #d97706;
+}
+
+[data-theme="dark"] .status-out,
+[data-theme="dark"] .tx-out {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+  border: 1px solid #dc2626;
+}
+
+[data-theme="dark"] .tx-transfer {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+  border: 1px solid #2563eb;
+}
+
+[data-theme="dark"] .status-expired {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .status-due {
+  background: #78350f !important;
+  color: #fcd34d !important;
+}
+
+[data-theme="dark"] .role-admin {
+  background: #3b0764 !important;
+  color: #d8b4fe !important;
+}
+
+[data-theme="dark"] .role-staff {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .role-viewer {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .role-issuer {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+}
+
+[data-theme="dark"] .role-fulfiller {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .role-employee_document_officer {
+  background: #042f2e !important;
+  color: #5eead4 !important;
+}
+
+/* Category & Ranking Bars on Stock Dashboard */
+[data-theme="dark"] .category-bars,
+[data-theme="dark"] .rank-bars,
+[data-theme="dark"] .top-items {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .bar,
+[data-theme="dark"] .rank-bars > div > i {
+  background: #1e2c4a !important;
+}
+
+[data-theme="dark"] .stock-note {
+  background: #102447 !important;
+  border: 1px solid #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .top-items > div > span {
+  background: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+/* Row Action Menus (3 dots dropdown) */
+[data-theme="dark"] .row-menu > div {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .row-menu a,
+[data-theme="dark"] .row-menu button {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .row-menu a:hover,
+[data-theme="dark"] .row-menu button:hover {
+  background: #1e2c4a !important;
+}
+
+/* Pagination */
+[data-theme="dark"] .pagination {
+  border-top-color: #223250 !important;
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .pagination button {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .pagination button:hover:not(:disabled) {
+  background: #1e2c4a !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Product Icon in inventory */
+[data-theme="dark"] .inventory-card .product-icon,
+[data-theme="dark"] .preview-item .product-icon {
+  background: #1e2c4a !important;
+  color: #60a5fa !important;
+}
+
+/* Item Detail Page */
+[data-theme="dark"] .back-link {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .back-link:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .detail-hero {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .detail-image {
+  background: #18233c !important;
+  color: #60a5fa !important;
+  border: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .detail-main h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .detail-main p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .detail-stock {
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .detail-stock strong {
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .detail-stock span {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .detail-tags > span:last-child {
+  background: #18233c !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .info-list > div {
+  border-bottom-color: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .info-list dt {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .info-list dd {
+  color: #f8fafc !important;
+}
+
+/* Stock Form Page & Preview */
+[data-theme="dark"] .stock-title {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .stock-title h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .stock-title p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .stock-preview {
+  background: #0b1528 !important;
+  border: 1px solid #1e3152 !important;
+}
+
+[data-theme="dark"] .stock-preview > span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .preview-item {
+  border-bottom-color: #1e3152 !important;
+}
+
+[data-theme="dark"] .preview-item b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .preview-item small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .stock-math span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .stock-math strong {
+  color: #f8fafc !important;
+}
+
+/* Location balances */
+[data-theme="dark"] .location-balance-list > span {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .location-balance-list > span.active {
+  background: #1e3a8a !important;
+  border-color: #3b82f6 !important;
+  color: #bfdbfe !important;
+}
+
+[data-theme="dark"] .location-balance-list b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .balance-breakdown > div {
+  border-bottom-color: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .balance-breakdown span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .balance-breakdown h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .total-after-note {
+  background: #0c1a33 !important;
+  border-color: #1e3a8a !important;
+  color: #cbd5e1 !important;
+}
+
+/* Issue Requests & Fulfillment Pages */
+[data-theme="dark"] .issue-request-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-request-card > header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .issue-request-card h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-request-card header p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-request-meta {
+  background: #0d1527 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .issue-line {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-line-number {
+  background: #1e3a8a !important;
+  color: #bfdbfe !important;
+}
+
+[data-theme="dark"] .issue-lines-heading h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-lines-heading p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-request-note {
+  border-top-color: #1e2c4a !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .issue-request-rejection {
+  background: #3b1016 !important;
+  border-color: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .signature-heading b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .signature-heading small,
+[data-theme="dark"] .signature-disclaimer {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .request-signature {
+  background: #18233c !important;
+  border-top-color: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .request-signature b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .request-signature small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-review-meta span {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-meta b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-meta small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-review-signature {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-signature small {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-signature p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-review-notice {
+  background: #102447 !important;
+  border: 1px solid #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .issue-request-preview {
+  background: #0b1528 !important;
+  border: 1px solid #1e3152 !important;
+}
+
+/* Master Data Pages (Categories, Locations) */
+[data-theme="dark"] .master-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .master-card h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .master-card p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .master-card strong,
+[data-theme="dark"] .master-card .count {
+  color: #f8fafc !important;
+}
+
+/* Settings & Admin Pages */
+[data-theme="dark"] .settings-form {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .toggle-list label {
+  border-bottom-color: #223250 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .toggle-list small {
+  color: #94a3b8 !important;
+}
+
+/* Data Tools & Audits */
+[data-theme="dark"] .data-hero {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-hero h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-hero p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .data-tool-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-tool-card h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-tool-card p,
+[data-theme="dark"] .data-tool-card li {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .data-note {
+  background: #382405 !important;
+  border-color: #854d0e !important;
+  color: #fde047 !important;
+}
+
+[data-theme="dark"] .history-summary {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .history-summary strong {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .history-summary small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .renewal-overview article {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .renewal-overview strong {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .renewal-overview span {
+  color: #94a3b8 !important;
+}
+
+/* Modals & Forms in Migrant Worker Documents Page */
+[data-theme="dark"] .section-title-bar {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .section-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .checkbox-inline {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .combined-doc-card {
+  background: #0d1527 !important;
+  border-color: #223250 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .combined-doc-header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .combined-doc-badge {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .add-doc-btn {
+  background: #18233c !important;
+  border-color: #2a3c60 !important;
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .add-doc-btn:hover {
+  background: #1e2c4a !important;
+  border-color: #3b82f6 !important;
+}
+
+[data-theme="dark"] .import-step {
+  background: #18233c !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .import-step-title {
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .import-hint {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .import-upload-label {
+  background: #0d1527 !important;
+  border-color: #2a3c60 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .import-upload-label:hover {
+  border-color: #3b82f6 !important;
+  background: #131d33 !important;
+}
+
+/* Login Page Dark Mode */
+[data-theme="dark"] .login-page {
+  background: #070c16 !important;
+}
+
+[data-theme="dark"] .login-card {
+  background: #131d33 !important;
+  border: 1px solid #27395d !important;
+  color: #f8fafc !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .login-card h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .login-card > p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .demo-note {
+  color: #94a3b8 !important;
+}
