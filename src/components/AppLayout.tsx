@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowDownToLine,
@@ -28,6 +28,7 @@ import {
   Settings,
   SlidersHorizontal,
   LayoutDashboard,
+  ShieldAlert,
   Tags,
   Users,
   X,
@@ -40,6 +41,7 @@ import { isSupabaseConfigured } from "../lib/supabase";
 import { useIssueRequests } from "../store/IssueRequestContext";
 import { formatThaiDateTime } from "../utils/date";
 import { issueRequestService } from "../services/issueRequestService";
+import { migrantWorkerService } from "../services/migrantWorkerService";
 
 function IssueAlertSignature({
   path,
@@ -139,6 +141,17 @@ const renewalDate = (date: string) =>
     month: "short",
     year: "numeric",
   }).format(new Date(`${date}T00:00:00`));
+const formatDays = (absDays: number): string => {
+  if (absDays < 30) return `${absDays} วัน`;
+  const years = Math.floor(absDays / 365);
+  const rem = absDays % 365;
+  const months = Math.floor(rem / 30);
+  const days = rem % 30;
+  if (years > 0) {
+    return months > 0 ? `${years} ปี ${months} เดือน` : `${years} ปี`;
+  }
+  return days > 0 ? `${months} เดือน ${days} วัน` : `${months} เดือน`;
+};
 
 export function AppLayout() {
   const { dueItems } = useRenewals();
@@ -174,6 +187,21 @@ export function AppLayout() {
   const [query, setQuery] = useState("");
   const [showRenewalAlert, setShowRenewalAlert] = useState(false);
   const [showIssueAlert, setShowIssueAlert] = useState(false);
+  const [migrantAlertItems, setMigrantAlertItems] = useState<Array<{
+    workerName: string;
+    employeeCode: string;
+    department: string;
+    docType: string;
+    field: string;
+    date: string;
+    days: number;
+  }>>([]);
+  const [showMigrantAlert, setShowMigrantAlert] = useState(false);
+  const migrantAlertSignature = useMemo(
+    () => migrantAlertItems.map((item) => `${item.employeeCode}:${item.field}:${item.date}`).join("|"),
+    [migrantAlertItems],
+  );
+  const migrantAlertKey = `migrant-alert-dismissed:${user?.id ?? "guest"}`;
   const loc = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
@@ -232,6 +260,93 @@ export function AppLayout() {
     );
     setShowRenewalAlert(false);
   };
+  // Load urgent migrant worker documents
+  useEffect(() => {
+    if (!isSupabaseConfigured || (!isEmployeeDocumentOfficer && !isOperator)) return;
+    void migrantWorkerService
+      .load()
+      .then((snap) => {
+        const workerMap = new Map(snap.workers.map((w) => [w.id, w]));
+        const urgent: Array<{
+          workerName: string;
+          employeeCode: string;
+          department: string;
+          docType: string;
+          field: string;
+          date: string;
+          days: number;
+        }> = [];
+
+        for (const doc of snap.documents) {
+          if (!doc.isActive) continue;
+          const worker = workerMap.get(doc.workerId);
+          if (!worker || !worker.isActive) continue;
+
+          const checkField = (val: string | null, label: string) => {
+            if (!val) return;
+            const days = Math.ceil(
+              (new Date(`${val}T00:00:00`).getTime() -
+                new Date(new Date().toDateString()).getTime()) /
+                86400000,
+            );
+            if (days <= 30) {
+              urgent.push({
+                workerName: worker.fullName,
+                employeeCode: worker.employeeCode,
+                department: worker.department,
+                docType: doc.documentType,
+                field: label,
+                date: val,
+                days,
+              });
+            }
+          };
+
+          checkField(
+            doc.expiresOn,
+            doc.documentType.includes("PASSPORT")
+              ? "วันหมดอายุพาสปอร์ต"
+              : "วันหมดอายุบัตร",
+          );
+          checkField(doc.visaExpiresOn, "วันหมดอายุวีซ่า");
+          checkField(doc.workPermitExpiresOn, "วันหมดอายุใบอนุญาตทำงาน");
+          checkField(doc.areaPermitExpiresOn, "วันหมดอายุใบออกนอกพื้นที่");
+        }
+
+        urgent.sort((a, b) => a.days - b.days);
+        setMigrantAlertItems(urgent);
+      })
+      .catch(console.error);
+  }, [isEmployeeDocumentOfficer, isOperator]);
+
+  // Approach 1: Automatic Popup trigger for employee_document_officer ONLY!
+  useEffect(() => {
+    if (!isEmployeeDocumentOfficer || !migrantAlertItems.length || !migrantAlertSignature) {
+      setShowMigrantAlert(false);
+      return;
+    }
+    const dismissed = sessionStorage.getItem(migrantAlertKey);
+    const snoozedUntil = Number(
+      localStorage.getItem(`migrant-alert-snooze:${user?.id ?? "guest"}`) ?? 0,
+    );
+    if (dismissed !== migrantAlertSignature && Date.now() >= snoozedUntil) {
+      setShowMigrantAlert(true);
+    }
+  }, [isEmployeeDocumentOfficer, migrantAlertItems.length, migrantAlertSignature, migrantAlertKey, user?.id]);
+
+  const closeMigrantAlert = () => {
+    sessionStorage.setItem(migrantAlertKey, migrantAlertSignature);
+    setShowMigrantAlert(false);
+  };
+
+  const snoozeMigrantAlert = () => {
+    localStorage.setItem(
+      `migrant-alert-snooze:${user?.id ?? "guest"}`,
+      String(Date.now() + 4 * 60 * 60 * 1000),
+    );
+    setShowMigrantAlert(false);
+  };
+
   const closeIssueAlert = () => {
     sessionStorage.setItem(
       issueAlertKey,
@@ -519,22 +634,29 @@ export function AppLayout() {
                 </NavLink>
               </>
             )}
-            {canViewStock && (
+            {(canViewStock || isEmployeeDocumentOfficer) && (
               <button
                 className="icon-btn notify"
                 aria-label="เปิดการแจ้งเตือน"
                 onClick={() => {
-                  if (isOperator && pendingIssueRequests.length)
+                  if (isEmployeeDocumentOfficer && migrantAlertItems.length) {
+                    setShowMigrantAlert(true);
+                  } else if (isOperator && pendingIssueRequests.length) {
                     setShowIssueAlert(true);
-                  else if (readyIssueRequests.length) navigate("/fulfillment");
-                  else if (renewalAlertsEnabled && dueItems.length)
+                  } else if (readyIssueRequests.length) {
+                    navigate("/fulfillment");
+                  } else if (isOperator && migrantAlertItems.length) {
+                    setShowMigrantAlert(true);
+                  } else if (renewalAlertsEnabled && dueItems.length) {
                     setShowRenewalAlert(true);
+                  }
                 }}
               >
                 <Bell size={22} />
                 {((isOperator && pendingIssueRequests.length > 0) ||
                   readyIssueRequests.length > 0 ||
-                  (renewalAlertsEnabled && dueItems.length > 0)) && <i />}
+                  (renewalAlertsEnabled && dueItems.length > 0) ||
+                  migrantAlertItems.length > 0) && <i />}
               </button>
             )}
             <div className="top-user ops-user">
@@ -674,6 +796,82 @@ export function AppLayout() {
                 }}
               >
                 ตรวจสอบคำขอ <ArrowRight size={17} />
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      {/* Migrant Worker Document Alert Modal */}
+      {showMigrantAlert && (
+        <div className="renewal-news-backdrop" role="presentation">
+          <section
+            className="renewal-news-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="แจ้งเตือนเอกสารแรงงานต่างด้าว"
+          >
+            <button
+              className="renewal-news-close"
+              onClick={closeMigrantAlert}
+              aria-label="ปิด"
+            >
+              <X />
+            </button>
+            <header style={{ background: "linear-gradient(135deg, #071530 0%, #0e376d 100%)" }}>
+              <span>
+                <ShieldAlert size={26} />
+              </span>
+              <div>
+                <small style={{ color: "#93c5fd", fontWeight: 700 }}>
+                  {isEmployeeDocumentOfficer ? "แจ้งเตือนงานต่อภาษี/เอกสารแรงงานต่างด้าว" : "ภาพรวมเอกสารแรงงานต่างด้าว"}
+                </small>
+                <h2>เอกสารใกล้ครบกำหนด / หมดอายุ</h2>
+                <p>พบ {migrantAlertItems.length} รายการที่ต้องติดตามและดำเนินการต่ออายุ</p>
+              </div>
+            </header>
+            <div className="renewal-news-list">
+              {migrantAlertItems.slice(0, 5).map((item, idx) => (
+                <article key={`${item.employeeCode}-${item.field}-${idx}`}>
+                  <span className={item.days < 0 ? "overdue" : "due"}>
+                    <CalendarClock />
+                  </span>
+                  <div>
+                    <b>{item.workerName} ({item.employeeCode})</b>
+                    <p>
+                      แผนก {item.department} · {item.field} · ครบกำหนด {renewalDate(item.date)}
+                    </p>
+                  </div>
+                  <strong className={item.days < 0 ? "overdue" : ""}>
+                    {item.days < 0
+                      ? `เกิน ${formatDays(Math.abs(item.days))}`
+                      : item.days === 0
+                        ? "ครบกำหนดวันนี้"
+                        : `อีก ${formatDays(item.days)}`}
+                  </strong>
+                </article>
+              ))}
+              {migrantAlertItems.length > 5 && (
+                <div style={{ textAlign: "center", padding: "10px 0", fontSize: "0.82rem", color: "#64748b" }}>
+                  และอีก {migrantAlertItems.length - 5} รายการที่ต้องดำเนินการ...
+                </div>
+              )}
+            </div>
+            <footer>
+              <button className="btn secondary" onClick={snoozeMigrantAlert}>
+                เตือนอีกครั้งใน 4 ชม.
+              </button>
+              <button className="btn secondary" onClick={closeMigrantAlert}>
+                รับทราบ
+              </button>
+              <button
+                className="btn primary"
+                onClick={() => {
+                  closeMigrantAlert();
+                  navigate("/migrant-workers");
+                }}
+              >
+                จัดการเอกสาร <ArrowRight size={17} />
               </button>
             </footer>
           </section>
