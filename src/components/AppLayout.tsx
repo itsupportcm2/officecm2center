@@ -22,6 +22,8 @@ import {
   LogOut,
   MapPin,
   Menu,
+  Moon,
+  Sun,
   PackageCheck,
   PackageSearch,
   Search,
@@ -183,6 +185,23 @@ export function AppLayout() {
     }
   });
   const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('cm_office_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('cm_office_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   const [stockOpen, setStockOpen] = useState(true);
   const [query, setQuery] = useState("");
   const [showRenewalAlert, setShowRenewalAlert] = useState(false);
@@ -659,6 +678,20 @@ export function AppLayout() {
                   migrantAlertItems.length > 0) && <i />}
               </button>
             )}
+            {/* Theme Toggle Button (Light / Dark) */}
+            <button
+              type="button"
+              className="icon-btn theme-toggle"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดมืด"}
+              title={theme === "dark" ? "เปลี่ยนเป็นโหมดสว่าง (Light Mode)" : "เปลี่ยนเป็นโหมดมืด (Dark Mode)"}
+            >
+              {theme === "dark" ? (
+                <Sun size={20} style={{ color: "#fbbf24" }} />
+              ) : (
+                <Moon size={20} style={{ color: "#475569" }} />
+              )}
+            </button>
             <div className="top-user ops-user">
               <div className="avatar">{user?.name.slice(0, 2)}</div>
               <ChevronDown size={17} />
