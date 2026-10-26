@@ -7217,12 +7217,24 @@ body,
     print-color-adjust: exact !important;
   }
 
-  /* Hide all unnecessary UI elements */
+  /* Completely hide all app layout, topbar header, sidebar, buttons and modals */
+  aside,
+  .sidebar,
+  .ops-sidebar,
+  header.topbar,
+  header.ops-topbar,
+  .topbar,
+  .ops-topbar,
+  .ops-heading,
+  .ops-header-tools,
   .app-sidebar,
   .app-header,
   .mwp-hero,
   .mwp-stats-grid,
   .mwp-main-card,
+  .mwp-view-nav,
+  .mwp-toolbar,
+  .mwp-table-wrap,
   .btn,
   .icon-btn,
   .toast,
@@ -7230,6 +7242,28 @@ body,
   .modal-container,
   .renewal-news-backdrop {
     display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset outer layout wrappers so only document print sheet shows cleanly */
+  .layout,
+  .ops-layout,
+  .main-area,
+  .ops-main,
+  .content,
+  .ops-content,
+  .mwp-container {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Display print sheet */
@@ -7240,7 +7274,7 @@ body,
     padding: 0 !important;
   }
 
-  /* Print Header */
+  /* Print Header with Logo */
   .mwp-print-header {
     border-bottom: 2px solid #0f172a;
     padding-bottom: 8px;
@@ -7250,20 +7284,42 @@ body,
   .mwp-print-brand-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .mwp-print-brand-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mwp-print-logo {
+    height: 44px;
+    width: auto;
+    object-fit: contain;
+    display: block;
   }
 
   .mwp-print-company {
-    font-size: 14pt;
+    font-size: 13pt;
     font-weight: 800;
     color: #0f172a;
     margin: 0;
     line-height: 1.2;
   }
 
-  .mwp-print-dept {
-    font-size: 8.5pt;
+  .mwp-print-company-en {
+    font-size: 7.5pt;
+    font-weight: 700;
     color: #475569;
+    letter-spacing: 0.03em;
+    margin-top: 1px;
+  }
+
+  .mwp-print-dept {
+    font-size: 8pt;
+    color: #64748b;
     margin-top: 2px;
   }
 
@@ -7271,13 +7327,15 @@ body,
     font-size: 8pt;
     color: #64748b;
     text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .mwp-print-title {
     font-size: 11pt;
     font-weight: 700;
     color: #1e293b;
-    margin: 6px 0 4px;
+    margin: 8px 0 4px;
     display: flex;
     align-items: center;
     gap: 8px;

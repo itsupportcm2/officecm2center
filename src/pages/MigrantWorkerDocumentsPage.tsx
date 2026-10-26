@@ -2313,9 +2313,17 @@ export function MigrantWorkerDocumentsPage() {
         {/* Header */}
         <header className="mwp-print-header">
           <div className="mwp-print-brand-row">
-            <div>
-              <h1 className="mwp-print-company">บริษัท ซีเอ็ม โฟรเซ่นฟู้ด จำกัด (CM FROZEN FOOD CO., LTD.)</h1>
-              <div className="mwp-print-dept">ฝ่ายบริหารทรัพยากรบุคคลและเอกสารแรงงานต่างด้าว (HR & Migrant Worker Management)</div>
+            <div className="mwp-print-brand-left">
+              <img
+                src="/cm_frozen_logo.png"
+                alt="Logo บริษัท เชียงใหม่โฟรเซ่นฟูดส์ จำกัด (มหาชน)"
+                className="mwp-print-logo"
+              />
+              <div>
+                <h1 className="mwp-print-company">บริษัท เชียงใหม่โฟรเซ่นฟูดส์ จำกัด (มหาชน)</h1>
+                <div className="mwp-print-company-en">CHIANGMAI FROZEN FOODS PUBLIC COMPANY LIMITED</div>
+                <div className="mwp-print-dept">ฝ่ายบริหารทรัพยากรบุคคลและเอกสารแรงงานต่างด้าว (HR & Migrant Worker Management)</div>
+              </div>
             </div>
             <div className="mwp-print-date">
               <div>วันที่พิมพ์รายงาน: {new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</div>
