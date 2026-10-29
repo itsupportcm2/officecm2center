@@ -31,7 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Toast } from "../components/ui";
+import { Confirm, Modal, Toast } from "../components/ui";
 import { DEPARTMENTS } from "../constants/departments";
 import {
   migrantWorkerService,
@@ -105,6 +105,7 @@ const blankWorker = (): Omit<ForeignWorker, "createdAt" | "updatedAt"> => ({
   id: "",
   employeeCode: "",
   fullName: "",
+  phone: "",
   nationality: "",
   department: "",
   organizationUnit: "",
@@ -196,6 +197,11 @@ export function MigrantWorkerDocumentsPage() {
   const [workerDocs, setWorkerDocs] = useState<InitialDocItem[]>([
     blankNewDoc("PASSPORT_RED"),
   ]);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+    code: string;
+  } | null>(null);
 
   // Import state
   const [importOpen, setImportOpen] = useState(false);
@@ -339,6 +345,7 @@ export function MigrantWorkerDocumentsPage() {
           w.fullName.toLowerCase().includes(q) ||
           w.employeeCode.toLowerCase().includes(q) ||
           w.department.toLowerCase().includes(q) ||
+          (w.phone && w.phone.toLowerCase().includes(q)) ||
           (w.nationalId && w.nationalId.toLowerCase().includes(q)) ||
           (w.nationality && w.nationality.toLowerCase().includes(q));
         if (!matchDoc && !matchWorker) return false;
@@ -368,6 +375,7 @@ export function MigrantWorkerDocumentsPage() {
           worker.fullName.toLowerCase().includes(q) ||
           worker.employeeCode.toLowerCase().includes(q) ||
           worker.department.toLowerCase().includes(q) ||
+          (worker.phone && worker.phone.toLowerCase().includes(q)) ||
           row.doc.documentNumber.toLowerCase().includes(q) ||
           row.doc.workPermitNumber.toLowerCase().includes(q) ||
           row.field.toLowerCase().includes(q);
@@ -453,12 +461,14 @@ export function MigrantWorkerDocumentsPage() {
         ...workerForm,
         employeeCode: workerForm.employeeCode.trim(),
         fullName: workerForm.fullName.trim(),
+        phone: (workerForm.phone ?? "").trim(),
         nationalId: workerForm.nationalId.trim(),
         nationality: workerForm.nationality.trim(),
         organizationUnit: (workerForm.organizationUnit ?? "").trim(),
         title: workerForm.title.trim(),
         position: workerForm.position.trim(),
         note: (workerForm.note ?? "").trim(),
+        isActive: true,
       });
 
       if (!workerForm.id && includeDocs && workerDocs.length > 0) {
@@ -496,6 +506,22 @@ export function MigrantWorkerDocumentsPage() {
       await load();
     } catch (error) {
       setToast(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteWorker = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    try {
+      await migrantWorkerService.deleteWorker(deleteTarget.id);
+      setToast(`ลบข้อมูลพนักงาน "${deleteTarget.name}" เรียบร้อยแล้ว`);
+      setDeleteTarget(null);
+      setWorkerOpen(false);
+      await load();
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "ลบข้อมูลพนักงานไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -576,6 +602,7 @@ export function MigrantWorkerDocumentsPage() {
               employeeCode: row.employeeCode,
               title: row.title,
               fullName: row.fullName,
+              phone: row.phone || "",
               nationality: row.nationality,
               department: row.department,
               organizationUnit: "",
@@ -1106,9 +1133,7 @@ export function MigrantWorkerDocumentsPage() {
                                 <span className="mwp-worker-meta">
                                   <span>รหัส: {w.employeeCode}</span>
                                   {w.nationality && <span>• {w.nationality}</span>}
-                                  {!w.isActive && (
-                                    <span style={{ color: "#dc2626", fontWeight: 700 }}>• ระงับ</span>
-                                  )}
+                                  {w.phone && <span>• 📞 {w.phone}</span>}
                                 </span>
                               </div>
                             </div>
@@ -1218,6 +1243,22 @@ export function MigrantWorkerDocumentsPage() {
                                 <Edit3 size={14} />
                                 <span>แก้ไข</span>
                               </button>
+
+                              <button
+                                type="button"
+                                className="mwp-btn-action mwp-btn-action-danger"
+                                onClick={() =>
+                                  setDeleteTarget({
+                                    id: w.id,
+                                    name: [w.title, w.fullName].filter(Boolean).join(" "),
+                                    code: w.employeeCode,
+                                  })
+                                }
+                                title="ลบข้อมูลพนักงาน"
+                              >
+                                <Trash2 size={14} />
+                                <span>ลบ</span>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1231,7 +1272,13 @@ export function MigrantWorkerDocumentsPage() {
                                   <div className="mwp-expand-title">
                                     <FileText size={16} color="#175cd3" />
                                     <span>
-                                      เอกสารประจำตัวของ: <b>{w.fullName}</b> ({workerDocsList.length} ฉบับ)
+                                      เอกสารประจำตัวของ: <b>{w.fullName}</b>
+                                      {w.phone && (
+                                        <span style={{ marginLeft: "6px", color: "var(--text-muted, #64748b)", fontWeight: 500 }}>
+                                          (📞 {w.phone})
+                                        </span>
+                                      )}{" "}
+                                      ({workerDocsList.length} ฉบับ)
                                     </span>
                                   </div>
                                   <button
@@ -1770,18 +1817,19 @@ export function MigrantWorkerDocumentsPage() {
                     placeholder="เลขประจำตัว 13 หลัก หรือเลขบัตรชมพู"
                   />
                 </label>
-                <label className="checkbox-row full">
+                <label>
+                  เบอร์โทรศัพท์ (ถ้ามี)
                   <input
-                    type="checkbox"
-                    checked={workerForm.isActive}
+                    type="tel"
+                    value={workerForm.phone ?? ""}
                     onChange={(e) =>
                       setWorkerForm({
                         ...workerForm,
-                        isActive: e.target.checked,
+                        phone: e.target.value,
                       })
                     }
-                  />{" "}
-                  เปิดใช้งานข้อมูลพนักงานนี้
+                    placeholder="เช่น 081-234-5678 (เว้นว่างได้)"
+                  />
                 </label>
               </div>
             </div>
@@ -2009,6 +2057,23 @@ export function MigrantWorkerDocumentsPage() {
             )}
           </div>
           <div className="modal-actions">
+            {workerForm.id && (
+              <button
+                type="button"
+                className="btn danger"
+                style={{ marginRight: "auto" }}
+                onClick={() => {
+                  setDeleteTarget({
+                    id: workerForm.id,
+                    name: [workerForm.title, workerForm.fullName].filter(Boolean).join(" "),
+                    code: workerForm.employeeCode,
+                  });
+                }}
+              >
+                <Trash2 size={15} />
+                <span>ลบข้อมูลพนักงาน</span>
+              </button>
+            )}
             <button className="btn secondary" onClick={() => setWorkerOpen(false)}>
               ยกเลิก
             </button>
@@ -2494,7 +2559,14 @@ export function MigrantWorkerDocumentsPage() {
                     <tr key={`print-w-${w.id}`}>
                       <td style={{ textAlign: "center" }}>{idx + 1}</td>
                       <td><b>{w.employeeCode}</b></td>
-                      <td>{w.fullName}</td>
+                      <td>
+                        {w.fullName}
+                        {w.phone ? (
+                          <span style={{ display: "block", fontSize: "0.75rem", color: "#64748b" }}>
+                            โทร: {w.phone}
+                          </span>
+                        ) : null}
+                      </td>
                       <td style={{ textAlign: "center" }}>{gender === "MALE" ? "ชาย" : gender === "FEMALE" ? "หญิง" : "-"}</td>
                       <td>{w.nationality || "-"}</td>
                       <td>{w.department}</td>
@@ -2577,6 +2649,20 @@ export function MigrantWorkerDocumentsPage() {
           </div>
         </div>
       </div>
+
+      {deleteTarget && (
+        <Confirm
+          title="ยืนยันการลบข้อมูลพนักงาน"
+          detail={`คุณต้องการลบข้อมูลพนักงาน "${deleteTarget.name}" (รหัส: ${deleteTarget.code}) ใช่หรือไม่?\n\nคำเตือน: ข้อมูลเอกสารและประวัติทั้งหมดที่ผูกกับพนักงานคนนี้จะถูกลบออกจากระบบด้วย และไม่สามารถกู้คืนได้`}
+          confirmLabel={saving ? "กำลังลบ..." : "ลบข้อมูลพนักงาน"}
+          cancelLabel="ยกเลิก"
+          danger
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            void handleDeleteWorker();
+          }}
+        />
+      )}
 
       {toast && <Toast message={toast} />}
     </div>

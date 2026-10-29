@@ -13,6 +13,7 @@ export interface ForeignWorker {
   nationality: string;
   department: string;
   organizationUnit: string;
+  phone: string;
   title: string;
   nationalId: string;
   birthDate: string | null;
@@ -116,6 +117,7 @@ const worker = (row: any): ForeignWorker => ({
   nationality: String(row.nationality ?? ""),
   department: String(row.department),
   organizationUnit: String(row.organization_unit ?? ""),
+  phone: String(row.phone ?? row.organization_unit ?? ""),
   title: String(row.title ?? ""),
   nationalId: String(row.national_id ?? ""),
   birthDate: row.birth_date ?? null,
@@ -176,13 +178,13 @@ export const migrantWorkerService = {
       p_full_name: input.fullName,
       p_nationality: input.nationality,
       p_department: input.department,
-      p_organization_unit: input.organizationUnit,
+      p_organization_unit: (input.phone ?? input.organizationUnit ?? "").trim(),
       p_title: input.title,
       p_national_id: input.nationalId,
       p_birth_date: input.birthDate,
       p_position: input.position,
       p_note: input.note,
-      p_is_active: input.isActive,
+      p_is_active: input.isActive ?? true,
     });
     if (error) {
       if (error.message?.includes("invalid department")) {
@@ -194,6 +196,48 @@ export const migrantWorkerService = {
       throw error;
     }
     return worker(data);
+  },
+  async deleteWorker(workerId: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase is not configured");
+
+    // 1. Fetch document IDs to delete histories
+    const { data: docs } = await supabase
+      .from("migrant_worker_documents")
+      .select("id")
+      .eq("worker_id", workerId);
+
+    const docIds = (docs ?? []).map((d: any) => d.id);
+    if (docIds.length > 0) {
+      await supabase
+        .from("migrant_worker_document_history")
+        .delete()
+        .in("document_id", docIds);
+
+      await supabase
+        .from("migrant_worker_documents")
+        .delete()
+        .eq("worker_id", workerId);
+    }
+
+    // 2. Delete worker record
+    const { error } = await supabase
+      .from("foreign_workers")
+      .delete()
+      .eq("id", workerId);
+
+    if (error) throw error;
+  },
+  async deleteDocument(docId: string): Promise<void> {
+    if (!supabase) throw new Error("Supabase is not configured");
+    await supabase
+      .from("migrant_worker_document_history")
+      .delete()
+      .eq("document_id", docId);
+    const { error } = await supabase
+      .from("migrant_worker_documents")
+      .delete()
+      .eq("id", docId);
+    if (error) throw error;
   },
   async saveDocument(
     input: Omit<MigrantWorkerDocument, "createdAt" | "updatedAt">,

@@ -7,5 +7,37 @@ export function StatusBadge({item}:{item:Pick<Item,'quantity'|'minStock'>}){cons
 export function TxBadge({type}:{type:TransactionType}){const labels={IN:'รับเข้า',OUT:'เบิกออก',ADJUST:'ปรับยอด',TRANSFER:'โอนย้าย'};return <span className={`tx tx-${type.toLowerCase()}`}>{labels[type]}</span>}
 export function Empty({text='ไม่พบข้อมูล'}:{text?:string}){return <div className="empty"><div className="empty-mark">□</div><p>{text}</p></div>}
 export function Modal({title,children,onClose}:{title:string;children:ReactNode;onClose:()=>void}){const dialogRef=useRef<HTMLElement>(null);const titleId=useId();useEffect(()=>{const previous=document.activeElement as HTMLElement|null;const dialog=dialogRef.current;dialog?.querySelector<HTMLElement>('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();return()=>previous?.focus()},[]);const keyDown=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();onClose();return}if(event.key!=='Tab'||!dialogRef.current)return;const focusable=[...dialogRef.current.querySelectorAll<HTMLElement>('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled),a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable.at(-1)!;if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}};return <div className="modal-backdrop" role="presentation" onMouseDown={event=>event.target===event.currentTarget&&onClose()}><section ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={keyDown}><header><h2 id={titleId}>{title}</h2><button className="icon-btn" onClick={onClose} aria-label="ปิด"><X size={20}/></button></header>{children}</section></div>}
-export function Confirm({title,detail,onCancel,onConfirm}:{title:string;detail:string;onCancel:()=>void;onConfirm:()=>void}){return <Modal title={title} onClose={onCancel}><div className="modal-body"><p className="muted">{detail}</p></div><div className="modal-actions"><button className="btn secondary" onClick={onCancel}>ยกเลิก</button><button className="btn primary" onClick={onConfirm}>ยืนยัน</button></div></Modal>}
+export function Confirm({
+  title,
+  detail,
+  confirmLabel = "ยืนยัน",
+  cancelLabel = "ยกเลิก",
+  danger = false,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  detail: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal title={title} onClose={onCancel}>
+      <div className="modal-body">
+        <p className="muted" style={{ whiteSpace: "pre-line" }}>{detail}</p>
+      </div>
+      <div className="modal-actions">
+        <button className="btn secondary" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+        <button className={`btn ${danger ? "danger" : "primary"}`} onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
 export function Toast({message}:{message:string}){return <div className="toast" role="status">✓ {message}</div>}

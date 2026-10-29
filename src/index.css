@@ -7075,6 +7075,30 @@ body,
   border-color: #175cd3;
 }
 
+.mwp-btn-action-danger {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.mwp-btn-action-danger:hover {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+}
+
+[data-theme="dark"] .mwp-btn-action-danger {
+  background: rgba(220, 38, 38, 0.15) !important;
+  border-color: rgba(220, 38, 38, 0.35) !important;
+  color: #f87171 !important;
+}
+
+[data-theme="dark"] .mwp-btn-action-danger:hover {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+}
+
 @media (max-width: 768px) {
   .mwp-hero { padding: 20px; }
   .mwp-hero h1 { font-size: 1.35rem; }

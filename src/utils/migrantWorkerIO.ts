@@ -11,6 +11,7 @@ export const EXPORT_HEADERS = [
   "รหัสพนักงาน",
   "คำนำหน้า",
   "ชื่อ-สกุล",
+  "เบอร์โทรศัพท์",
   "สัญชาติ",
   "แผนก",
   "เลขบัตรประชาชน",
@@ -90,6 +91,7 @@ function toRows(
       w.employeeCode,
       w.title,
       w.fullName,
+      w.phone ?? "",
       w.nationality,
       w.department,
       w.nationalId,
@@ -117,6 +119,7 @@ function toRows(
         w.employeeCode,
         w.title,
         w.fullName,
+        w.phone ?? "",
         w.nationality,
         w.department,
         w.nationalId,
@@ -183,6 +186,7 @@ export interface ImportRow {
   employeeCode: string;
   title: string;
   fullName: string;
+  phone: string;
   nationality: string;
   department: string;
   nationalId: string;
@@ -331,11 +335,18 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
             }
           }
 
+          const phone =
+            str(r[col("เบอร์โทรศัพท์")]) ||
+            str(r[col("เบอร์โทร")]) ||
+            str(r[col("โทรศัพท์")]) ||
+            "";
+
           rows.push({
             rowIndex: i + 1,
             employeeCode,
             title: str(r[col("คำนำหน้า")]),
             fullName: str(r[col("ชื่อ-สกุล")]),
+            phone,
             nationality: str(r[col("สัญชาติ")]),
             department: normalizedDept || rawDept,
             nationalId: str(r[col("เลขบัตรประชาชน")]),
@@ -371,14 +382,14 @@ export function downloadTemplate(): void {
   const rows = [
     EXPORT_HEADERS,
     [
-      "CM-0001", "นาย", "สมชาย ใจดี", "เมียนมา", "PR",
+      "CM-0001", "นาย", "สมชาย ใจดี", "081-234-5678", "เมียนมา", "PR",
       "1234567890123", "2000-01-15",
       "พาสปอร์ตสีแดง", "ME123456", "2022-03-01", "2027-03-01",
       "2023-01-01", "2024-01-01", "", "",
       "WP-998877", "2023-01-01", "2025-01-01", "30", "ฝ่ายผลิต (PR)",
     ],
     [
-      "CM-0002", "นางสาว", "มะลิ สวยงาม", "ลาว", "PA",
+      "CM-0002", "นางสาว", "มะลิ สวยงาม", "089-876-5432", "ลาว", "PA",
       "0012345678901", "1998-05-20",
       "บัตรชมพู", "PK-554433", "2023-02-15", "2025-02-15",
       "", "", "", "",
