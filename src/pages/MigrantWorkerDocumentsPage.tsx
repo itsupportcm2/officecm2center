@@ -2531,15 +2531,15 @@ export function MigrantWorkerDocumentsPage() {
             <thead>
               <tr>
                 <th style={{ width: "35px", textAlign: "center" }}>ลำดับ</th>
-                <th style={{ width: "75px" }}>รหัส</th>
+                <th style={{ width: "65px", textAlign: "center" }}>แผนก</th>
+                <th style={{ width: "75px", textAlign: "center" }}>รหัสพนักงาน</th>
+                <th style={{ width: "55px", textAlign: "center" }}>คำนำหน้า</th>
                 <th>ชื่อ-นามสกุล</th>
-                <th style={{ width: "45px", textAlign: "center" }}>เพศ</th>
-                <th style={{ width: "55px" }}>สัญชาติ</th>
-                <th style={{ width: "65px" }}>แผนก</th>
-                <th>เอกสารประจำตัว (เลขที่)</th>
+                <th style={{ width: "60px", textAlign: "center" }}>สัญชาติ</th>
+                <th style={{ width: "115px", textAlign: "center" }}>เลขประจำตัวประชาชน</th>
+                <th style={{ width: "100px", textAlign: "center" }}>เลขที่เอกสาร</th>
                 <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุเล่ม</th>
                 <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุวีซ่า</th>
-                <th>เลขที่ใบอนุญาตทำงาน</th>
                 <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุใบงาน</th>
               </tr>
             </thead>
@@ -2554,26 +2554,38 @@ export function MigrantWorkerDocumentsPage() {
                 filteredWorkers.map((w, idx) => {
                   const docs = documents.filter((d) => d.workerId === w.id && d.isActive);
                   const primaryDoc = docs[0];
-                  const gender = getWorkerGender(w);
                   return (
                     <tr key={`print-w-${w.id}`}>
                       <td style={{ textAlign: "center" }}>{idx + 1}</td>
-                      <td><b>{w.employeeCode}</b></td>
+                      <td style={{ textAlign: "center" }}><b>{w.department || "-"}</b></td>
+                      <td style={{ textAlign: "center" }}><b>{w.employeeCode}</b></td>
+                      <td style={{ textAlign: "center" }}>{w.title || "-"}</td>
                       <td>
                         {w.fullName}
                         {w.phone ? (
-                          <span style={{ display: "block", fontSize: "0.75rem", color: "#64748b" }}>
+                          <span style={{ display: "block", fontSize: "0.72rem", color: "#64748b" }}>
                             โทร: {w.phone}
                           </span>
                         ) : null}
                       </td>
-                      <td style={{ textAlign: "center" }}>{gender === "MALE" ? "ชาย" : gender === "FEMALE" ? "หญิง" : "-"}</td>
-                      <td>{w.nationality || "-"}</td>
-                      <td>{w.department}</td>
-                      <td>{primaryDoc ? `${labels[primaryDoc.documentType] || primaryDoc.documentType} (${primaryDoc.documentNumber})` : "ไม่มีเอกสาร"}</td>
+                      <td style={{ textAlign: "center" }}>{w.nationality || "-"}</td>
+                      <td style={{ textAlign: "center" }} className="mono">{w.nationalId || "-"}</td>
+                      <td style={{ textAlign: "center" }}>
+                        {primaryDoc ? (
+                          <>
+                            <span>{primaryDoc.documentNumber || "-"}</span>
+                            {primaryDoc.documentType && (
+                              <span style={{ display: "block", fontSize: "0.70rem", color: "#64748b" }}>
+                                ({labels[primaryDoc.documentType] || primaryDoc.documentType})
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                       <td style={{ textAlign: "center" }}>{primaryDoc?.expiresOn ? thaiDate(primaryDoc.expiresOn) : "-"}</td>
                       <td style={{ textAlign: "center" }}>{primaryDoc?.visaExpiresOn ? thaiDate(primaryDoc.visaExpiresOn) : "-"}</td>
-                      <td>{primaryDoc?.workPermitNumber || "-"}</td>
                       <td style={{ textAlign: "center" }}>{primaryDoc?.workPermitExpiresOn ? thaiDate(primaryDoc.workPermitExpiresOn) : "-"}</td>
                     </tr>
                   );
