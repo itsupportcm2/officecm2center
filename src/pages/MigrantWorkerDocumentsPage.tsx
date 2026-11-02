@@ -796,7 +796,7 @@ export function MigrantWorkerDocumentsPage() {
           title="คลิกเพื่อดูรายชื่อพนักงานทั้งหมด"
         >
           <div className="mwp-stat-top">
-            <span className="mwp-stat-title">พนักงานที่ใช้งาน</span>
+            <span className="mwp-stat-title">จำนวนพนักงานทั้งหมด</span>
             <div className="mwp-stat-icon">
               <Users size={18} />
             </div>

@@ -315,7 +315,7 @@ export function MigrantDashboardPage() {
       <section className="mdb-kpi-grid">
         <div className="mdb-kpi-card mdb-kpi-primary">
           <div className="mdb-kpi-top">
-            <span className="mdb-kpi-title">พนักงานในระบบ</span>
+            <span className="mdb-kpi-title">จำนวนพนักงานทั้งหมด</span>
             <div className="mdb-kpi-icon-wrap">
               <Users size={20} />
             </div>
