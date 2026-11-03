@@ -432,7 +432,11 @@ export function MigrantWorkerDocumentsPage() {
     }
 
     const cleanNationalId = (workerForm.nationalId || "").replace(/\D/g, "");
-    if (cleanNationalId.length > 0 && cleanNationalId.length < 13) {
+    if (!cleanNationalId) {
+      setToast("กรุณากรอกเลขประจำตัวประชาชน (13 หลัก)");
+      return;
+    }
+    if (cleanNationalId.length !== 13) {
       setToast(
         `เลขประจำตัวประชาชนต้องครบ 13 หลักตามรูปแบบ (ขณะนี้กรอก ${cleanNationalId.length}/13 หลัก)`
       );
@@ -1178,28 +1182,52 @@ export function MigrantWorkerDocumentsPage() {
                           </td>
 
                           <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", flexWrap: "wrap" }}>
                               {workerDocsList.length === 0 ? (
                                 <span style={{ fontSize: "0.82rem" }} className="mwp-muted-text">ไม่มีเอกสาร</span>
                               ) : (
                                 workerDocsList.map((d) => (
-                                  <span
+                                  <div
                                     key={d.id}
-                                    className="mwp-doc-pill"
                                     style={{
-                                      background: `${DOC_COLORS[d.documentType]}12`,
-                                      color: DOC_COLORS[d.documentType],
-                                      border: `1px solid ${DOC_COLORS[d.documentType]}35`,
+                                      display: "inline-flex",
+                                      flexDirection: "column",
+                                      gap: "3px",
+                                      alignItems: "flex-start",
                                     }}
                                   >
-                                    {labels[d.documentType]}
-                                  </span>
+                                    <span
+                                      className="mono"
+                                      style={{
+                                        fontWeight: 700,
+                                        fontSize: "0.84rem",
+                                        color: "var(--text-primary, #0f172a)",
+                                        lineHeight: 1.2,
+                                      }}
+                                    >
+                                      {d.documentNumber || "-"}
+                                    </span>
+                                    <span
+                                      className="mwp-doc-pill"
+                                      style={{
+                                        background: `${DOC_COLORS[d.documentType]}12`,
+                                        color: DOC_COLORS[d.documentType],
+                                        border: `1px solid ${DOC_COLORS[d.documentType]}35`,
+                                        fontSize: "0.72rem",
+                                        padding: "1px 6px",
+                                        lineHeight: 1.3,
+                                      }}
+                                    >
+                                      {labels[d.documentType]}
+                                    </span>
+                                  </div>
                                 ))
                               )}
                               {hasExpiredDoc && (
                                 <span
                                   className="mwp-status-pill mwp-status-pill-expired"
                                   title="มีเอกสารหมดอายุแล้ว"
+                                  style={{ alignSelf: "center" }}
                                 >
                                   🚨 หมดอายุ
                                 </span>
@@ -1208,6 +1236,7 @@ export function MigrantWorkerDocumentsPage() {
                                 <span
                                   className="mwp-status-pill mwp-status-pill-due"
                                   title="มีเอกสารใกล้ครบกำหนด 30 วัน"
+                                  style={{ alignSelf: "center" }}
                                 >
                                   ⚠️ ใกล้ครบ
                                 </span>
@@ -1831,11 +1860,12 @@ export function MigrantWorkerDocumentsPage() {
                   />
                 </label>
                 <label>
-                  เลขประจำตัว / บัตรประชาชน (13 หลัก)
+                  เลขประจำตัว / บัตรประชาชน (13 หลัก) *
                   <input
                     type="text"
                     inputMode="numeric"
                     maxLength={17}
+                    required
                     value={workerForm.nationalId}
                     onChange={(e) =>
                       setWorkerForm({
@@ -1872,7 +1902,11 @@ export function MigrantWorkerDocumentsPage() {
                         ? "✓ ครบ 13 หลักถูกต้องตามรูปแบบ"
                         : `⚠️ ยังไม่ครบ 13 หลัก (กรอกแล้ว ${workerForm.nationalId.replace(/\D/g, "").length}/13 หลัก)`}
                     </span>
-                  ) : null}
+                  ) : (
+                    <span style={{ fontSize: "0.75rem", marginTop: "2px", display: "block", color: "#64748b" }}>
+                      * จำเป็นต้องระบุเลขประจำตัว 13 หลัก (เช่น 0-0506-51005-43-4)
+                    </span>
+                  )}
                 </label>
                 <label>
                   เบอร์โทรศัพท์ (ถ้ามี)

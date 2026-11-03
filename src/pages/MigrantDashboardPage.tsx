@@ -851,24 +851,42 @@ export function MigrantDashboardPage() {
                       </td>
 
                       <td>
-                        <span
-                          className="mdb-doc-tag"
-                          style={{
-                            background: `${DOC_COLORS[r.doc.documentType]}15`,
-                            color: DOC_COLORS[r.doc.documentType],
-                            border: `1px solid ${DOC_COLORS[r.doc.documentType]}40`,
-                          }}
-                        >
+                        <div style={{ display: "inline-flex", flexDirection: "column", gap: "3px", alignItems: "flex-start" }}>
                           <span
+                            className="mono"
                             style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: "50%",
-                              background: DOC_COLORS[r.doc.documentType],
+                              fontWeight: 700,
+                              fontSize: "0.84rem",
+                              color: "var(--text-primary, #0f172a)",
+                              lineHeight: 1.2,
                             }}
-                          />
-                          {labels[r.doc.documentType]}
-                        </span>
+                          >
+                            {r.field === "วันหมดอายุใบอนุญาตทำงาน"
+                              ? r.doc.workPermitNumber || r.doc.documentNumber || "-"
+                              : r.doc.documentNumber || "-"}
+                          </span>
+                          <span
+                            className="mdb-doc-tag"
+                            style={{
+                              background: `${DOC_COLORS[r.doc.documentType]}15`,
+                              color: DOC_COLORS[r.doc.documentType],
+                              border: `1px solid ${DOC_COLORS[r.doc.documentType]}40`,
+                              fontSize: "0.72rem",
+                              padding: "2px 6px",
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: "50%",
+                                background: DOC_COLORS[r.doc.documentType],
+                              }}
+                            />
+                            {labels[r.doc.documentType]}
+                          </span>
+                        </div>
                       </td>
 
                       <td>
