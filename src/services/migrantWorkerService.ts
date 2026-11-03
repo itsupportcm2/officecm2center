@@ -123,6 +123,18 @@ export const getWorkerAge = (birthDate: string | null | undefined): number | nul
   return age >= 0 ? age : null;
 };
 
+export const formatNationalId = (val: string | null | undefined): string => {
+  if (!val) return "";
+  const digits = String(val).replace(/\D/g, "").slice(0, 13);
+  let res = "";
+  if (digits.length > 0) res += digits.slice(0, 1);
+  if (digits.length > 1) res += "-" + digits.slice(1, 5);
+  if (digits.length > 5) res += "-" + digits.slice(5, 10);
+  if (digits.length > 10) res += "-" + digits.slice(10, 12);
+  if (digits.length > 12) res += "-" + digits.slice(12, 13);
+  return res;
+};
+
 const worker = (row: any): ForeignWorker => ({
   id: String(row.id),
   employeeCode: String(row.employee_code),
@@ -132,7 +144,7 @@ const worker = (row: any): ForeignWorker => ({
   organizationUnit: String(row.organization_unit ?? ""),
   phone: String(row.phone ?? row.organization_unit ?? ""),
   title: String(row.title ?? ""),
-  nationalId: String(row.national_id ?? ""),
+  nationalId: formatNationalId(row.national_id),
   birthDate: row.birth_date ?? null,
   position: String(row.position ?? ""),
   note: String(row.note ?? ""),
@@ -193,7 +205,7 @@ export const migrantWorkerService = {
       p_department: input.department,
       p_organization_unit: (input.phone ?? input.organizationUnit ?? "").trim(),
       p_title: input.title,
-      p_national_id: input.nationalId,
+      p_national_id: input.nationalId ? formatNationalId(input.nationalId) : "",
       p_birth_date: input.birthDate,
       p_position: input.position,
       p_note: input.note,

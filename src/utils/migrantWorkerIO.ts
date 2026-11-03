@@ -1,9 +1,10 @@
 import * as XLSX from "xlsx";
 import { DEPARTMENTS } from "../constants/departments";
-import type {
-  ForeignWorker,
-  MigrantDocumentType,
-  MigrantWorkerDocument,
+import {
+  formatNationalId,
+  type ForeignWorker,
+  type MigrantDocumentType,
+  type MigrantWorkerDocument,
 } from "../services/migrantWorkerService";
 
 // ---- Column headers ----
@@ -349,7 +350,7 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
             phone,
             nationality: str(r[col("สัญชาติ")]),
             department: normalizedDept || rawDept,
-            nationalId: str(r[col("เลขบัตรประชาชน")]),
+            nationalId: formatNationalId(str(r[col("เลขบัตรประชาชน")])),
             birthDate: parseDate(r[col("วันเกิด")]),
             documentType: docType,
             documentNumber: docNumber,
@@ -383,14 +384,14 @@ export function downloadTemplate(): void {
     EXPORT_HEADERS,
     [
       "CM-0001", "นาย", "สมชาย ใจดี", "081-234-5678", "เมียนมา", "PR",
-      "1234567890123", "2000-01-15",
+      "1-2345-67890-12-3", "2000-01-15",
       "พาสปอร์ตสีแดง", "ME123456", "2022-03-01", "2027-03-01",
       "2023-01-01", "2024-01-01", "", "",
       "WP-998877", "2023-01-01", "2025-01-01", "30", "ฝ่ายผลิต (PR)",
     ],
     [
       "CM-0002", "นางสาว", "มะลิ สวยงาม", "089-876-5432", "ลาว", "PA",
-      "0012345678901", "1998-05-20",
+      "0-0506-51005-43-4", "1998-05-20",
       "บัตรชมพู", "PK-554433", "2023-02-15", "2025-02-15",
       "", "", "", "",
       "WP-112233", "2023-02-15", "2025-02-15", "30", "ฝ่ายแพ็ค (PA)",

@@ -37,6 +37,7 @@ import {
   migrantWorkerService,
   getWorkerGender,
   getWorkerAge,
+  formatNationalId,
   type ForeignWorker,
   type MigrantDocumentType,
   type MigrantWorkerDocument,
@@ -427,6 +428,14 @@ export function MigrantWorkerDocumentsPage() {
     }
     if (!workerForm.department.trim()) {
       setToast("กรุณาเลือกแผนก");
+      return;
+    }
+
+    const cleanNationalId = (workerForm.nationalId || "").replace(/\D/g, "");
+    if (cleanNationalId.length > 0 && cleanNationalId.length < 13) {
+      setToast(
+        `เลขประจำตัวประชาชนต้องครบ 13 หลักตามรูปแบบ (ขณะนี้กรอก ${cleanNationalId.length}/13 หลัก)`
+      );
       return;
     }
 
@@ -1829,17 +1838,48 @@ export function MigrantWorkerDocumentsPage() {
                   />
                 </label>
                 <label>
-                  เลขประจำตัว / บัตรประชาชน
+                  เลขประจำตัว / บัตรประชาชน (13 หลัก)
                   <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={17}
                     value={workerForm.nationalId}
                     onChange={(e) =>
                       setWorkerForm({
                         ...workerForm,
-                        nationalId: e.target.value,
+                        nationalId: formatNationalId(e.target.value),
                       })
                     }
-                    placeholder="เลขประจำตัว 13 หลัก หรือเลขบัตรชมพู"
+                    placeholder="0-0506-51005-43-4"
+                    style={{
+                      fontFamily: "monospace",
+                      borderColor:
+                        workerForm.nationalId &&
+                        workerForm.nationalId.replace(/\D/g, "").length < 13
+                          ? "#dc2626"
+                          : workerForm.nationalId.replace(/\D/g, "").length === 13
+                            ? "#16a34a"
+                            : undefined,
+                    }}
                   />
+                  {workerForm.nationalId ? (
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        marginTop: "2px",
+                        display: "block",
+                        color:
+                          workerForm.nationalId.replace(/\D/g, "").length === 13
+                            ? "#16a34a"
+                            : "#dc2626",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {workerForm.nationalId.replace(/\D/g, "").length === 13
+                        ? "✓ ครบ 13 หลักถูกต้องตามรูปแบบ"
+                        : `⚠️ ยังไม่ครบ 13 หลัก (กรอกแล้ว ${workerForm.nationalId.replace(/\D/g, "").length}/13 หลัก)`}
+                    </span>
+                  ) : null}
                 </label>
                 <label>
                   เบอร์โทรศัพท์ (ถ้ามี)
