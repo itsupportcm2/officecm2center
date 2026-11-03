@@ -2683,13 +2683,13 @@ export function MigrantWorkerDocumentsPage() {
           <div className="mwp-print-sign-box">
             <div className="mwp-print-sign-line">ลงชื่อ ................................................................</div>
             <div className="mwp-print-sign-name">( ................................................................ )</div>
-            <div className="mwp-print-sign-role">ผู้จัดทำรายงาน / เจ้าหน้าที่ต่อสัญญาเอกสาร</div>
+            <div className="mwp-print-sign-role">ผู้จัดทำรายงาน</div>
             <div className="mwp-print-sign-date">วันที่ ........ / ........ / ................</div>
           </div>
           <div className="mwp-print-sign-box">
             <div className="mwp-print-sign-line">ลงชื่อ ................................................................</div>
             <div className="mwp-print-sign-name">( ................................................................ )</div>
-            <div className="mwp-print-sign-role">ผู้ตรวจสอบรายงาน / ผู้จัดการฝ่ายทรัพยากรบุคคล</div>
+            <div className="mwp-print-sign-role">ผู้ตรวจสอบเอกสาร</div>
             <div className="mwp-print-sign-date">วันที่ ........ / ........ / ................</div>
           </div>
         </div>
