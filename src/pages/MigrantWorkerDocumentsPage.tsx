@@ -36,6 +36,7 @@ import { DEPARTMENTS } from "../constants/departments";
 import {
   migrantWorkerService,
   getWorkerGender,
+  getWorkerAge,
   type ForeignWorker,
   type MigrantDocumentType,
   type MigrantWorkerDocument,
@@ -1076,7 +1077,7 @@ export function MigrantWorkerDocumentsPage() {
               <thead>
                 <tr>
                   <th>พนักงาน</th>
-                  <th>เพศ</th>
+                  <th>เพศ / อายุ</th>
                   <th>เลขบัตรประชาชน / ID</th>
                   <th>แผนก</th>
                   <th>เอกสารที่บันทึกไว้</th>
@@ -1105,6 +1106,7 @@ export function MigrantWorkerDocumentsPage() {
                     const isExpanded = expandedWorkerId === w.id;
                     const initial = w.fullName.trim() ? w.fullName.trim()[0] : "W";
                     const gender = getWorkerGender(w);
+                    const age = getWorkerAge(w.birthDate);
 
                     // Check if any document has expired or is due
                     const hasExpiredDoc = workerDocsList.some((d) => {
@@ -1134,19 +1136,27 @@ export function MigrantWorkerDocumentsPage() {
                                   <span>รหัส: {w.employeeCode}</span>
                                   {w.nationality && <span>• {w.nationality}</span>}
                                   {w.phone && <span>• 📞 {w.phone}</span>}
+                                  {age !== null && <span>• อายุ {age} ปี</span>}
                                 </span>
                               </div>
                             </div>
                           </td>
 
                           <td>
-                            {gender === "MALE" ? (
-                              <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
-                            ) : gender === "FEMALE" ? (
-                              <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
-                            ) : (
-                              <span className="mwp-gender-badge mwp-gender-unknown">-</span>
-                            )}
+                            <div style={{ display: "inline-flex", flexDirection: "column", gap: "2px", alignItems: "flex-start" }}>
+                              {gender === "MALE" ? (
+                                <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
+                              ) : gender === "FEMALE" ? (
+                                <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
+                              ) : (
+                                <span className="mwp-gender-badge mwp-gender-unknown">-</span>
+                              )}
+                              {age !== null && (
+                                <span style={{ fontSize: "0.78rem", color: "var(--text-muted, #64748b)", fontWeight: 600 }}>
+                                  อายุ {age} ปี
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           <td>
@@ -1273,6 +1283,11 @@ export function MigrantWorkerDocumentsPage() {
                                     <FileText size={16} color="#175cd3" />
                                     <span>
                                       เอกสารประจำตัวของ: <b>{w.fullName}</b>
+                                      {age !== null && (
+                                        <span style={{ marginLeft: "6px", color: "var(--text-muted, #64748b)", fontWeight: 500 }}>
+                                          • อายุ {age} ปี
+                                        </span>
+                                      )}
                                       {w.phone && (
                                         <span style={{ marginLeft: "6px", color: "var(--text-muted, #64748b)", fontWeight: 500 }}>
                                           (📞 {w.phone})
@@ -1431,7 +1446,7 @@ export function MigrantWorkerDocumentsPage() {
               <thead>
                 <tr>
                   <th>พนักงาน</th>
-                  <th>เพศ</th>
+                  <th>เพศ / อายุ</th>
                   <th>แผนก</th>
                   <th>ประเภทเอกสาร</th>
                   <th>เลขที่</th>
@@ -1469,6 +1484,7 @@ export function MigrantWorkerDocumentsPage() {
                     const isDue30 = row.days >= 0 && row.days <= 30;
                     const isDue90 = row.days > 30 && row.days <= 90;
                     const gender = getWorkerGender(worker);
+                    const workerAge = getWorkerAge(worker.birthDate);
 
                     let statusClass = "mwp-status-pill-normal";
                     let statusText = `อีก ${formatDays(row.days)}`;
@@ -1498,19 +1514,27 @@ export function MigrantWorkerDocumentsPage() {
                               <span className="mwp-worker-name">{worker.fullName}</span>
                               <span className="mwp-worker-meta">
                                 <span>รหัส: {worker.employeeCode}</span>
+                                {workerAge !== null && <span>• อายุ {workerAge} ปี</span>}
                               </span>
                             </div>
                           </div>
                         </td>
 
                         <td>
-                          {gender === "MALE" ? (
-                            <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
-                          ) : gender === "FEMALE" ? (
-                            <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
-                          ) : (
-                            <span className="mwp-gender-badge mwp-gender-unknown">-</span>
-                          )}
+                          <div style={{ display: "inline-flex", flexDirection: "column", gap: "2px", alignItems: "flex-start" }}>
+                            {gender === "MALE" ? (
+                              <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
+                            ) : gender === "FEMALE" ? (
+                              <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
+                            ) : (
+                              <span className="mwp-gender-badge mwp-gender-unknown">-</span>
+                            )}
+                            {workerAge !== null && (
+                              <span style={{ fontSize: "0.76rem", color: "var(--text-muted, #64748b)", fontWeight: 600 }}>
+                                อายุ {workerAge} ปี
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td>
@@ -2466,6 +2490,7 @@ export function MigrantWorkerDocumentsPage() {
                 <th style={{ width: "35px", textAlign: "center" }}>ลำดับ</th>
                 <th style={{ width: "75px" }}>รหัสพนักงาน</th>
                 <th>ชื่อ-นามสกุล</th>
+                <th style={{ width: "50px", textAlign: "center" }}>อายุ</th>
                 <th style={{ width: "45px", textAlign: "center" }}>เพศ</th>
                 <th style={{ width: "55px" }}>สัญชาติ</th>
                 <th style={{ width: "65px" }}>แผนก</th>
@@ -2479,7 +2504,7 @@ export function MigrantWorkerDocumentsPage() {
             <tbody>
               {filteredExpiryRows.length === 0 ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: "center", padding: "16px" }}>
+                  <td colSpan={12} style={{ textAlign: "center", padding: "16px" }}>
                     ไม่พบรายการเอกสารที่ตรงตามเงื่อนไขที่เลือก
                   </td>
                 </tr>
@@ -2487,6 +2512,7 @@ export function MigrantWorkerDocumentsPage() {
                 filteredExpiryRows.map((row, idx) => {
                   const worker = workerMap.get(row.doc.workerId);
                   const gender = worker ? getWorkerGender(worker) : "UNKNOWN";
+                  const workerAge = worker ? getWorkerAge(worker.birthDate) : null;
                   return (
                     <tr
                       key={`print-exp-${row.doc.id}-${row.field}-${idx}`}
@@ -2495,6 +2521,7 @@ export function MigrantWorkerDocumentsPage() {
                       <td style={{ textAlign: "center" }}>{idx + 1}</td>
                       <td><b>{worker?.employeeCode || "-"}</b></td>
                       <td>{worker?.fullName || "-"}</td>
+                      <td style={{ textAlign: "center" }}>{workerAge !== null ? `${workerAge} ปี` : "-"}</td>
                       <td style={{ textAlign: "center" }}>{gender === "MALE" ? "ชาย" : gender === "FEMALE" ? "หญิง" : "-"}</td>
                       <td>{worker?.nationality || "-"}</td>
                       <td>{worker?.department || "-"}</td>
@@ -2535,6 +2562,7 @@ export function MigrantWorkerDocumentsPage() {
                 <th style={{ width: "75px", textAlign: "center" }}>รหัสพนักงาน</th>
                 <th style={{ width: "55px", textAlign: "center" }}>คำนำหน้า</th>
                 <th>ชื่อ-นามสกุล</th>
+                <th style={{ width: "50px", textAlign: "center" }}>อายุ</th>
                 <th style={{ width: "60px", textAlign: "center" }}>สัญชาติ</th>
                 <th style={{ width: "115px", textAlign: "center" }}>เลขประจำตัวประชาชน</th>
                 <th style={{ width: "100px", textAlign: "center" }}>เลขที่เอกสาร</th>
@@ -2546,7 +2574,7 @@ export function MigrantWorkerDocumentsPage() {
             <tbody>
               {filteredWorkers.length === 0 ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: "center", padding: "16px" }}>
+                  <td colSpan={12} style={{ textAlign: "center", padding: "16px" }}>
                     ไม่พบรายชื่อพนักงานที่ตรงตามเงื่อนไขที่เลือก
                   </td>
                 </tr>
@@ -2554,6 +2582,7 @@ export function MigrantWorkerDocumentsPage() {
                 filteredWorkers.map((w, idx) => {
                   const docs = documents.filter((d) => d.workerId === w.id && d.isActive);
                   const primaryDoc = docs[0];
+                  const age = getWorkerAge(w.birthDate);
                   return (
                     <tr key={`print-w-${w.id}`}>
                       <td style={{ textAlign: "center" }}>{idx + 1}</td>
@@ -2568,6 +2597,7 @@ export function MigrantWorkerDocumentsPage() {
                           </span>
                         ) : null}
                       </td>
+                      <td style={{ textAlign: "center" }}>{age !== null ? `${age} ปี` : "-"}</td>
                       <td style={{ textAlign: "center" }}>{w.nationality || "-"}</td>
                       <td style={{ textAlign: "center" }} className="mono">{w.nationalId || "-"}</td>
                       <td style={{ textAlign: "center" }}>
@@ -2603,6 +2633,7 @@ export function MigrantWorkerDocumentsPage() {
                 <th style={{ width: "35px", textAlign: "center" }}>ลำดับ</th>
                 <th style={{ width: "75px" }}>รหัส</th>
                 <th>พนักงาน</th>
+                <th style={{ width: "50px", textAlign: "center" }}>อายุ</th>
                 <th style={{ width: "45px", textAlign: "center" }}>เพศ</th>
                 <th style={{ width: "65px" }}>แผนก</th>
                 <th>ประเภทเอกสาร</th>
@@ -2616,7 +2647,7 @@ export function MigrantWorkerDocumentsPage() {
             <tbody>
               {filteredAllDocs.length === 0 ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: "center", padding: "16px" }}>
+                  <td colSpan={12} style={{ textAlign: "center", padding: "16px" }}>
                     ไม่พบเอกสารที่ตรงตามเงื่อนไขที่เลือก
                   </td>
                 </tr>
@@ -2624,11 +2655,13 @@ export function MigrantWorkerDocumentsPage() {
                 filteredAllDocs.map((doc, idx) => {
                   const worker = workerMap.get(doc.workerId);
                   const gender = worker ? getWorkerGender(worker) : "UNKNOWN";
+                  const workerAge = worker ? getWorkerAge(worker.birthDate) : null;
                   return (
                     <tr key={`print-doc-${doc.id}`}>
                       <td style={{ textAlign: "center" }}>{idx + 1}</td>
                       <td><b>{worker?.employeeCode || "-"}</b></td>
                       <td>{worker?.fullName || "-"}</td>
+                      <td style={{ textAlign: "center" }}>{workerAge !== null ? `${workerAge} ปี` : "-"}</td>
                       <td style={{ textAlign: "center" }}>{gender === "MALE" ? "ชาย" : gender === "FEMALE" ? "หญิง" : "-"}</td>
                       <td>{worker?.department || "-"}</td>
                       <td>{labels[doc.documentType] || doc.documentType}</td>

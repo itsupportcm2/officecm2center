@@ -22,6 +22,7 @@ import {
 import {
   migrantWorkerService,
   getWorkerGender,
+  getWorkerAge,
   type ForeignWorker,
   type MigrantDocumentType,
   type MigrantWorkerDocument,
@@ -776,7 +777,7 @@ export function MigrantDashboardPage() {
               <thead>
                 <tr>
                   <th>พนักงาน</th>
-                  <th>เพศ</th>
+                  <th>เพศ / อายุ</th>
                   <th>แผนก</th>
                   <th>ประเภทเอกสาร</th>
                   <th>รายการที่ต้องต่ออายุ</th>
@@ -792,6 +793,7 @@ export function MigrantDashboardPage() {
                   const isDue90 = r.days > 30 && r.days <= 90;
                   const initial = r.worker.fullName.trim() ? r.worker.fullName.trim()[0] : "W";
                   const gender = getWorkerGender(r.worker);
+                  const workerAge = getWorkerAge(r.worker.birthDate);
 
                   let statusClass = "mdb-status-pill-normal";
                   let statusText = `อีก ${formatDays(r.days)}`;
@@ -822,19 +824,27 @@ export function MigrantDashboardPage() {
                             <span className="mdb-worker-sub">
                               <span>รหัส: {r.worker.employeeCode}</span>
                               {r.worker.nationality && <span>• {r.worker.nationality}</span>}
+                              {workerAge !== null && <span>• อายุ {workerAge} ปี</span>}
                             </span>
                           </div>
                         </div>
                       </td>
 
                       <td>
-                        {gender === "MALE" ? (
-                          <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
-                        ) : gender === "FEMALE" ? (
-                          <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
-                        ) : (
-                          <span className="mwp-gender-badge mwp-gender-unknown">-</span>
-                        )}
+                        <div style={{ display: "inline-flex", flexDirection: "column", gap: "2px", alignItems: "flex-start" }}>
+                          {gender === "MALE" ? (
+                            <span className="mwp-gender-badge mwp-gender-male">👨 ชาย</span>
+                          ) : gender === "FEMALE" ? (
+                            <span className="mwp-gender-badge mwp-gender-female">👩 หญิง</span>
+                          ) : (
+                            <span className="mwp-gender-badge mwp-gender-unknown">-</span>
+                          )}
+                          {workerAge !== null && (
+                            <span style={{ fontSize: "0.76rem", color: "var(--text-muted, #64748b)", fontWeight: 600 }}>
+                              อายุ {workerAge} ปี
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td>
