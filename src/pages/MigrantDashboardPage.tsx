@@ -824,7 +824,6 @@ export function MigrantDashboardPage() {
                             <span className="mdb-worker-sub">
                               <span>รหัส: {r.worker.employeeCode}</span>
                               {r.worker.nationality && <span>• {r.worker.nationality}</span>}
-                              {workerAge !== null && <span>• อายุ {workerAge} ปี</span>}
                             </span>
                           </div>
                         </div>

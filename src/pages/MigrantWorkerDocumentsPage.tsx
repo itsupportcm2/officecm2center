@@ -1145,7 +1145,6 @@ export function MigrantWorkerDocumentsPage() {
                                   <span>รหัส: {w.employeeCode}</span>
                                   {w.nationality && <span>• {w.nationality}</span>}
                                   {w.phone && <span>• 📞 {w.phone}</span>}
-                                  {age !== null && <span>• อายุ {age} ปี</span>}
                                 </span>
                               </div>
                             </div>
@@ -1292,11 +1291,6 @@ export function MigrantWorkerDocumentsPage() {
                                     <FileText size={16} color="#175cd3" />
                                     <span>
                                       เอกสารประจำตัวของ: <b>{w.fullName}</b>
-                                      {age !== null && (
-                                        <span style={{ marginLeft: "6px", color: "var(--text-muted, #64748b)", fontWeight: 500 }}>
-                                          • อายุ {age} ปี
-                                        </span>
-                                      )}
                                       {w.phone && (
                                         <span style={{ marginLeft: "6px", color: "var(--text-muted, #64748b)", fontWeight: 500 }}>
                                           (📞 {w.phone})
@@ -1523,7 +1517,6 @@ export function MigrantWorkerDocumentsPage() {
                               <span className="mwp-worker-name">{worker.fullName}</span>
                               <span className="mwp-worker-meta">
                                 <span>รหัส: {worker.employeeCode}</span>
-                                {workerAge !== null && <span>• อายุ {workerAge} ปี</span>}
                               </span>
                             </div>
                           </div>
