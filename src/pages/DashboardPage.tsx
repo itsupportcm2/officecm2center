@@ -1,13 +1,17 @@
 import {
+  AlertOctagon,
   AlertTriangle,
   ArrowDownToLine,
   ArrowRight,
   ArrowRightLeft,
   ArrowUpFromLine,
   Boxes,
+  CheckCircle2,
   ClipboardList,
   Clock3,
   FileText,
+  PackageCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useStock } from "../store/StockContext";
@@ -34,6 +38,115 @@ export function DashboardPage() {
 
   return (
     <div className="essential-dashboard">
+      {/* Modern Corporate Hero Banner */}
+      <section className="mwp-hero ops-dashboard-hero">
+        <div className="mwp-hero-content">
+          <div className="mwp-hero-badge">
+            <ShieldCheck size={14} />
+            <span>ระบบจัดการวัสดุสำนักงานและคลังพัสดุ • CM Frozen Foods</span>
+          </div>
+          <h1>สวัสดีคุณ {user?.name ?? "ผู้ใช้งาน"} 👋</h1>
+          <p className="mwp-hero-desc">
+            ภาพรวมสต็อกวัสดุสำนักงาน คำขอเบิก-จ่าย และรายการเฝ้าระวังประจำวันที่{" "}
+            {formatThaiDate(new Date(), {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+        <div className="mwp-hero-actions">
+          {(user?.role === "admin" ||
+            user?.role === "staff" ||
+            user?.role === "fulfiller") && (
+            <>
+              <Link to="/stock-in" className="mwp-btn-hero-primary">
+                <ArrowDownToLine size={16} />
+                <span>รับสินค้าเข้า</span>
+              </Link>
+              <Link to="/stock-out" className="mwp-btn-hero-glass">
+                <ArrowUpFromLine size={16} />
+                <span>เบิกสินค้าออก</span>
+              </Link>
+            </>
+          )}
+          <Link to="/inventory" className="mwp-btn-hero-glass">
+            <Boxes size={16} />
+            <span>ดูคลังสินค้า</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* 4-Card KPI Summary Grid */}
+      <section className="mwp-stats-grid ops-kpi-grid">
+        <Link to="/inventory" className="mwp-stat-card mwp-stat-blue ops-kpi-link">
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">รายการสินค้าทั้งหมด</span>
+            <div className="mwp-stat-icon">
+              <Boxes size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{activeItems.length.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint">
+            <span>คลิกเพื่อเปิดคลังสินค้า</span>
+          </div>
+        </Link>
+
+        <Link to="/inventory" className="mwp-stat-card mwp-stat-teal ops-kpi-link">
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">สถานะพร้อมเบิกปกติ</span>
+            <div className="mwp-stat-icon">
+              <PackageCheck size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{normal.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#0d9488", fontWeight: 600 }}>
+            <CheckCircle2 size={12} />
+            <span>สต็อกเพียงพอต่อการใช้งาน</span>
+          </div>
+        </Link>
+
+        <Link to="/low-stock" className="mwp-stat-card mwp-stat-orange ops-kpi-link">
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">สินค้าใกล้หมดสต็อก</span>
+            <div className="mwp-stat-icon">
+              <AlertTriangle size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{low.length.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#ea580c", fontWeight: 600 }}>
+            <AlertTriangle size={12} />
+            <span>ต่ำกว่าหรือเท่ากับขั้นต่ำ</span>
+          </div>
+        </Link>
+
+        <Link to="/low-stock" className="mwp-stat-card mwp-stat-red ops-kpi-link">
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">สินค้าหมดสต็อก (ต้องสั่งซื้อ)</span>
+            <div className="mwp-stat-icon">
+              <AlertOctagon size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{out.length.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#dc2626", fontWeight: 600 }}>
+            <AlertOctagon size={12} />
+            <span>ควรดำเนินการจัดซื้อทันที</span>
+          </div>
+        </Link>
+      </section>
+
       <section
         className={`essential-top-grid ${user?.role === "viewer" ? "viewer" : ""}`}
       >

@@ -1,35 +1,829 @@
-import { Download, FileDown, MoreHorizontal, PackagePlus, ScanLine, Search, Upload } from 'lucide-react'
-import { useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Confirm, Empty, Modal, StatusBadge, Toast, stockStatus } from '../components/ui'
-import { useStock } from '../store/StockContext'
-import { useAuth } from '../store/AuthContext'
-import type { Item } from '../types'
-import { csvCell } from '../utils/csv'
+import {
+  AlertOctagon,
+  AlertTriangle,
+  Boxes,
+  CheckCircle2,
+  Download,
+  FileDown,
+  MoreHorizontal,
+  PackagePlus,
+  RotateCcw,
+  ScanLine,
+  Search,
+  Upload,
+} from "lucide-react";
+import { useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Confirm, Empty, Modal, StatusBadge, Toast, stockStatus } from "../components/ui";
+import { useStock } from "../store/StockContext";
+import { useAuth } from "../store/AuthContext";
+import type { Item } from "../types";
+import { csvCell } from "../utils/csv";
 
-const emptyForm={sku:'',name:'',description:'',categoryId:'',unit:'ชิ้น',minStock:5,barcode:'',isActive:true,locationId:'',imageUrl:''}
-const parseCsv=(text:string)=>{const rows:string[][]=[];let row:string[]=[];let cell='';let quoted=false;for(let index=0;index<text.length;index++){const char=text[index];if(char==='"'&&quoted&&text[index+1]==='"'){cell+='"';index++}else if(char==='"')quoted=!quoted;else if(char===','&&!quoted){row.push(cell.trim());cell=''}else if((char==='\n'||char==='\r')&&!quoted){if(char==='\r'&&text[index+1]==='\n')index++;row.push(cell.trim());if(row.some(Boolean))rows.push(row);row=[];cell=''}else cell+=char}row.push(cell.trim());if(row.some(Boolean))rows.push(row);return rows}
-interface ImportRow{row:number;sku:string;name:string;description:string;categoryId:string;unit:string;minStock:number;locationId:string;barcode:string;error?:string}
+const emptyForm = {
+  sku: "",
+  name: "",
+  description: "",
+  categoryId: "",
+  unit: "ชิ้น",
+  minStock: 5,
+  barcode: "",
+  isActive: true,
+  locationId: "",
+  imageUrl: "",
+};
 
-export function InventoryPage(){
- const {items,categories,locations,addItem,importItems,updateItem,deleteItem}=useStock();const {user}=useAuth();const canManageItems=user?.role==='admin'||user?.role==='staff';const canCreateItems=canManageItems;const canMoveStock=user?.role==='admin'||user?.role==='staff';const [params]=useSearchParams();const navigate=useNavigate();const fileRef=useRef<HTMLInputElement>(null)
- const [q,setQ]=useState(params.get('search')??'');const [cat,setCat]=useState('');const [loc,setLoc]=useState('');const [status,setStatus]=useState('');const [form,setForm]=useState<typeof emptyForm&{id?:string}>(emptyForm)
- const [modal,setModal]=useState(false);const [scanModal,setScanModal]=useState(false);const [scanValue,setScanValue]=useState('');const [importRows,setImportRows]=useState<ImportRow[]>([]);const [importing,setImporting]=useState(false);const [deleteTarget,setDeleteTarget]=useState<Item|null>(null);const [toast,setToast]=useState('');const [page,setPage]=useState(1)
- const filtered=useMemo(()=>items.filter(item=>`${item.name} ${item.sku} ${item.barcode}`.toLowerCase().includes(q.toLowerCase())&&(!cat||item.categoryId===cat)&&(!loc||item.locationId===loc)&&(!status||stockStatus(item)===status)),[items,q,cat,loc,status]);const pages=Math.max(1,Math.ceil(filtered.length/7));const shown=filtered.slice((page-1)*7,page*7)
- const flash=(message:string)=>{setToast(message);setTimeout(()=>setToast(''),2800)}
- const open=(item?:Item)=>{setForm(item?{...item,imageUrl:item.imageUrl??''}:emptyForm);setModal(true)}
- const save=async()=>{if(!form.sku.trim()||!form.name.trim()||!form.categoryId||!form.locationId||!form.unit.trim()){flash('กรุณากรอกข้อมูลที่จำเป็นให้ครบ');return}if(items.some(item=>item.sku.toLowerCase()===form.sku.trim().toLowerCase()&&item.id!==form.id)){flash('รหัสสินค้า SKU นี้มีอยู่แล้ว');return}if(form.barcode&&items.some(item=>item.barcode===form.barcode.trim()&&item.id!==form.id)){flash('บาร์โค้ดนี้มีอยู่แล้ว');return}try{if(form.id){const old=items.find(item=>item.id===form.id)!;await updateItem({...old,...form,sku:form.sku.trim(),name:form.name.trim(),barcode:form.barcode.trim()})}else await addItem({...form,sku:form.sku.trim(),name:form.name.trim(),barcode:form.barcode.trim()});setModal(false);flash(form.id?'แก้ไขรายการแล้ว':'เพิ่มรายการใหม่แล้ว')}catch(error){flash(error instanceof Error?error.message:'บันทึกข้อมูลไม่สำเร็จ')}}
- const exportCsv=()=>{const rows=[['sku','name','description','category','unit','min_stock','location','barcode','quantity'],...filtered.map(item=>[item.sku,item.name,item.description,categories.find(category=>category.id===item.categoryId)?.name,item.unit,item.minStock,locations.find(location=>location.id===item.locationId)?.name,item.barcode,item.quantity])];const url=URL.createObjectURL(new Blob(['\ufeff'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='inventory.csv';link.click();URL.revokeObjectURL(url)}
- const downloadTemplate=()=>{const sample=[['sku','name','description','category','unit','min_stock','location','barcode'],['NEW-001','ตัวอย่างสินค้า','รายละเอียด','เครื่องเขียน','ชิ้น','5','คลังวัสดุสำนักงาน','8850000000001']];const url=URL.createObjectURL(new Blob(['\ufeff'+sample.map(row=>row.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='inventory-import-template.csv';link.click();URL.revokeObjectURL(url)}
- const readImport=async(event:ChangeEvent<HTMLInputElement>)=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;try{const rows=parseCsv((await file.text()).replace(/^\uFEFF/,''));const headers=(rows.shift()??[]).map(header=>header.trim().toLowerCase());const value=(row:string[],name:string)=>row[headers.indexOf(name)]??'';const seen=new Set<string>();const parsed=rows.map((row,index)=>{const sku=value(row,'sku').trim();const name=value(row,'name').trim();const categoryValue=value(row,'category').trim();const locationValue=value(row,'location').trim();const category=categories.find(item=>item.id===categoryValue||item.name.toLowerCase()===categoryValue.toLowerCase());const location=locations.find(item=>item.id===locationValue||item.name.toLowerCase()===locationValue.toLowerCase());const barcode=value(row,'barcode').trim();const errors=[];if(!sku||!name)errors.push('ต้องมี SKU และชื่อสินค้า');if(items.some(item=>item.sku.toLowerCase()===sku.toLowerCase())||seen.has(sku.toLowerCase()))errors.push('SKU ซ้ำ');if(!category)errors.push('ไม่พบหมวดหมู่');if(!location)errors.push('ไม่พบตำแหน่ง');if(barcode&&items.some(item=>item.barcode===barcode))errors.push('บาร์โค้ดซ้ำ');seen.add(sku.toLowerCase());return {row:index+2,sku,name,description:value(row,'description'),categoryId:category?.id??'',unit:value(row,'unit')||'ชิ้น',minStock:Math.max(0,Number(value(row,'min_stock'))||0),locationId:location?.id??'',barcode,error:errors.join(', ')||undefined}});setImportRows(parsed)}catch{flash('ไม่สามารถอ่านไฟล์ CSV ได้')}}
- const importAll=async()=>{const valid=importRows.filter(row=>!row.error);if(!valid.length)return;setImporting(true);try{const count=await importItems(valid.map(row=>({sku:row.sku,name:row.name,description:row.description,categoryId:row.categoryId,unit:row.unit,minStock:row.minStock,barcode:row.barcode,isActive:true,locationId:row.locationId,imageUrl:''})));setImportRows([]);flash(`นำเข้าสินค้า ${count} รายการแล้ว`)}catch(error){flash(error instanceof Error?error.message:'นำเข้าข้อมูลไม่สำเร็จ ระบบไม่ได้บันทึกรายการใด')}finally{setImporting(false)}}
- const lookupBarcode=()=>{const match=items.find(item=>item.barcode&&item.barcode===scanValue.trim());if(match){setScanModal(false);setScanValue('');navigate(`/inventory/${match.id}`)}else flash('ไม่พบบาร์โค้ดนี้ในระบบ')}
- return <div className="page-stack"><div className="page-actions"><div className="search"><Search size={18}/><input value={q} onChange={event=>{setQ(event.target.value);setPage(1)}} placeholder="ค้นหาชื่อ SKU หรือบาร์โค้ด"/></div><div className="action-buttons"><button className="btn secondary" onClick={()=>setScanModal(true)}><ScanLine size={18}/>สแกนบาร์โค้ด</button>{canManageItems&&<><button className="btn secondary" onClick={()=>fileRef.current?.click()}><Upload size={18}/>นำเข้า CSV</button><input ref={fileRef} hidden type="file" accept=".csv,text/csv" onChange={readImport}/></>}<button className="btn secondary" onClick={exportCsv}><Download size={18}/>ส่งออก</button>{canCreateItems&&<button className="btn primary" onClick={()=>open()}><PackagePlus size={18}/>เพิ่มสินค้า</button>}</div></div>
-  <section className="filters"><select aria-label="หมวดหมู่" value={cat} onChange={event=>setCat(event.target.value)}><option value="">ทุกหมวดหมู่</option>{categories.map(category=><option value={category.id} key={category.id}>{category.name}</option>)}</select><select aria-label="ตำแหน่ง" value={loc} onChange={event=>setLoc(event.target.value)}><option value="">ทุกตำแหน่ง</option>{locations.map(location=><option value={location.id} key={location.id}>{location.name}</option>)}</select><select aria-label="สถานะ" value={status} onChange={event=>setStatus(event.target.value)}><option value="">ทุกสถานะ</option><option>ปกติ</option><option>ใกล้หมด</option><option>หมด</option></select><span>พบ {filtered.length} รายการ</span></section>
-  <section className="card inventory-card"><div className="table-wrap"><table><thead><tr><th>สินค้า</th><th>รหัส</th><th>ชื่อสินค้า</th><th>หมวดหมู่</th><th>ตำแหน่งหลัก</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>สถานะ</th><th/></tr></thead><tbody>{shown.map(item=><tr key={item.id}><td><div className="product-icon">{item.name.charAt(0)}</div></td><td className="mono">{item.sku}</td><td><Link to={`/inventory/${item.id}`}><b>{item.name}</b></Link><small>{item.description}</small></td><td>{categories.find(category=>category.id===item.categoryId)?.name}</td><td>{locations.find(location=>location.id===item.locationId)?.name}</td><td><b className="quantity">{item.quantity}</b> {item.unit}</td><td>{item.minStock} {item.unit}</td><td><StatusBadge item={item}/></td><td><details className="row-menu"><summary><MoreHorizontal/></summary><div><Link to={`/inventory/${item.id}`}>ดูรายละเอียด</Link>{canManageItems&&<button onClick={()=>open(item)}>แก้ไข</button>}{canMoveStock&&<><Link to={`/stock-in?item=${item.id}`}>รับเข้า</Link><Link to={`/stock-out?item=${item.id}`}>เบิกออก</Link></>}<Link to={`/history?item=${item.id}`}>ดูประวัติ</Link>{canManageItems&&<button className="danger-text" onClick={()=>setDeleteTarget(item)}>ปิดใช้งาน</button>}</div></details></td></tr>)}</tbody></table>{!shown.length&&<Empty text="ไม่พบสินค้าที่ตรงกับเงื่อนไข"/>}</div><div className="pagination"><button disabled={page===1} onClick={()=>setPage(value=>value-1)}>ก่อนหน้า</button><span>หน้า {page} จาก {pages}</span><button disabled={page===pages} onClick={()=>setPage(value=>value+1)}>ถัดไป</button></div></section>
-  {modal&&<Modal title={form.id?'แก้ไขสินค้า':'เพิ่มสินค้าใหม่'} onClose={()=>setModal(false)}><div className="modal-body form-grid"><label>รหัสสินค้า *<input value={form.sku} onChange={event=>setForm({...form,sku:event.target.value})}/></label><label>ชื่อสินค้า *<input value={form.name} onChange={event=>setForm({...form,name:event.target.value})}/></label><label className="full">รายละเอียด<textarea value={form.description} onChange={event=>setForm({...form,description:event.target.value})}/></label><label>หมวดหมู่ *<select value={form.categoryId} onChange={event=>setForm({...form,categoryId:event.target.value})}><option value="">เลือกหมวดหมู่</option>{categories.map(category=><option value={category.id} key={category.id}>{category.name}</option>)}</select></label><label>หน่วยนับ *<input value={form.unit} onChange={event=>setForm({...form,unit:event.target.value})}/></label><label>สต็อกขั้นต่ำ *<input type="number" min="0" value={form.minStock} onChange={event=>setForm({...form,minStock:Number(event.target.value)})}/></label><label>ตำแหน่งหลัก *<select value={form.locationId} onChange={event=>setForm({...form,locationId:event.target.value})}><option value="">เลือกตำแหน่ง</option>{locations.map(location=><option value={location.id} key={location.id}>{location.name}</option>)}</select></label><label>บาร์โค้ด / QR Code<input value={form.barcode} onChange={event=>setForm({...form,barcode:event.target.value})}/></label><label className="switch-line full"><input type="checkbox" checked={form.isActive} onChange={event=>setForm({...form,isActive:event.target.checked})}/>เปิดใช้งานรายการนี้</label></div><div className="modal-actions"><button className="btn secondary" onClick={()=>setModal(false)}>ยกเลิก</button><button className="btn primary" onClick={save}>บันทึก</button></div></Modal>}
-  {scanModal&&<Modal title="สแกนหรือกรอกบาร์โค้ด" onClose={()=>setScanModal(false)}><div className="modal-body barcode-lookup"><ScanLine/><p>คลิกช่องด้านล่าง แล้วสแกนด้วยเครื่องอ่าน USB หรือกรอกเลขบาร์โค้ด</p><input autoFocus value={scanValue} onChange={event=>setScanValue(event.target.value)} onKeyDown={event=>event.key==='Enter'&&lookupBarcode()} placeholder="สแกนบาร์โค้ดที่นี่"/></div><div className="modal-actions"><button className="btn secondary" onClick={()=>setScanModal(false)}>ยกเลิก</button><button className="btn primary" disabled={!scanValue.trim()} onClick={lookupBarcode}>ค้นหาสินค้า</button></div></Modal>}
-  {importRows.length>0&&<Modal title="ตรวจสอบข้อมูลนำเข้า CSV" onClose={()=>setImportRows([])}><div className="modal-body import-preview"><div className="import-summary"><span>ทั้งหมด <b>{importRows.length}</b></span><span className="positive">พร้อมนำเข้า <b>{importRows.filter(row=>!row.error).length}</b></span><span className="negative">ต้องแก้ไข <b>{importRows.filter(row=>row.error).length}</b></span><button className="btn compact secondary" onClick={downloadTemplate}><FileDown size={16}/>ไฟล์ตัวอย่าง</button></div><div className="table-wrap"><table><thead><tr><th>แถว</th><th>SKU</th><th>ชื่อสินค้า</th><th>สถานะ</th></tr></thead><tbody>{importRows.map(row=><tr key={row.row}><td>{row.row}</td><td className="mono">{row.sku}</td><td>{row.name}</td><td>{row.error?<span className="negative">{row.error}</span>:<span className="positive">พร้อมนำเข้า</span>}</td></tr>)}</tbody></table></div></div><div className="modal-actions"><button className="btn secondary" onClick={()=>setImportRows([])}>ยกเลิก</button><button className="btn primary" disabled={importing||!importRows.some(row=>!row.error)} onClick={importAll}>{importing?'กำลังนำเข้า...':`นำเข้า ${importRows.filter(row=>!row.error).length} รายการ`}</button></div></Modal>}
-  {deleteTarget&&<Confirm title="ยืนยันการปิดใช้งานสินค้า" detail={`ต้องการปิดใช้งาน ${deleteTarget.name} หรือไม่? ระบบจะเก็บยอดและประวัติเดิมไว้`} onCancel={()=>setDeleteTarget(null)} onConfirm={async()=>{try{await deleteItem(deleteTarget.id);flash('ปิดใช้งานสินค้าแล้ว')}catch(error){flash(error instanceof Error?error.message:'ปิดใช้งานสินค้าไม่สำเร็จ')}setDeleteTarget(null)}}/>}{toast&&<Toast message={toast}/>}
- </div>
+const parseCsv = (text: string) => {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === '"' && quoted && text[index + 1] === '"') {
+      cell += '"';
+      index++;
+    } else if (char === '"') quoted = !quoted;
+    else if (char === "," && !quoted) {
+      row.push(cell.trim());
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && text[index + 1] === "\n") index++;
+      row.push(cell.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += char;
+  }
+  row.push(cell.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+};
+
+interface ImportRow {
+  row: number;
+  sku: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  unit: string;
+  minStock: number;
+  locationId: string;
+  barcode: string;
+  error?: string;
+}
+
+export function InventoryPage() {
+  const { items, categories, locations, addItem, importItems, updateItem, deleteItem } = useStock();
+  const { user } = useAuth();
+  const canManageItems = user?.role === "admin" || user?.role === "staff";
+  const canCreateItems = canManageItems;
+  const canMoveStock = user?.role === "admin" || user?.role === "staff";
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [q, setQ] = useState(params.get("search") ?? "");
+  const [cat, setCat] = useState("");
+  const [loc, setLoc] = useState("");
+  const [status, setStatus] = useState("");
+  const [form, setForm] = useState<typeof emptyForm & { id?: string }>(emptyForm);
+  const [modal, setModal] = useState(false);
+  const [scanModal, setScanModal] = useState(false);
+  const [scanValue, setScanValue] = useState("");
+  const [importRows, setImportRows] = useState<ImportRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
+  const [toast, setToast] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  const kpiCounts = useMemo(() => {
+    let normal = 0;
+    let low = 0;
+    let out = 0;
+    for (const item of items) {
+      const s = stockStatus(item);
+      if (s === "หมด") out++;
+      else if (s === "ใกล้หมด") low++;
+      else normal++;
+    }
+    return { total: items.length, normal, low, out };
+  }, [items]);
+
+  const filtered = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          `${item.name} ${item.sku} ${item.barcode}`.toLowerCase().includes(q.toLowerCase()) &&
+          (!cat || item.categoryId === cat) &&
+          (!loc || item.locationId === loc) &&
+          (!status || stockStatus(item) === status),
+      ),
+    [items, q, cat, loc, status],
+  );
+
+  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pages);
+  const shown = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const hasFilters = Boolean(q || cat || loc || status);
+
+  const flash = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(""), 2800);
+  };
+
+  const closeRowMenu = (event: MouseEvent<HTMLElement>) => {
+    const details = event.currentTarget.closest("details");
+    if (details) details.open = false;
+  };
+
+  const open = (item?: Item) => {
+    setForm(item ? { ...item, imageUrl: item.imageUrl ?? "" } : emptyForm);
+    setModal(true);
+  };
+
+  const save = async () => {
+    if (!form.sku.trim() || !form.name.trim() || !form.categoryId || !form.locationId || !form.unit.trim()) {
+      flash("กรุณากรอกข้อมูลที่จำเป็นให้ครบ");
+      return;
+    }
+    if (items.some((item) => item.sku.toLowerCase() === form.sku.trim().toLowerCase() && item.id !== form.id)) {
+      flash("รหัสสินค้า SKU นี้มีอยู่แล้ว");
+      return;
+    }
+    if (form.barcode && items.some((item) => item.barcode === form.barcode.trim() && item.id !== form.id)) {
+      flash("บาร์โค้ดนี้มีอยู่แล้ว");
+      return;
+    }
+    try {
+      if (form.id) {
+        const old = items.find((item) => item.id === form.id)!;
+        await updateItem({ ...old, ...form, sku: form.sku.trim(), name: form.name.trim(), barcode: form.barcode.trim() });
+      } else {
+        await addItem({ ...form, sku: form.sku.trim(), name: form.name.trim(), barcode: form.barcode.trim() });
+      }
+      setModal(false);
+      flash(form.id ? "แก้ไขรายการแล้ว" : "เพิ่มรายการใหม่แล้ว");
+    } catch (error) {
+      flash(error instanceof Error ? error.message : "บันทึกข้อมูลไม่สำเร็จ");
+    }
+  };
+
+  const exportCsv = () => {
+    const rows = [
+      ["sku", "name", "description", "category", "unit", "min_stock", "location", "barcode", "quantity"],
+      ...filtered.map((item) => [
+        item.sku,
+        item.name,
+        item.description,
+        categories.find((category) => category.id === item.categoryId)?.name,
+        item.unit,
+        item.minStock,
+        locations.find((location) => location.id === item.locationId)?.name,
+        item.barcode,
+        item.quantity,
+      ]),
+    ];
+    const url = URL.createObjectURL(
+      new Blob(["\ufeff" + rows.map((row) => row.map(csvCell).join(",")).join("\r\n")], {
+        type: "text/csv;charset=utf-8",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "inventory.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadTemplate = () => {
+    const sample = [
+      ["sku", "name", "description", "category", "unit", "min_stock", "location", "barcode"],
+      ["NEW-001", "ตัวอย่างสินค้า", "รายละเอียด", "เครื่องเขียน", "ชิ้น", "5", "คลังวัสดุสำนักงาน", "8850000000001"],
+    ];
+    const url = URL.createObjectURL(
+      new Blob(["\ufeff" + sample.map((row) => row.map(csvCell).join(",")).join("\r\n")], {
+        type: "text/csv;charset=utf-8",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "inventory-import-template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const readImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const rows = parseCsv((await file.text()).replace(/^\uFEFF/, ""));
+      const headers = (rows.shift() ?? []).map((header) => header.trim().toLowerCase());
+      const value = (row: string[], name: string) => row[headers.indexOf(name)] ?? "";
+      const seen = new Set<string>();
+      const parsed = rows.map((row, index) => {
+        const sku = value(row, "sku").trim();
+        const name = value(row, "name").trim();
+        const categoryValue = value(row, "category").trim();
+        const locationValue = value(row, "location").trim();
+        const category = categories.find(
+          (item) => item.id === categoryValue || item.name.toLowerCase() === categoryValue.toLowerCase(),
+        );
+        const location = locations.find(
+          (item) => item.id === locationValue || item.name.toLowerCase() === locationValue.toLowerCase(),
+        );
+        const barcode = value(row, "barcode").trim();
+        const errors: string[] = [];
+        if (!sku || !name) errors.push("ต้องมี SKU และชื่อสินค้า");
+        if (items.some((item) => item.sku.toLowerCase() === sku.toLowerCase()) || seen.has(sku.toLowerCase()))
+          errors.push("SKU ซ้ำ");
+        if (!category) errors.push("ไม่พบหมวดหมู่");
+        if (!location) errors.push("ไม่พบตำแหน่ง");
+        if (barcode && items.some((item) => item.barcode === barcode)) errors.push("บาร์โค้ดซ้ำ");
+        seen.add(sku.toLowerCase());
+        return {
+          row: index + 2,
+          sku,
+          name,
+          description: value(row, "description"),
+          categoryId: category?.id ?? "",
+          unit: value(row, "unit") || "ชิ้น",
+          minStock: Math.max(0, Number(value(row, "min_stock")) || 0),
+          locationId: location?.id ?? "",
+          barcode,
+          error: errors.join(", ") || undefined,
+        };
+      });
+      setImportRows(parsed);
+    } catch {
+      flash("ไม่สามารถอ่านไฟล์ CSV ได้");
+    }
+  };
+
+  const importAll = async () => {
+    const valid = importRows.filter((row) => !row.error);
+    if (!valid.length) return;
+    setImporting(true);
+    try {
+      const count = await importItems(
+        valid.map((row) => ({
+          sku: row.sku,
+          name: row.name,
+          description: row.description,
+          categoryId: row.categoryId,
+          unit: row.unit,
+          minStock: row.minStock,
+          barcode: row.barcode,
+          isActive: true,
+          locationId: row.locationId,
+          imageUrl: "",
+        })),
+      );
+      setImportRows([]);
+      flash(`นำเข้าสินค้า ${count} รายการแล้ว`);
+    } catch (error) {
+      flash(error instanceof Error ? error.message : "นำเข้าข้อมูลไม่สำเร็จ ระบบไม่ได้บันทึกรายการใด");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const lookupBarcode = () => {
+    const match = items.find((item) => item.barcode && item.barcode === scanValue.trim());
+    if (match) {
+      setScanModal(false);
+      setScanValue("");
+      navigate(`/inventory/${match.id}`);
+    } else {
+      flash("ไม่พบบาร์โค้ดนี้ในระบบ");
+    }
+  };
+
+  return (
+    <div className="page-stack">
+      {/* 4-Card Clickable KPI Filter Grid */}
+      <section className="mwp-stats-grid ops-kpi-grid">
+        <div
+          className={`mwp-stat-card mwp-stat-blue ${status === "" ? "active" : ""}`}
+          onClick={() => {
+            setStatus("");
+            setPage(1);
+          }}
+          title="คลิกเพื่อดูสินค้าทั้งหมด"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">รายการสินค้าทั้งหมด</span>
+            <div className="mwp-stat-icon">
+              <Boxes size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{kpiCounts.total.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint">
+            <span>คลิกเพื่อแสดงทุกสถานะ</span>
+          </div>
+        </div>
+
+        <div
+          className={`mwp-stat-card mwp-stat-teal ${status === "ปกติ" ? "active" : ""}`}
+          onClick={() => {
+            setStatus("ปกติ");
+            setPage(1);
+          }}
+          title="คลิกเพื่อกรองเฉพาะสินค้าสถานะปกติ"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">สถานะปกติ</span>
+            <div className="mwp-stat-icon">
+              <CheckCircle2 size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{kpiCounts.normal.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#0d9488", fontWeight: 600 }}>
+            <span>พร้อมเบิกใช้งาน</span>
+          </div>
+        </div>
+
+        <div
+          className={`mwp-stat-card mwp-stat-orange ${status === "ใกล้หมด" ? "active" : ""}`}
+          onClick={() => {
+            setStatus("ใกล้หมด");
+            setPage(1);
+          }}
+          title="คลิกเพื่อกรองเฉพาะสินค้าใกล้หมด"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">ใกล้หมดสต็อก</span>
+            <div className="mwp-stat-icon">
+              <AlertTriangle size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{kpiCounts.low.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#ea580c", fontWeight: 600 }}>
+            <span>ต่ำกว่าเกณฑ์ขั้นต่ำ</span>
+          </div>
+        </div>
+
+        <div
+          className={`mwp-stat-card mwp-stat-red ${status === "หมด" ? "active" : ""}`}
+          onClick={() => {
+            setStatus("หมด");
+            setPage(1);
+          }}
+          title="คลิกเพื่อกรองเฉพาะสินค้าหมดสต็อก"
+        >
+          <div className="mwp-stat-top">
+            <span className="mwp-stat-title">หมดสต็อก</span>
+            <div className="mwp-stat-icon">
+              <AlertOctagon size={18} />
+            </div>
+          </div>
+          <div className="mwp-stat-val-row">
+            <span className="mwp-stat-val tabular-nums">{kpiCounts.out.toLocaleString("th-TH")}</span>
+            <span className="mwp-stat-unit">รายการ</span>
+          </div>
+          <div className="mwp-stat-hint" style={{ color: "#dc2626", fontWeight: 600 }}>
+            <span>ต้องสั่งซื้อเพิ่มเติม</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="page-actions">
+        <div className="search">
+          <Search size={18} />
+          <input
+            value={q}
+            onChange={(event) => {
+              setQ(event.target.value);
+              setPage(1);
+            }}
+            placeholder="ค้นหาชื่อ SKU หรือบาร์โค้ด"
+          />
+        </div>
+        <div className="action-buttons">
+          <button className="btn secondary" onClick={() => setScanModal(true)}>
+            <ScanLine size={18} />
+            สแกนบาร์โค้ด
+          </button>
+          {canManageItems && (
+            <>
+              <button className="btn secondary" onClick={() => fileRef.current?.click()}>
+                <Upload size={18} />
+                นำเข้า CSV
+              </button>
+              <input ref={fileRef} hidden type="file" accept=".csv,text/csv" onChange={readImport} />
+            </>
+          )}
+          <button className="btn secondary" onClick={exportCsv}>
+            <Download size={18} />
+            ส่งออก
+          </button>
+          {canCreateItems && (
+            <button className="btn primary" onClick={() => open()}>
+              <PackagePlus size={18} />
+              เพิ่มสินค้า
+            </button>
+          )}
+        </div>
+      </div>
+
+      <section className="filters">
+        <select
+          aria-label="หมวดหมู่"
+          value={cat}
+          onChange={(event) => {
+            setCat(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">ทุกหมวดหมู่</option>
+          {categories.map((category) => (
+            <option value={category.id} key={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="ตำแหน่ง"
+          value={loc}
+          onChange={(event) => {
+            setLoc(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">ทุกตำแหน่ง</option>
+          {locations.map((location) => (
+            <option value={location.id} key={location.id}>
+              {location.name}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="สถานะ"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">ทุกสถานะ</option>
+          <option>ปกติ</option>
+          <option>ใกล้หมด</option>
+          <option>หมด</option>
+        </select>
+        {hasFilters && (
+          <button
+            type="button"
+            className="btn secondary compact"
+            onClick={() => {
+              setQ("");
+              setCat("");
+              setLoc("");
+              setStatus("");
+              setPage(1);
+            }}
+          >
+            <RotateCcw size={14} />
+            ล้างตัวกรอง
+          </button>
+        )}
+        <span>พบ {filtered.length} รายการ</span>
+      </section>
+
+      <section className="card inventory-card">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>สินค้า</th>
+                <th>รหัส</th>
+                <th>ชื่อสินค้า</th>
+                <th>หมวดหมู่</th>
+                <th>ตำแหน่งหลัก</th>
+                <th>คงเหลือ</th>
+                <th>ขั้นต่ำ</th>
+                <th>สถานะ</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <div className="product-icon">{item.name.charAt(0)}</div>
+                  </td>
+                  <td className="mono">{item.sku}</td>
+                  <td>
+                    <Link to={`/inventory/${item.id}`}>
+                      <b>{item.name}</b>
+                    </Link>
+                    <small>{item.description}</small>
+                  </td>
+                  <td>{categories.find((category) => category.id === item.categoryId)?.name}</td>
+                  <td>{locations.find((location) => location.id === item.locationId)?.name}</td>
+                  <td className="tabular-nums">
+                    <b className="quantity">{item.quantity}</b> {item.unit}
+                  </td>
+                  <td className="tabular-nums">
+                    {item.minStock} {item.unit}
+                  </td>
+                  <td>
+                    <StatusBadge item={item} />
+                  </td>
+                  <td>
+                    <details
+                      className="row-menu"
+                      onToggle={(event) => {
+                        const current = event.currentTarget;
+                        if (current.open) {
+                          document.querySelectorAll("details.row-menu[open]").forEach((el) => {
+                            if (el !== current) (el as HTMLDetailsElement).open = false;
+                          });
+                        }
+                      }}
+                    >
+                      <summary>
+                        <MoreHorizontal />
+                      </summary>
+                      <div>
+                        <Link to={`/inventory/${item.id}`} onClick={closeRowMenu}>
+                          ดูรายละเอียด
+                        </Link>
+                        {canManageItems && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              closeRowMenu(event);
+                              open(item);
+                            }}
+                          >
+                            แก้ไข
+                          </button>
+                        )}
+                        {canMoveStock && (
+                          <>
+                            <Link to={`/stock-in?item=${item.id}`} onClick={closeRowMenu}>
+                              รับเข้า
+                            </Link>
+                            <Link to={`/stock-out?item=${item.id}`} onClick={closeRowMenu}>
+                              เบิกออก
+                            </Link>
+                          </>
+                        )}
+                        <Link to={`/history?item=${item.id}`} onClick={closeRowMenu}>
+                          ดูประวัติ
+                        </Link>
+                        {canManageItems && (
+                          <button
+                            type="button"
+                            className="danger-text"
+                            onClick={(event) => {
+                              closeRowMenu(event);
+                              setDeleteTarget(item);
+                            }}
+                          >
+                            ปิดใช้งาน
+                          </button>
+                        )}
+                      </div>
+                    </details>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!shown.length && <Empty text="ไม่พบสินค้าที่ตรงกับเงื่อนไข" />}
+        </div>
+        <div className="pagination">
+          <label className="pagination-size-label">
+            <span>แสดง</span>
+            <select
+              className="pagination-size-select"
+              aria-label="จำนวนรายการต่อหน้า"
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setPage(1);
+              }}
+            >
+              <option value={15}>15</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+            </select>
+            <span>รายการ/หน้า</span>
+          </label>
+          <div className="pagination-controls">
+            <button disabled={safePage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+              ก่อนหน้า
+            </button>
+            <span>
+              หน้า {safePage} จาก {pages}
+            </span>
+            <button disabled={safePage === pages} onClick={() => setPage((value) => Math.min(pages, value + 1))}>
+              ถัดไป
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {modal && (
+        <Modal title={form.id ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"} onClose={() => setModal(false)}>
+          <div className="modal-body form-grid">
+            <label>
+              รหัสสินค้า *
+              <input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} />
+            </label>
+            <label>
+              ชื่อสินค้า *
+              <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            </label>
+            <label className="full">
+              รายละเอียด
+              <textarea
+                value={form.description}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+              />
+            </label>
+            <label>
+              หมวดหมู่ *
+              <select
+                value={form.categoryId}
+                onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
+              >
+                <option value="">เลือกหมวดหมู่</option>
+                {categories.map((category) => (
+                  <option value={category.id} key={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              หน่วยนับ *
+              <input value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} />
+            </label>
+            <label>
+              สต็อกขั้นต่ำ *
+              <input
+                type="number"
+                min="0"
+                value={form.minStock}
+                onChange={(event) => setForm({ ...form, minStock: Number(event.target.value) })}
+              />
+            </label>
+            <label>
+              ตำแหน่งหลัก *
+              <select
+                value={form.locationId}
+                onChange={(event) => setForm({ ...form, locationId: event.target.value })}
+              >
+                <option value="">เลือกตำแหน่ง</option>
+                {locations.map((location) => (
+                  <option value={location.id} key={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              บาร์โค้ด / QR Code
+              <input value={form.barcode} onChange={(event) => setForm({ ...form, barcode: event.target.value })} />
+            </label>
+            <label className="switch-line full">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(event) => setForm({ ...form, isActive: event.target.checked })}
+              />
+              เปิดใช้งานรายการนี้
+            </label>
+          </div>
+          <div className="modal-actions">
+            <button className="btn secondary" onClick={() => setModal(false)}>
+              ยกเลิก
+            </button>
+            <button className="btn primary" onClick={save}>
+              บันทึก
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {scanModal && (
+        <Modal title="สแกนหรือกรอกบาร์โค้ด" onClose={() => setScanModal(false)}>
+          <div className="modal-body barcode-lookup">
+            <ScanLine />
+            <p>คลิกช่องด้านล่าง แล้วสแกนด้วยเครื่องอ่าน USB หรือกรอกเลขบาร์โค้ด</p>
+            <input
+              autoFocus
+              value={scanValue}
+              onChange={(event) => setScanValue(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && lookupBarcode()}
+              placeholder="สแกนบาร์โค้ดที่นี่"
+            />
+          </div>
+          <div className="modal-actions">
+            <button className="btn secondary" onClick={() => setScanModal(false)}>
+              ยกเลิก
+            </button>
+            <button className="btn primary" disabled={!scanValue.trim()} onClick={lookupBarcode}>
+              ค้นหาสินค้า
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {importRows.length > 0 && (
+        <Modal title="ตรวจสอบข้อมูลนำเข้า CSV" onClose={() => setImportRows([])}>
+          <div className="modal-body import-preview">
+            <div className="import-summary">
+              <span>
+                ทั้งหมด <b>{importRows.length}</b>
+              </span>
+              <span className="positive">
+                พร้อมนำเข้า <b>{importRows.filter((row) => !row.error).length}</b>
+              </span>
+              <span className="negative">
+                ต้องแก้ไข <b>{importRows.filter((row) => row.error).length}</b>
+              </span>
+              <button className="btn compact secondary" onClick={downloadTemplate}>
+                <FileDown size={16} />
+                ไฟล์ตัวอย่าง
+              </button>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>แถว</th>
+                    <th>SKU</th>
+                    <th>ชื่อสินค้า</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importRows.map((row) => (
+                    <tr key={row.row}>
+                      <td>{row.row}</td>
+                      <td className="mono">{row.sku}</td>
+                      <td>{row.name}</td>
+                      <td>
+                        {row.error ? (
+                          <span className="negative">{row.error}</span>
+                        ) : (
+                          <span className="positive">พร้อมนำเข้า</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button className="btn secondary" onClick={() => setImportRows([])}>
+              ยกเลิก
+            </button>
+            <button
+              className="btn primary"
+              disabled={importing || !importRows.some((row) => !row.error)}
+              onClick={importAll}
+            >
+              {importing ? "กำลังนำเข้า..." : `นำเข้า ${importRows.filter((row) => !row.error).length} รายการ`}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {deleteTarget && (
+        <Confirm
+          title="ยืนยันการปิดใช้งานสินค้า"
+          detail={`ต้องการปิดใช้งาน ${deleteTarget.name} หรือไม่? ระบบจะเก็บยอดและประวัติเดิมไว้`}
+          danger
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            try {
+              await deleteItem(deleteTarget.id);
+              flash("ปิดใช้งานสินค้าแล้ว");
+            } catch (error) {
+              flash(error instanceof Error ? error.message : "ปิดใช้งานสินค้าไม่สำเร็จ");
+            }
+            setDeleteTarget(null);
+          }}
+        />
+      )}
+
+      {toast && <Toast message={toast} />}
+    </div>
+  );
 }

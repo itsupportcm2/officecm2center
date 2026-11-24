@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowDownToLine,
@@ -174,6 +174,23 @@ export function AppLayout() {
   const isEmployeeDocumentOfficer = user?.role === "employee_document_officer";
   const isOperator = user?.role === "admin" || user?.role === "staff";
   const canViewStock = isOperator || isFulfiller;
+  const roleLabel =
+    user?.role === "admin"
+      ? "ผู้ดูแลระบบ"
+      : user?.role === "staff"
+        ? "เจ้าหน้าที่พัสดุ"
+        : isIssuer
+          ? "ผู้ขอเบิกสินค้า"
+          : isEmployeeDocumentOfficer
+            ? "เจ้าหน้าที่เอกสารแรงงานต่างด้าว"
+            : isFulfiller
+              ? "เจ้าหน้าที่เบิกของ"
+              : "ยังไม่ได้รับสิทธิ์";
+  const [notifyMenuOpen, setNotifyMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const notifyWrapRef = useRef<HTMLDivElement>(null);
+  const userWrapRef = useRef<HTMLDivElement>(null);
   const [renewalAlertsEnabled, setRenewalAlertsEnabled] = useState(() => {
     try {
       return (
@@ -223,6 +240,46 @@ export function AppLayout() {
   const migrantAlertKey = `migrant-alert-dismissed:${user?.id ?? "guest"}`;
   const loc = useLocation();
   const navigate = useNavigate();
+
+  // Bind Ctrl+K / Cmd+K shortcut to focus global inventory search
+  useEffect(() => {
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        if (searchInputRef.current) {
+          e.preventDefault();
+          searchInputRef.current.focus();
+          searchInputRef.current.select();
+        }
+      } else if (e.key === "Escape") {
+        setNotifyMenuOpen(false);
+        setUserMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Close topbar popovers on outside click
+  useEffect(() => {
+    if (!notifyMenuOpen && !userMenuOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (notifyWrapRef.current && !notifyWrapRef.current.contains(target)) {
+        setNotifyMenuOpen(false);
+      }
+      if (userWrapRef.current && !userWrapRef.current.contains(target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [notifyMenuOpen, userMenuOpen]);
+
+  const totalAlertCount =
+    (isOperator ? pendingIssueRequests.length : 0) +
+    (canViewStock ? readyIssueRequests.length : 0) +
+    (isOperator || isEmployeeDocumentOfficer ? migrantAlertItems.length : 0) +
+    (isOperator && renewalAlertsEnabled ? dueItems.length : 0);
   useEffect(() => {
     if (!isSupabaseConfigured || !isOperator) return;
     void settingsService
@@ -581,19 +638,7 @@ export function AppLayout() {
           <div className="avatar">{user?.name.slice(0, 2)}</div>
           <div>
             <strong>{user?.name}</strong>
-            <span>
-              {user?.role === "admin"
-                ? "ผู้ดูแลระบบ"
-                : user?.role === "staff"
-                  ? "เจ้าหน้าที่พัสดุ"
-                  : isIssuer
-                    ? "ผู้ขอเบิกสินค้า"
-                    : isEmployeeDocumentOfficer
-                      ? "เจ้าหน้าที่เอกสารแรงงานต่างด้าว"
-                      : isFulfiller
-                      ? "เจ้าหน้าที่เบิกของ"
-                      : "ยังไม่ได้รับสิทธิ์"}
-            </span>
+            <span>{roleLabel}</span>
           </div>
         </div>
         <button
@@ -629,6 +674,7 @@ export function AppLayout() {
               <label className="ops-search">
                 <Search size={20} />
                 <input
+                  ref={searchInputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -655,29 +701,110 @@ export function AppLayout() {
               </>
             )}
             {(canViewStock || isEmployeeDocumentOfficer) && (
-              <button
-                className="icon-btn notify"
-                aria-label="เปิดการแจ้งเตือน"
-                onClick={() => {
-                  if (isEmployeeDocumentOfficer && migrantAlertItems.length) {
-                    setShowMigrantAlert(true);
-                  } else if (isOperator && pendingIssueRequests.length) {
-                    setShowIssueAlert(true);
-                  } else if (readyIssueRequests.length) {
-                    navigate("/fulfillment");
-                  } else if (isOperator && migrantAlertItems.length) {
-                    setShowMigrantAlert(true);
-                  } else if (renewalAlertsEnabled && dueItems.length) {
-                    setShowRenewalAlert(true);
-                  }
-                }}
-              >
-                <Bell size={22} />
-                {((isOperator && pendingIssueRequests.length > 0) ||
-                  readyIssueRequests.length > 0 ||
-                  (renewalAlertsEnabled && dueItems.length > 0) ||
-                  migrantAlertItems.length > 0) && <i />}
-              </button>
+              <div className="ops-popover-wrap" ref={notifyWrapRef}>
+                <button
+                  type="button"
+                  className="icon-btn notify"
+                  aria-label="เปิดการแจ้งเตือน"
+                  aria-expanded={notifyMenuOpen}
+                  onClick={() => {
+                    setNotifyMenuOpen((v) => !v);
+                    setUserMenuOpen(false);
+                  }}
+                >
+                  <Bell size={22} />
+                  {totalAlertCount > 0 && (
+                    <span className="notify-count-badge">
+                      {totalAlertCount > 99 ? "99+" : totalAlertCount}
+                    </span>
+                  )}
+                </button>
+                {notifyMenuOpen && (
+                  <div className="ops-popover notify-popover" role="menu">
+                    <div className="ops-popover-header">
+                      <strong>ศูนย์แจ้งเตือน</strong>
+                      <span className="ops-popover-pill">{totalAlertCount} รายการ</span>
+                    </div>
+                    {totalAlertCount === 0 ? (
+                      <div className="ops-popover-empty">
+                        ไม่มีการแจ้งเตือนค้างในขณะนี้
+                      </div>
+                    ) : (
+                      <div className="ops-popover-list">
+                        {isOperator && pendingIssueRequests.length > 0 && (
+                          <button
+                            type="button"
+                            className="ops-popover-item"
+                            onClick={() => {
+                              setNotifyMenuOpen(false);
+                              setShowIssueAlert(true);
+                            }}
+                          >
+                            <ClipboardCheck size={17} />
+                            <div>
+                              <b>คำขอเบิกรออนุมัติ</b>
+                              <small>{pendingIssueRequests.length} คำขอที่รอตรวจสอบ</small>
+                            </div>
+                            <span className="ops-popover-count">{pendingIssueRequests.length}</span>
+                          </button>
+                        )}
+                        {canViewStock && readyIssueRequests.length > 0 && (
+                          <button
+                            type="button"
+                            className="ops-popover-item"
+                            onClick={() => {
+                              setNotifyMenuOpen(false);
+                              navigate("/fulfillment");
+                            }}
+                          >
+                            <PackageCheck size={17} />
+                            <div>
+                              <b>คำขอรอจ่ายของ</b>
+                              <small>{readyIssueRequests.length} รายการพร้อมจ่ายจากคลัง</small>
+                            </div>
+                            <span className="ops-popover-count">{readyIssueRequests.length}</span>
+                          </button>
+                        )}
+                        {(isOperator || isEmployeeDocumentOfficer) &&
+                          migrantAlertItems.length > 0 && (
+                            <button
+                              type="button"
+                              className="ops-popover-item"
+                              onClick={() => {
+                                setNotifyMenuOpen(false);
+                                setShowMigrantAlert(true);
+                              }}
+                            >
+                              <ShieldAlert size={17} />
+                              <div>
+                                <b>เอกสารแรงงานต่างด้าว</b>
+                                <small>{migrantAlertItems.length} รายการใกล้ครบกำหนด/หมดอายุ</small>
+                              </div>
+                              <span className="ops-popover-count">{migrantAlertItems.length}</span>
+                            </button>
+                          )}
+                        {isOperator && renewalAlertsEnabled && dueItems.length > 0 && (
+                          <button
+                            type="button"
+                            className="ops-popover-item"
+                            onClick={() => {
+                              setNotifyMenuOpen(false);
+                              setShowRenewalAlert(true);
+                            }}
+                          >
+                            <CalendarClock size={17} />
+                            <div>
+                              <b>รายการต่ออายุสำนักงาน</b>
+                              <small>{dueItems.length} รายการใกล้ครบกำหนด</small>
+                            </div>
+                            <span className="ops-popover-count">{dueItems.length}</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
             {/* Theme Toggle Button (Light / Dark) */}
             <button
@@ -693,9 +820,58 @@ export function AppLayout() {
                 <Moon size={20} style={{ color: "#475569" }} />
               )}
             </button>
-            <div className="top-user ops-user">
-              <div className="avatar">{user?.name.slice(0, 2)}</div>
-              <ChevronDown size={17} />
+            <div className="ops-popover-wrap" ref={userWrapRef}>
+              <button
+                type="button"
+                className="top-user ops-user"
+                aria-label="เปิดเมนูผู้ใช้งาน"
+                aria-expanded={userMenuOpen}
+                onClick={() => {
+                  setUserMenuOpen((v) => !v);
+                  setNotifyMenuOpen(false);
+                }}
+              >
+                <div className="avatar">{user?.name.slice(0, 2)}</div>
+                <ChevronDown size={17} />
+              </button>
+              {userMenuOpen && (
+                <div className="ops-popover user-popover" role="menu">
+                  <div className="ops-user-summary">
+                    <strong>{user?.name}</strong>
+                    <span>{user?.email}</span>
+                    <div className="ops-user-meta-pills">
+                      {user?.department && (
+                        <span className="ops-popover-pill">แผนก {user.department}</span>
+                      )}
+                      <span className="ops-popover-pill">{roleLabel}</span>
+                    </div>
+                  </div>
+                  <div className="ops-popover-divider" />
+                  <button
+                    type="button"
+                    className="ops-popover-action"
+                    onClick={() => {
+                      toggleTheme();
+                      setUserMenuOpen(false);
+                    }}
+                  >
+                    {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                    <span>{theme === "dark" ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="ops-popover-action danger"
+                    onClick={async () => {
+                      setUserMenuOpen(false);
+                      await signOut();
+                      navigate("/login");
+                    }}
+                  >
+                    <LogOut size={16} />
+                    <span>ออกจากระบบ</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

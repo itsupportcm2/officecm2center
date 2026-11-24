@@ -1,11 +1,20 @@
-import { X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Inbox, X } from 'lucide-react'
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import type { Item, TransactionType } from '../types'
 
 export const stockStatus=(item:Pick<Item,'quantity'|'minStock'>)=>item.quantity===0?'หมด':item.quantity<=item.minStock?'ใกล้หมด':'ปกติ'
 export function StatusBadge({item}:{item:Pick<Item,'quantity'|'minStock'>}){const s=stockStatus(item);return <span className={`status status-${s==='ปกติ'?'normal':s==='ใกล้หมด'?'low':'out'}`}>{s}</span>}
 export function TxBadge({type}:{type:TransactionType}){const labels={IN:'รับเข้า',OUT:'เบิกออก',ADJUST:'ปรับยอด',TRANSFER:'โอนย้าย'};return <span className={`tx tx-${type.toLowerCase()}`}>{labels[type]}</span>}
-export function Empty({text='ไม่พบข้อมูล'}:{text?:string}){return <div className="empty"><div className="empty-mark">□</div><p>{text}</p></div>}
+export function Empty({text='ไม่พบข้อมูล'}:{text?:string}){
+  return (
+    <div className="empty">
+      <div className="empty-mark">
+        <Inbox size={26} />
+      </div>
+      <p>{text}</p>
+    </div>
+  )
+}
 export function Modal({title,children,onClose}:{title:string;children:ReactNode;onClose:()=>void}){const dialogRef=useRef<HTMLElement>(null);const titleId=useId();useEffect(()=>{const previous=document.activeElement as HTMLElement|null;const dialog=dialogRef.current;dialog?.querySelector<HTMLElement>('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();return()=>previous?.focus()},[]);const keyDown=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();onClose();return}if(event.key!=='Tab'||!dialogRef.current)return;const focusable=[...dialogRef.current.querySelectorAll<HTMLElement>('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled),a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable.at(-1)!;if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}};return <div className="modal-backdrop" role="presentation" onMouseDown={event=>event.target===event.currentTarget&&onClose()}><section ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={keyDown}><header><h2 id={titleId}>{title}</h2><button className="icon-btn" onClick={onClose} aria-label="ปิด"><X size={20}/></button></header>{children}</section></div>}
 export function Confirm({
   title,
@@ -40,4 +49,16 @@ export function Confirm({
     </Modal>
   );
 }
-export function Toast({message}:{message:string}){return <div className="toast" role="status">✓ {message}</div>}
+export function Toast({ message, kind }: { message: string; kind?: "success" | "error" }) {
+  const isError = kind
+    ? kind === "error"
+    : /(ไม่สำเร็จ|ผิดพลาด|ไม่ถูกต้อง|กรุณา|ห้าม|ต้อง|ไม่พบ|เกิน|ขัดข้อง|ปฏิเสธ|ยังไม่มี|ไม่สามารถ)/.test(
+        message,
+      );
+  return (
+    <div className={`toast ${isError ? "toast-error" : "toast-success"}`} role="status">
+      {isError ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+      <span>{message}</span>
+    </div>
+  );
+}

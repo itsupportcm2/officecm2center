@@ -1,46 +1,681 @@
-import { CalendarClock, CheckCircle2, Edit3, ExternalLink, History, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Confirm, Empty, Modal, Toast } from '../components/ui'
-import { daysUntil, useRenewals } from '../store/RenewalContext'
-import type { RenewalActionInput, RenewalItem } from '../types'
-import { formatThaiDateTime } from '../utils/date'
-import { DEPARTMENTS } from '../constants/departments'
+import {
+  CalendarClock,
+  CheckCircle2,
+  Edit3,
+  ExternalLink,
+  History,
+  ListChecks,
+  Plus,
+  RotateCcw,
+  Search,
+  Trash2,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { Confirm, Empty, Modal, Toast } from "../components/ui";
+import { daysUntil, useRenewals } from "../store/RenewalContext";
+import type { RenewalActionInput, RenewalItem } from "../types";
+import { formatThaiDateTime } from "../utils/date";
+import { DEPARTMENTS } from "../constants/departments";
 
-const emptyForm={name:'',category:'ภาษีและทะเบียน',expiryDate:'',remindDays:30,owner:'ST',note:'',isActive:true,cycleCount:1,cycleUnit:'year' as const,cost:0,documentUrl:''}
-const formatDate=(date:string)=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${date}T00:00:00`))
-const money=(value:number)=>new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB',maximumFractionDigits:0}).format(value)
-const statusOf=(item:RenewalItem)=>{const days=daysUntil(item.expiryDate);if(days<0)return {label:'เกินกำหนด',kind:'overdue'};if(days<=item.remindDays)return {label:'ใกล้ครบกำหนด',kind:'due'};return {label:'ปกติ',kind:'normal'}}
-const nextExpiry=(item:RenewalItem)=>{const next=new Date(`${item.expiryDate}T12:00:00`);if(item.cycleUnit==='month')next.setMonth(next.getMonth()+item.cycleCount);else next.setFullYear(next.getFullYear()+item.cycleCount);return next.toISOString().slice(0,10)}
+const emptyForm = {
+  name: "",
+  category: "ภาษีและทะเบียน",
+  expiryDate: "",
+  remindDays: 30,
+  owner: "ST",
+  note: "",
+  isActive: true,
+  cycleCount: 1,
+  cycleUnit: "year" as const,
+  cost: 0,
+  documentUrl: "",
+};
 
-export function RenewalsPage(){
- const {items,history,addItem,updateItem,removeItem,renewItem}=useRenewals()
- const [modal,setModal]=useState(false)
- const [form,setForm]=useState<Omit<RenewalItem,'id'|'updatedAt'> & {id?:string;updatedAt?:string}>(emptyForm)
- const [deleteTarget,setDeleteTarget]=useState<RenewalItem|null>(null)
- const [renewTarget,setRenewTarget]=useState<RenewalItem|null>(null)
- const [renewForm,setRenewForm]=useState<RenewalActionInput>({newExpiryDate:'',cost:0,documentUrl:'',note:''})
- const [filter,setFilter]=useState('all');const [view,setView]=useState<'items'|'history'>('items');const [toast,setToast]=useState('')
- const counts=useMemo(()=>{const active=items.filter(item=>item.isActive);return {overdue:active.filter(item=>daysUntil(item.expiryDate)<0).length,due:active.filter(item=>daysUntil(item.expiryDate)>=0&&daysUntil(item.expiryDate)<=item.remindDays).length,normal:active.filter(item=>daysUntil(item.expiryDate)>item.remindDays).length}},[items])
- const shown=items.filter(item=>filter==='all'||statusOf(item).kind===filter).sort((a,b)=>a.expiryDate.localeCompare(b.expiryDate))
- const totalRenewalCost=history.reduce((sum,row)=>sum+row.cost,0)
- const open=(item?:RenewalItem)=>{setForm(item?{...item}:emptyForm);setModal(true)}
- const openRenew=(item:RenewalItem)=>{setRenewTarget(item);setRenewForm({newExpiryDate:nextExpiry(item),cost:item.cost??0,documentUrl:item.documentUrl??'',note:''})}
- const flash=(message:string)=>{setToast(message);setTimeout(()=>setToast(''),2500)}
- const save=async()=>{if(!form.name.trim()||!form.expiryDate||!form.owner.trim()){flash('กรุณากรอกข้อมูลที่จำเป็นให้ครบ');return}if(form.remindDays<0||form.remindDays>365||form.cycleCount<1||form.cycleCount>60){flash('กรุณาตรวจสอบช่วงเวลาแจ้งเตือนและรอบต่ออายุ');return}try{if(form.id)await updateItem(form as RenewalItem);else await addItem(form);setModal(false);flash(form.id?'แก้ไขรายการแล้ว':'เพิ่มรายการต่ออายุแล้ว')}catch(error){flash(error instanceof Error?error.message:'บันทึกรายการไม่สำเร็จ')}}
- const saveRenewal=async()=>{if(!renewTarget)return;if(!renewForm.newExpiryDate||renewForm.newExpiryDate<=renewTarget.expiryDate){flash('วันครบกำหนดใหม่ต้องอยู่หลังวันครบกำหนดเดิม');return}if(renewForm.cost<0){flash('ค่าใช้จ่ายต้องไม่ติดลบ');return}try{await renewItem(renewTarget.id,renewForm);setRenewTarget(null);flash('ต่ออายุและบันทึกประวัติแล้ว')}catch(error){flash(error instanceof Error?error.message:'บันทึกการต่ออายุไม่สำเร็จ')}}
- return <div className="page-stack renewal-page">
-  <section className="renewal-overview"><article><span className="renewal-overview-icon overdue"><CalendarClock/></span><div><small>เกินกำหนด</small><strong>{counts.overdue}</strong><span>รายการ</span></div></article><article><span className="renewal-overview-icon due"><CalendarClock/></span><div><small>ใกล้ครบกำหนด</small><strong>{counts.due}</strong><span>รายการ</span></div></article><article><span className="renewal-overview-icon normal"><CheckCircle2/></span><div><small>สถานะปกติ</small><strong>{counts.normal}</strong><span>รายการ</span></div></article></section>
-  <div className="page-actions"><div><h2 className="renewal-heading">รายการที่ต้องต่ออายุ</h2><p className="page-intro">กำหนดวันครบอายุ รอบการต่ออายุ และช่วงแจ้งเตือนของแต่ละรายการ</p></div><div className="action-buttons"><button className={`btn ${view==='history'?'primary':'secondary'}`} onClick={()=>setView(view==='items'?'history':'items')}><History size={18}/>{view==='items'?'ประวัติการต่ออายุ':'กลับไปรายการ'}</button>{view==='items'&&<button className="btn primary" onClick={()=>open()}><Plus size={18}/>เพิ่มรายการ</button>}</div></div>
-  {view==='items'?<>
-   <section className="filters renewal-filters"><button className={filter==='all'?'active':''} onClick={()=>setFilter('all')}>ทั้งหมด</button><button className={filter==='overdue'?'active':''} onClick={()=>setFilter('overdue')}>เกินกำหนด</button><button className={filter==='due'?'active':''} onClick={()=>setFilter('due')}>ใกล้ครบกำหนด</button><button className={filter==='normal'?'active':''} onClick={()=>setFilter('normal')}>ปกติ</button></section>
-   <section className="card"><div className="table-wrap"><table className="renewal-table"><thead><tr><th>รายการ</th><th>ประเภท</th><th>วันครบกำหนด</th><th>รอบต่ออายุ</th><th>แจ้งล่วงหน้า</th><th>ค่าใช้จ่าย</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>{shown.map(item=>{const days=daysUntil(item.expiryDate);const status=statusOf(item);return <tr key={item.id}><td><b>{item.name}</b>{item.note&&<small>{item.note}</small>}</td><td>{item.category}</td><td><b>{formatDate(item.expiryDate)}</b><small>{days<0?`เกินมา ${Math.abs(days)} วัน`:days===0?'ครบกำหนดวันนี้':`เหลือ ${days} วัน`}</small></td><td>ทุก {item.cycleCount} {item.cycleUnit==='month'?'เดือน':'ปี'}</td><td>{item.remindDays} วัน</td><td>{item.cost?money(item.cost):'ยังไม่ระบุ'}</td><td><span className="department-badge">{item.owner}</span></td><td><span className={`renewal-status ${status.kind}`}>{status.label}</span></td><td><div className="renewal-actions"><button className="renewal-button" aria-label={`ต่ออายุ ${item.name}`} onClick={()=>openRenew(item)}><RotateCcw size={16}/>ต่ออายุ</button><button aria-label={`แก้ไข ${item.name}`} title="แก้ไขรายการ" onClick={()=>open(item)}><Edit3 size={17}/></button><button aria-label={`ปิดใช้งาน ${item.name}`} title="ปิดใช้งานรายการ (มีขั้นตอนยืนยัน)" className="danger-text" onClick={()=>setDeleteTarget(item)}><Trash2 size={17}/></button></div></td></tr>})}</tbody></table>{!shown.length&&<Empty text="ไม่มีรายการในสถานะนี้"/>}</div></section>
-  </>:<>
-   <section className="history-summary"><span><History/></span><div><small>ดำเนินการต่ออายุแล้ว</small><strong>{history.length} รายการ</strong></div><div><small>ค่าใช้จ่ายรวมที่บันทึก</small><strong>{money(totalRenewalCost)}</strong></div></section>
-   <section className="card"><div className="table-wrap"><table><thead><tr><th>วันที่ดำเนินการ</th><th>รายการ</th><th>กำหนดเดิม</th><th>กำหนดใหม่</th><th>ค่าใช้จ่าย</th><th>ผู้ดำเนินการ</th><th>เอกสาร</th></tr></thead><tbody>{history.map(row=><tr key={row.id}><td>{formatThaiDateTime(row.renewedAt)}</td><td><b>{row.itemName}</b></td><td>{formatDate(row.previousExpiryDate)}</td><td><b>{formatDate(row.newExpiryDate)}</b></td><td>{money(row.cost)}</td><td>{row.renewedBy}</td><td>{row.documentUrl?<a className="document-link" href={row.documentUrl} target="_blank" rel="noreferrer">เปิดเอกสาร <ExternalLink size={14}/></a>:'—'}</td></tr>)}</tbody></table>{!history.length&&<Empty text="ยังไม่มีประวัติการต่ออายุ"/>}</div></section>
-  </>}
-  {modal&&<Modal title={form.id?'แก้ไขรายการต่ออายุ':'เพิ่มรายการต่ออายุ'} onClose={()=>setModal(false)}><div className="modal-body form-grid"><label className="full">ชื่อรายการ *<input value={form.name} onChange={event=>setForm({...form,name:event.target.value})} placeholder="เช่น ภาษีรถยนต์สำนักงาน" autoFocus/></label><label>ประเภท<select value={form.category} onChange={event=>setForm({...form,category:event.target.value})}><option>ภาษีและทะเบียน</option><option>ประกันภัย</option><option>ใบอนุญาต</option><option>สัญญา</option><option>บริการออนไลน์</option><option>อื่น ๆ</option></select></label><label>วันครบกำหนด *<input type="date" value={form.expiryDate} onChange={event=>setForm({...form,expiryDate:event.target.value})}/></label><label>หน่วยรอบต่ออายุ<select value={form.cycleUnit} onChange={event=>setForm({...form,cycleUnit:event.target.value as 'month'|'year'})}><option value="month">เดือน</option><option value="year">ปี</option></select></label><label>จำนวนรอบ<input type="number" min="1" max="60" value={form.cycleCount} onChange={event=>setForm({...form,cycleCount:Number(event.target.value)})}/></label><label>แจ้งเตือนล่วงหน้า (วัน) *<input type="number" min="0" max="365" value={form.remindDays} onChange={event=>setForm({...form,remindDays:Number(event.target.value)})}/></label><label>แผนกผู้รับผิดชอบ *<select value={form.owner} onChange={event=>setForm({...form,owner:event.target.value})}>{DEPARTMENTS.map(value=><option value={value} key={value}>{value}</option>)}</select></label><label>ค่าใช้จ่ายโดยประมาณ<input type="number" min="0" value={form.cost??0} onChange={event=>setForm({...form,cost:Number(event.target.value)})} placeholder="เว้นไว้หากยังไม่ทราบ"/></label><label>ลิงก์เอกสาร<input type="url" value={form.documentUrl??''} onChange={event=>setForm({...form,documentUrl:event.target.value})} placeholder="https://..."/></label><label className="full">หมายเหตุ<textarea value={form.note} onChange={event=>setForm({...form,note:event.target.value})}/></label><label className="switch-line full"><input type="checkbox" checked={form.isActive} onChange={event=>setForm({...form,isActive:event.target.checked})}/>เปิดใช้งานการแจ้งเตือน</label></div><div className="modal-actions"><button className="btn secondary" onClick={()=>setModal(false)}>ยกเลิก</button><button className="btn primary" onClick={save}>บันทึก</button></div></Modal>}
-  {renewTarget&&<Modal title={`ต่ออายุ: ${renewTarget.name}`} onClose={()=>setRenewTarget(null)}><div className="modal-body form-grid"><label>วันครบกำหนดเดิม<input type="date" value={renewTarget.expiryDate} disabled/></label><label>วันครบกำหนดใหม่ *<input type="date" min={renewTarget.expiryDate} value={renewForm.newExpiryDate} onChange={event=>setRenewForm({...renewForm,newExpiryDate:event.target.value})}/></label><label>ค่าใช้จ่ายจริง<input type="number" min="0" value={renewForm.cost} onChange={event=>setRenewForm({...renewForm,cost:Number(event.target.value)})}/></label><label>ลิงก์เอกสารหลักฐาน<input type="url" value={renewForm.documentUrl??''} onChange={event=>setRenewForm({...renewForm,documentUrl:event.target.value})} placeholder="https://..."/></label><label className="full">หมายเหตุการต่ออายุ<textarea value={renewForm.note??''} onChange={event=>setRenewForm({...renewForm,note:event.target.value})} placeholder="รายละเอียดเพิ่มเติมของการต่ออายุครั้งนี้"/></label></div><div className="modal-actions"><button className="btn secondary" onClick={()=>setRenewTarget(null)}>ยกเลิก</button><button className="btn primary" onClick={()=>void saveRenewal()}><RotateCcw size={17}/>บันทึกการต่ออายุ</button></div></Modal>}
-  {deleteTarget&&<Confirm title="ยืนยันการปิดใช้งานรายการต่ออายุ" detail={`ต้องการปิดใช้งาน ${deleteTarget.name} หรือไม่? ระบบจะเก็บประวัติเดิมไว้`} onCancel={()=>setDeleteTarget(null)} onConfirm={async()=>{try{await removeItem(deleteTarget.id);setDeleteTarget(null);flash('ปิดใช้งานรายการต่ออายุแล้ว')}catch(error){flash(error instanceof Error?error.message:'ปิดใช้งานไม่สำเร็จ')}}}/>}
-  {toast&&<Toast message={toast}/>}
- </div>
+const formatDate = (date: string) =>
+  new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric" }).format(
+    new Date(`${date}T00:00:00`),
+  );
+
+const money = (value: number) =>
+  new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const statusOf = (item: RenewalItem) => {
+  const days = daysUntil(item.expiryDate);
+  if (days < 0) return { label: "เกินกำหนด", kind: "overdue" };
+  if (days <= item.remindDays) return { label: "ใกล้ครบกำหนด", kind: "due" };
+  return { label: "ปกติ", kind: "normal" };
+};
+
+const nextExpiry = (item: RenewalItem) => {
+  const next = new Date(`${item.expiryDate}T12:00:00`);
+  if (item.cycleUnit === "month") next.setMonth(next.getMonth() + item.cycleCount);
+  else next.setFullYear(next.getFullYear() + item.cycleCount);
+  return next.toISOString().slice(0, 10);
+};
+
+export function RenewalsPage() {
+  const { items, history, addItem, updateItem, removeItem, renewItem } = useRenewals();
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState<
+    Omit<RenewalItem, "id" | "updatedAt"> & { id?: string; updatedAt?: string }
+  >(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<RenewalItem | null>(null);
+  const [renewTarget, setRenewTarget] = useState<RenewalItem | null>(null);
+  const [renewForm, setRenewForm] = useState<RenewalActionInput>({
+    newExpiryDate: "",
+    cost: 0,
+    documentUrl: "",
+    note: "",
+  });
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState("");
+  const [view, setView] = useState<"items" | "history">("items");
+  const [toast, setToast] = useState("");
+
+  const counts = useMemo(() => {
+    const active = items.filter((item) => item.isActive);
+    return {
+      total: active.length,
+      overdue: active.filter((item) => daysUntil(item.expiryDate) < 0).length,
+      due: active.filter(
+        (item) => daysUntil(item.expiryDate) >= 0 && daysUntil(item.expiryDate) <= item.remindDays,
+      ).length,
+      normal: active.filter((item) => daysUntil(item.expiryDate) > item.remindDays).length,
+    };
+  }, [items]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>([
+      "ภาษีและทะเบียน",
+      "ประกันภัย",
+      "ใบอนุญาต",
+      "สัญญา",
+      "บริการออนไลน์",
+      "อื่น ๆ",
+    ]);
+    for (const item of items) {
+      if (item.category) set.add(item.category);
+    }
+    return Array.from(set);
+  }, [items]);
+
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items
+      .filter((item) => filter === "all" || statusOf(item).kind === filter)
+      .filter((item) => !catFilter || item.category === catFilter)
+      .filter(
+        (item) =>
+          !q ||
+          item.name.toLowerCase().includes(q) ||
+          item.owner.toLowerCase().includes(q) ||
+          item.note.toLowerCase().includes(q) ||
+          item.category.toLowerCase().includes(q),
+      )
+      .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
+  }, [items, filter, catFilter, search]);
+
+  const totalRenewalCost = history.reduce((sum, row) => sum + row.cost, 0);
+
+  const open = (item?: RenewalItem) => {
+    setForm(item ? { ...item } : emptyForm);
+    setModal(true);
+  };
+
+  const openRenew = (item: RenewalItem) => {
+    setRenewTarget(item);
+    setRenewForm({
+      newExpiryDate: nextExpiry(item),
+      cost: item.cost ?? 0,
+      documentUrl: item.documentUrl ?? "",
+      note: "",
+    });
+  };
+
+  const flash = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(""), 2500);
+  };
+
+  const save = async () => {
+    if (!form.name.trim() || !form.expiryDate || !form.owner.trim()) {
+      flash("กรุณากรอกข้อมูลที่จำเป็นให้ครบ");
+      return;
+    }
+    if (form.remindDays < 0 || form.remindDays > 365 || form.cycleCount < 1 || form.cycleCount > 60) {
+      flash("กรุณาตรวจสอบช่วงเวลาแจ้งเตือนและรอบต่ออายุ");
+      return;
+    }
+    try {
+      if (form.id) await updateItem(form as RenewalItem);
+      else await addItem(form);
+      setModal(false);
+      flash(form.id ? "แก้ไขรายการแล้ว" : "เพิ่มรายการต่ออายุแล้ว");
+    } catch (error) {
+      flash(error instanceof Error ? error.message : "บันทึกรายการไม่สำเร็จ");
+    }
+  };
+
+  const saveRenewal = async () => {
+    if (!renewTarget) return;
+    if (!renewForm.newExpiryDate || renewForm.newExpiryDate <= renewTarget.expiryDate) {
+      flash("วันครบกำหนดใหม่ต้องอยู่หลังวันครบกำหนดเดิม");
+      return;
+    }
+    if (renewForm.cost < 0) {
+      flash("ค่าใช้จ่ายต้องไม่ติดลบ");
+      return;
+    }
+    try {
+      await renewItem(renewTarget.id, renewForm);
+      setRenewTarget(null);
+      flash("ต่ออายุและบันทึกประวัติแล้ว");
+    } catch (error) {
+      flash(error instanceof Error ? error.message : "บันทึกการต่ออายุไม่สำเร็จ");
+    }
+  };
+
+  return (
+    <div className="page-stack renewal-page">
+      {/* 4-Card Clickable KPI Grid */}
+      <section className="renewal-overview">
+        <article
+          className={`clickable ${filter === "all" ? "active" : ""}`}
+          onClick={() => {
+            setFilter("all");
+            setView("items");
+          }}
+          title="คลิกเพื่อแสดงรายการทั้งหมด"
+        >
+          <span className="renewal-overview-icon total">
+            <ListChecks />
+          </span>
+          <div>
+            <small>รายการทั้งหมด</small>
+            <strong className="tabular-nums">{counts.total}</strong>
+            <span>รายการ</span>
+          </div>
+        </article>
+        <article
+          className={`clickable ${filter === "overdue" ? "active" : ""}`}
+          onClick={() => {
+            setFilter("overdue");
+            setView("items");
+          }}
+          title="คลิกเพื่อกรองเฉพาะรายการเกินกำหนด"
+        >
+          <span className="renewal-overview-icon overdue">
+            <CalendarClock />
+          </span>
+          <div>
+            <small>เกินกำหนด</small>
+            <strong className="tabular-nums">{counts.overdue}</strong>
+            <span>รายการ</span>
+          </div>
+        </article>
+        <article
+          className={`clickable ${filter === "due" ? "active" : ""}`}
+          onClick={() => {
+            setFilter("due");
+            setView("items");
+          }}
+          title="คลิกเพื่อกรองเฉพาะรายการใกล้ครบกำหนด"
+        >
+          <span className="renewal-overview-icon due">
+            <CalendarClock />
+          </span>
+          <div>
+            <small>ใกล้ครบกำหนด</small>
+            <strong className="tabular-nums">{counts.due}</strong>
+            <span>รายการ</span>
+          </div>
+        </article>
+        <article
+          className={`clickable ${filter === "normal" ? "active" : ""}`}
+          onClick={() => {
+            setFilter("normal");
+            setView("items");
+          }}
+          title="คลิกเพื่อกรองเฉพาะรายการสถานะปกติ"
+        >
+          <span className="renewal-overview-icon normal">
+            <CheckCircle2 />
+          </span>
+          <div>
+            <small>สถานะปกติ</small>
+            <strong className="tabular-nums">{counts.normal}</strong>
+            <span>รายการ</span>
+          </div>
+        </article>
+      </section>
+
+      <div className="page-actions">
+        <div>
+          <h2 className="renewal-heading">รายการที่ต้องต่ออายุ</h2>
+          <p className="page-intro">กำหนดวันครบอายุ รอบการต่ออายุ และช่วงแจ้งเตือนของแต่ละรายการ</p>
+        </div>
+        <div className="action-buttons">
+          <button
+            className={`btn ${view === "history" ? "primary" : "secondary"}`}
+            onClick={() => setView(view === "items" ? "history" : "items")}
+          >
+            <History size={18} />
+            {view === "items" ? "ประวัติการต่ออายุ" : "กลับไปรายการ"}
+          </button>
+          {view === "items" && (
+            <button className="btn primary" onClick={() => open()}>
+              <Plus size={18} />
+              เพิ่มรายการ
+            </button>
+          )}
+        </div>
+      </div>
+
+      {view === "items" ? (
+        <>
+          <div className="renewal-search-bar">
+            <div className="search">
+              <Search size={18} />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="ค้นหาชื่อรายการ, แผนก หรือหมายเหตุ..."
+              />
+            </div>
+            <select
+              aria-label="ประเภท"
+              className="renewal-cat-select"
+              value={catFilter}
+              onChange={(event) => setCatFilter(event.target.value)}
+            >
+              <option value="">ทุกประเภท</option>
+              {categories.map((c) => (
+                <option value={c} key={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <section className="filters renewal-filters">
+              <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
+                ทั้งหมด
+              </button>
+              <button
+                className={filter === "overdue" ? "active" : ""}
+                onClick={() => setFilter("overdue")}
+              >
+                เกินกำหนด
+              </button>
+              <button className={filter === "due" ? "active" : ""} onClick={() => setFilter("due")}>
+                ใกล้ครบกำหนด
+              </button>
+              <button
+                className={filter === "normal" ? "active" : ""}
+                onClick={() => setFilter("normal")}
+              >
+                ปกติ
+              </button>
+            </section>
+          </div>
+
+          <section className="card">
+            <div className="table-wrap">
+              <table className="renewal-table">
+                <thead>
+                  <tr>
+                    <th>รายการ</th>
+                    <th>ประเภท</th>
+                    <th>วันครบกำหนด</th>
+                    <th>รอบต่ออายุ</th>
+                    <th>แจ้งล่วงหน้า</th>
+                    <th>ค่าใช้จ่าย</th>
+                    <th>ผู้รับผิดชอบ</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((item) => {
+                    const days = daysUntil(item.expiryDate);
+                    const status = statusOf(item);
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <b>{item.name}</b>
+                          {item.note && <small>{item.note}</small>}
+                        </td>
+                        <td>{item.category}</td>
+                        <td className="tabular-nums">
+                          <b>{formatDate(item.expiryDate)}</b>
+                          <small>
+                            {days < 0
+                              ? `เกินมา ${Math.abs(days)} วัน`
+                              : days === 0
+                                ? "ครบกำหนดวันนี้"
+                                : `เหลือ ${days} วัน`}
+                          </small>
+                        </td>
+                        <td>
+                          ทุก {item.cycleCount} {item.cycleUnit === "month" ? "เดือน" : "ปี"}
+                        </td>
+                        <td className="tabular-nums">{item.remindDays} วัน</td>
+                        <td className="tabular-nums">{item.cost ? money(item.cost) : "ยังไม่ระบุ"}</td>
+                        <td>
+                          <span className="department-badge">{item.owner}</span>
+                        </td>
+                        <td>
+                          <span className={`renewal-status ${status.kind}`}>{status.label}</span>
+                        </td>
+                        <td>
+                          <div className="renewal-actions">
+                            <button
+                              className="renewal-button"
+                              aria-label={`ต่ออายุ ${item.name}`}
+                              onClick={() => openRenew(item)}
+                            >
+                              <RotateCcw size={16} />
+                              ต่ออายุ
+                            </button>
+                            <button
+                              aria-label={`แก้ไข ${item.name}`}
+                              title="แก้ไขรายการ"
+                              onClick={() => open(item)}
+                            >
+                              <Edit3 size={17} />
+                            </button>
+                            <button
+                              aria-label={`ปิดใช้งาน ${item.name}`}
+                              title="ปิดใช้งานรายการ (มีขั้นตอนยืนยัน)"
+                              className="danger-text"
+                              onClick={() => setDeleteTarget(item)}
+                            >
+                              <Trash2 size={17} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!shown.length && <Empty text="ไม่มีรายการในสถานะนี้" />}
+            </div>
+          </section>
+        </>
+      ) : (
+        <>
+          <section className="history-summary">
+            <span>
+              <History />
+            </span>
+            <div>
+              <small>ดำเนินการต่ออายุแล้ว</small>
+              <strong>{history.length} รายการ</strong>
+            </div>
+            <div>
+              <small>ค่าใช้จ่ายรวมที่บันทึก</small>
+              <strong>{money(totalRenewalCost)}</strong>
+            </div>
+          </section>
+          <section className="card">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>วันที่ดำเนินการ</th>
+                    <th>รายการ</th>
+                    <th>กำหนดเดิม</th>
+                    <th>กำหนดใหม่</th>
+                    <th>ค่าใช้จ่าย</th>
+                    <th>ผู้ดำเนินการ</th>
+                    <th>เอกสาร</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((row) => (
+                    <tr key={row.id}>
+                      <td className="tabular-nums">{formatThaiDateTime(row.renewedAt)}</td>
+                      <td>
+                        <b>{row.itemName}</b>
+                      </td>
+                      <td className="tabular-nums">{formatDate(row.previousExpiryDate)}</td>
+                      <td className="tabular-nums">
+                        <b>{formatDate(row.newExpiryDate)}</b>
+                      </td>
+                      <td className="tabular-nums">{money(row.cost)}</td>
+                      <td>{row.renewedBy}</td>
+                      <td>
+                        {row.documentUrl ? (
+                          <a
+                            className="document-link"
+                            href={row.documentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            เปิดเอกสาร <ExternalLink size={14} />
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!history.length && <Empty text="ยังไม่มีประวัติการต่ออายุ" />}
+            </div>
+          </section>
+        </>
+      )}
+
+      {modal && (
+        <Modal
+          title={form.id ? "แก้ไขรายการต่ออายุ" : "เพิ่มรายการต่ออายุ"}
+          onClose={() => setModal(false)}
+        >
+          <div className="modal-body form-grid">
+            <label className="full">
+              ชื่อรายการ *
+              <input
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                placeholder="เช่น ภาษีรถยนต์สำนักงาน"
+                autoFocus
+              />
+            </label>
+            <label>
+              ประเภท
+              <select
+                value={form.category}
+                onChange={(event) => setForm({ ...form, category: event.target.value })}
+              >
+                <option>ภาษีและทะเบียน</option>
+                <option>ประกันภัย</option>
+                <option>ใบอนุญาต</option>
+                <option>สัญญา</option>
+                <option>บริการออนไลน์</option>
+                <option>อื่น ๆ</option>
+              </select>
+            </label>
+            <label>
+              วันครบกำหนด *
+              <input
+                type="date"
+                value={form.expiryDate}
+                onChange={(event) => setForm({ ...form, expiryDate: event.target.value })}
+              />
+            </label>
+            <label>
+              หน่วยรอบต่ออายุ
+              <select
+                value={form.cycleUnit}
+                onChange={(event) =>
+                  setForm({ ...form, cycleUnit: event.target.value as "month" | "year" })
+                }
+              >
+                <option value="month">เดือน</option>
+                <option value="year">ปี</option>
+              </select>
+            </label>
+            <label>
+              จำนวนรอบ
+              <input
+                type="number"
+                min="1"
+                max="60"
+                value={form.cycleCount}
+                onChange={(event) => setForm({ ...form, cycleCount: Number(event.target.value) })}
+              />
+            </label>
+            <label>
+              แจ้งเตือนล่วงหน้า (วัน) *
+              <input
+                type="number"
+                min="0"
+                max="365"
+                value={form.remindDays}
+                onChange={(event) => setForm({ ...form, remindDays: Number(event.target.value) })}
+              />
+            </label>
+            <label>
+              แผนกผู้รับผิดชอบ *
+              <select
+                value={form.owner}
+                onChange={(event) => setForm({ ...form, owner: event.target.value })}
+              >
+                {DEPARTMENTS.map((value) => (
+                  <option value={value} key={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              ค่าใช้จ่ายโดยประมาณ
+              <input
+                type="number"
+                min="0"
+                value={form.cost ?? 0}
+                onChange={(event) => setForm({ ...form, cost: Number(event.target.value) })}
+                placeholder="เว้นไว้หากยังไม่ทราบ"
+              />
+            </label>
+            <label>
+              ลิงก์เอกสาร
+              <input
+                type="url"
+                value={form.documentUrl ?? ""}
+                onChange={(event) => setForm({ ...form, documentUrl: event.target.value })}
+                placeholder="https://..."
+              />
+            </label>
+            <label className="full">
+              หมายเหตุ
+              <textarea
+                value={form.note}
+                onChange={(event) => setForm({ ...form, note: event.target.value })}
+              />
+            </label>
+            <label className="switch-line full">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(event) => setForm({ ...form, isActive: event.target.checked })}
+              />
+              เปิดใช้งานการแจ้งเตือน
+            </label>
+          </div>
+          <div className="modal-actions">
+            <button className="btn secondary" onClick={() => setModal(false)}>
+              ยกเลิก
+            </button>
+            <button className="btn primary" onClick={save}>
+              บันทึก
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {renewTarget && (
+        <Modal title={`ต่ออายุ: ${renewTarget.name}`} onClose={() => setRenewTarget(null)}>
+          <div className="modal-body form-grid">
+            <label>
+              วันครบกำหนดเดิม
+              <input type="date" value={renewTarget.expiryDate} disabled />
+            </label>
+            <label>
+              วันครบกำหนดใหม่ *
+              <input
+                type="date"
+                min={renewTarget.expiryDate}
+                value={renewForm.newExpiryDate}
+                onChange={(event) =>
+                  setRenewForm({ ...renewForm, newExpiryDate: event.target.value })
+                }
+              />
+            </label>
+            <label>
+              ค่าใช้จ่ายจริง
+              <input
+                type="number"
+                min="0"
+                value={renewForm.cost}
+                onChange={(event) => setRenewForm({ ...renewForm, cost: Number(event.target.value) })}
+              />
+            </label>
+            <label>
+              ลิงก์เอกสารหลักฐาน
+              <input
+                type="url"
+                value={renewForm.documentUrl ?? ""}
+                onChange={(event) => setRenewForm({ ...renewForm, documentUrl: event.target.value })}
+                placeholder="https://..."
+              />
+            </label>
+            <label className="full">
+              หมายเหตุการต่ออายุ
+              <textarea
+                value={renewForm.note ?? ""}
+                onChange={(event) => setRenewForm({ ...renewForm, note: event.target.value })}
+                placeholder="รายละเอียดเพิ่มเติมของการต่ออายุครั้งนี้"
+              />
+            </label>
+          </div>
+          <div className="modal-actions">
+            <button className="btn secondary" onClick={() => setRenewTarget(null)}>
+              ยกเลิก
+            </button>
+            <button className="btn primary" onClick={() => void saveRenewal()}>
+              <RotateCcw size={17} />
+              บันทึกการต่ออายุ
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {deleteTarget && (
+        <Confirm
+          title="ยืนยันการปิดใช้งานรายการต่ออายุ"
+          detail={`ต้องการปิดใช้งาน ${deleteTarget.name} หรือไม่? ระบบจะเก็บประวัติเดิมไว้`}
+          danger
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            try {
+              await removeItem(deleteTarget.id);
+              setDeleteTarget(null);
+              flash("ปิดใช้งานรายการต่ออายุแล้ว");
+            } catch (error) {
+              flash(error instanceof Error ? error.message : "ปิดใช้งานไม่สำเร็จ");
+            }
+          }}
+        />
+      )}
+
+      {toast && <Toast message={toast} />}
+    </div>
+  );
 }

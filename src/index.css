@@ -8965,3 +8965,424 @@ body,
 [data-theme="dark"] .demo-note {
   color: #94a3b8 !important;
 }
+
+/* ========================================================= */
+/* Enterprise UI/UX Upgrade (Packages A + B + C)             */
+/* ========================================================= */
+
+.tabular-nums,
+.quantity,
+.mwp-stat-val,
+.mdb-kpi-val {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toast Feedback Variants */
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  animation: toastSlideUp 0.2s ease-out;
+}
+.toast.toast-success {
+  background: #14532d;
+  color: #f0fdf4;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+.toast.toast-error {
+  background: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Upgraded Empty State */
+.empty-mark {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 10px;
+  border-radius: 14px;
+  background: var(--bg-subtle, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  display: grid;
+  place-items: center;
+}
+
+/* Enterprise Login Upgrade */
+.login-brand {
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 480px;
+  gap: 22px;
+}
+.login-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.login-company-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #93c5fd;
+  margin-bottom: 6px;
+}
+.login-features-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.login-features-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.login-features-list svg {
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+.input-icon input {
+  padding-right: 40px;
+}
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.password-toggle-btn:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-primary, #0f172a);
+}
+.input-icon .password-toggle-btn svg {
+  position: static;
+  left: auto;
+  top: auto;
+  color: inherit;
+}
+
+/* Topbar Popover Menus & Notification Count Badge */
+.ops-popover-wrap {
+  position: relative;
+}
+.notify-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e11d48;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--topbar-bg, #ffffff);
+}
+.ops-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 70;
+  width: 310px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-line, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  padding: 12px;
+  color: var(--text-primary, #0f172a);
+}
+.user-popover {
+  width: 260px;
+}
+.ops-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-line, #e2e8f0);
+  font-size: 0.9rem;
+}
+.ops-popover-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-subtle, #f1f5f9);
+  color: var(--text-secondary, #334155);
+}
+.ops-popover-empty {
+  padding: 20px 10px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted, #64748b);
+}
+.ops-popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ops-popover-item {
+  width: 100%;
+  border: 1px solid var(--border-line, #e2e8f0);
+  background: var(--bg-surface, #ffffff);
+  border-radius: 10px;
+  padding: 9px 11px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary, #0f172a);
+}
+.ops-popover-item:hover {
+  background: var(--bg-hover, #f8fafc);
+  border-color: var(--blue, #175cd3);
+}
+.ops-popover-item svg {
+  color: var(--blue, #175cd3);
+}
+.ops-popover-item b {
+  display: block;
+  font-size: 0.82rem;
+}
+.ops-popover-item small {
+  display: block;
+  font-size: 0.73rem;
+  color: var(--text-muted, #64748b);
+}
+.ops-popover-count {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.ops-user-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 4px 10px;
+}
+.ops-user-summary strong {
+  font-size: 0.92rem;
+}
+.ops-user-summary span {
+  font-size: 0.76rem;
+  color: var(--text-muted, #64748b);
+}
+.ops-user-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ops-popover-divider {
+  height: 1px;
+  background: var(--border-line, #e2e8f0);
+  margin: 6px 0;
+}
+.ops-popover-action {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  cursor: pointer;
+}
+.ops-popover-action:hover {
+  background: var(--bg-hover, #f8fafc);
+}
+.ops-popover-action.danger {
+  color: #dc2626;
+}
+button.top-user.ops-user {
+  cursor: pointer;
+  border: 1px solid var(--border-line, #e2e8f0);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #0f172a);
+}
+
+/* Operations Dashboard Hero & KPI Cards */
+.ops-dashboard-hero {
+  margin-bottom: 18px;
+}
+.ops-kpi-grid {
+  margin-bottom: 18px;
+}
+.ops-kpi-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Inventory Pagination Size Control */
+.pagination {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.pagination-size-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+.pagination-size-select {
+  width: auto;
+  display: inline-block;
+  margin-top: 0;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+.pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Renewals 4-Card Clickable Overview & Search Bar */
+.renewal-overview {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.renewal-overview article.clickable {
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.renewal-overview article.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  border-color: var(--blue, #175cd3);
+}
+.renewal-overview article.clickable.active {
+  border-color: var(--blue, #175cd3);
+  box-shadow: 0 0 0 2px rgba(23, 92, 211, 0.22);
+}
+.renewal-overview-icon.total {
+  background: #eff6ff;
+  color: #175cd3;
+}
+.renewal-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.renewal-search-bar .search {
+  flex: 1 1 240px;
+}
+.renewal-cat-select {
+  min-width: 170px;
+  border: 1px solid var(--input-border, #cbd5e1);
+  border-radius: 9px;
+  padding: 8px 11px;
+  background: var(--input-bg, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-size: 0.84rem;
+}
+@media (max-width: 960px) {
+  .renewal-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Dark Theme Overrides for New UI Elements */
+[data-theme="dark"] .password-toggle-btn {
+  color: #94a3b8;
+}
+[data-theme="dark"] .password-toggle-btn:hover {
+  color: #f8fafc;
+}
+[data-theme="dark"] .notify-count-badge {
+  border-color: var(--topbar-bg, #0f172a);
+}
+[data-theme="dark"] .ops-popover {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65) !important;
+}
+[data-theme="dark"] .ops-popover-item {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .ops-popover-item:hover {
+  background: #1e2c4a !important;
+  border-color: #3b82f6 !important;
+}
+[data-theme="dark"] .ops-popover-action {
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .ops-popover-action.danger {
+  color: #f87171 !important;
+}
+[data-theme="dark"] .ops-popover-action:hover {
+  background: #1e2c4a !important;
+}
+[data-theme="dark"] .ops-popover-pill {
+  background: #1e2c4a !important;
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] button.top-user.ops-user {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .renewal-overview-icon.total {
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: #60a5fa !important;
+}
+[data-theme="dark"] .renewal-cat-select {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
