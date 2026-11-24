@@ -1138,11 +1138,31 @@ export function MigrantWorkerDocumentsPage() {
             </select>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
-            <span style={{ fontSize: "0.82rem", fontWeight: 600 }} className="mwp-count-text">
-              {viewMode === "workers" && `พบ ${filteredWorkers.length} คน`}
-              {viewMode === "expiry" && `พบ ${filteredExpiryRows.length} รายการ`}
-              {viewMode === "documents" && `พบ ${filteredAllDocs.length} ฉบับ`}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto", flexWrap: "wrap" }}>
+            {(searchQuery.trim() !== "" ||
+              deptFilter !== "all" ||
+              genderFilter !== "all" ||
+              docTypeFilter !== "all" ||
+              expirySubFilter !== "all") && (
+              <button
+                type="button"
+                className="mwp-clear-btn"
+                onClick={() => {
+                  setSearchQuery("");
+                  setDeptFilter("all");
+                  setGenderFilter("all");
+                  setDocTypeFilter("all");
+                  setExpirySubFilter("all");
+                }}
+              >
+                <X size={14} />
+                <span>ล้างตัวกรอง</span>
+              </button>
+            )}
+            <span className="mwp-result-pill">
+              {viewMode === "workers" && `แสดง ${filteredWorkers.length} คน`}
+              {viewMode === "expiry" && `แสดง ${filteredExpiryRows.length} รายการ`}
+              {viewMode === "documents" && `แสดง ${filteredAllDocs.length} ฉบับ`}
             </span>
             <button
               type="button"

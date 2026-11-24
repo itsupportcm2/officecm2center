@@ -327,7 +327,19 @@ export function MigrantDashboardPage() {
 
       {/* 6 Key Performance Indicator Cards */}
       <section className="mdb-kpi-grid">
-        <div className="mdb-kpi-card mdb-kpi-primary">
+        <div
+          className="mdb-kpi-card mdb-kpi-primary mdb-kpi-clickable"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate("/migrant-workers")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/migrant-workers");
+            }
+          }}
+          title="คลิกเพื่อไปยังหน้าจัดการรายชื่อพนักงาน"
+        >
           <div className="mdb-kpi-top">
             <span className="mdb-kpi-title">จำนวนพนักงานทั้งหมด</span>
             <div className="mdb-kpi-icon-wrap">
@@ -348,7 +360,19 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        <div className="mdb-kpi-card mdb-kpi-teal">
+        <div
+          className="mdb-kpi-card mdb-kpi-teal mdb-kpi-clickable"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate("/migrant-workers")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/migrant-workers");
+            }
+          }}
+          title="คลิกเพื่อไปยังหน้าจัดการเอกสารทั้งหมด"
+        >
           <div className="mdb-kpi-top">
             <span className="mdb-kpi-title">เอกสารทั้งหมด</span>
             <div className="mdb-kpi-icon-wrap">
@@ -367,7 +391,23 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        <div className="mdb-kpi-card mdb-kpi-danger">
+        <div
+          className={`mdb-kpi-card mdb-kpi-danger mdb-kpi-clickable ${activeTab === "expired" ? "is-active" : ""}`}
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setActiveTab("expired");
+            document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActiveTab("expired");
+              document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          title="คลิกเพื่อกรองเฉพาะเอกสารที่หมดอายุแล้ว"
+        >
           <div className="mdb-kpi-top">
             <span className="mdb-kpi-title">หมดอายุแล้ว</span>
             <div className="mdb-kpi-icon-wrap">
@@ -388,7 +428,23 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        <div className="mdb-kpi-card mdb-kpi-warning">
+        <div
+          className={`mdb-kpi-card mdb-kpi-warning mdb-kpi-clickable ${activeTab === "due" ? "is-active" : ""}`}
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setActiveTab("due");
+            document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActiveTab("due");
+              document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          title="คลิกเพื่อกรองเฉพาะเอกสารที่ใกล้ครบกำหนดต่ออายุ"
+        >
           <div className="mdb-kpi-top">
             <span className="mdb-kpi-title">ใกล้ครบกำหนดต่ออายุ</span>
             <div className="mdb-kpi-icon-wrap">
@@ -409,7 +465,23 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        <div className="mdb-kpi-card mdb-kpi-caution">
+        <div
+          className={`mdb-kpi-card mdb-kpi-caution mdb-kpi-clickable ${activeTab === "caution" ? "is-active" : ""}`}
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setActiveTab("caution");
+            document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActiveTab("caution");
+              document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          title="คลิกเพื่อกรองเฉพาะเอกสารกลุ่มเฝ้าระวังล่วงหน้า (≤ 90 วัน)"
+        >
           <div className="mdb-kpi-top">
             <span className="mdb-kpi-title">เฝ้าระวังล่วงหน้า (≤ 90 วัน)</span>
             <div className="mdb-kpi-icon-wrap">
@@ -430,7 +502,23 @@ export function MigrantDashboardPage() {
           </div>
         </div>
 
-        <div className="mdb-kpi-card mdb-kpi-success">
+        <div
+          className={`mdb-kpi-card mdb-kpi-success mdb-kpi-clickable ${activeTab === "all" ? "is-active" : ""}`}
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setActiveTab("all");
+            document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActiveTab("all");
+              document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          title="คลิกเพื่อดูรายการวันหมดอายุทั้งหมด"
+        >
           <div className="mdb-kpi-top">
             <span className="mdb-kpi-title">สถานะปกติ &gt; 90 วัน</span>
             <div className="mdb-kpi-icon-wrap">
@@ -655,7 +743,7 @@ export function MigrantDashboardPage() {
       </section>
 
       {/* Expiry Watchlist Section */}
-      <section className="mdb-watchlist-card">
+      <section className="mdb-watchlist-card" id="mdb-watchlist">
         <div className="mdb-watchlist-header">
           <div className="mdb-watchlist-title">
             <div className="mdb-watchlist-title-icon">
@@ -760,6 +848,24 @@ export function MigrantDashboardPage() {
               <option value="FEMALE">👩 เฉพาะหญิง ({genderStats.female})</option>
             </select>
           </div>
+
+          {(searchQuery !== "" ||
+            deptFilter !== "all" ||
+            genderFilter !== "all" ||
+            activeTab !== "urgent") && (
+            <button
+              type="button"
+              className="mdb-clear-btn"
+              onClick={() => {
+                setSearchQuery("");
+                setDeptFilter("all");
+                setGenderFilter("all");
+                setActiveTab("urgent");
+              }}
+            >
+              ล้างตัวกรอง
+            </button>
+          )}
 
           <div style={{ fontSize: "0.8rem", marginLeft: "auto" }} className="mdb-count-text">
             แสดงผล <b>{filteredRows.length}</b> รายการ

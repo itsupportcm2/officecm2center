@@ -452,6 +452,7 @@ export function AppLayout() {
             alt="โลโก้เชียงใหม่โฟรเซ่นฟูดส์"
           />
           <div className="brand-copy">
+            <em className="ops-brand-tag">ENTERPRISE 2026</em>
             <strong>ระบบจัดการสำนักงาน</strong>
             <span>เชียงใหม่โฟรเซ่นฟูดส์</span>
           </div>
@@ -658,6 +659,11 @@ export function AppLayout() {
             <Menu size={22} />
           </button>
           <div className="ops-heading">
+            <span className="ops-module-chip">
+              {loc.pathname.startsWith("/migrant")
+                ? "ระบบต่อภาษีและเอกสารแรงงานต่างด้าว"
+                : "ระบบบริหารคลังสินค้าและสำนักงาน"}
+            </span>
             <h1>{title}</h1>
             {dashboard ? (
               <p>
