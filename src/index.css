@@ -10492,10 +10492,18 @@ button.top-user.ops-user {
     font-weight: 800;
   }
 
-  .mdb-passport-mini-date {
-    font-size: 0.7rem;
+  .mdb-passport-mini-label {
+    font-size: 0.64rem;
     font-weight: 600;
-    opacity: 0.9;
+    opacity: 0.78;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+
+  .mdb-passport-mini-date {
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

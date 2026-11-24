@@ -566,6 +566,7 @@ export function MigrantDashboardPage() {
               <span className="mdb-passport-mini-head">
                 <i /> พาสแดง <b>{passportDueSummary.redCards}</b>
               </span>
+              <span className="mdb-passport-mini-label">ใกล้หมดที่สุด</span>
               <span className="mdb-passport-mini-date">
                 {passportDueSummary.redNearest
                   ? thaiDate(passportDueSummary.redNearest.date)
@@ -576,6 +577,7 @@ export function MigrantDashboardPage() {
               <span className="mdb-passport-mini-head">
                 <i /> พาสเขียว <b>{passportDueSummary.greenCards}</b>
               </span>
+              <span className="mdb-passport-mini-label">ใกล้หมดที่สุด</span>
               <span className="mdb-passport-mini-date">
                 {passportDueSummary.greenNearest
                   ? thaiDate(passportDueSummary.greenNearest.date)
