@@ -72,6 +72,7 @@ const formatDays = (absDays: number): string => {
 interface ExpiryRow {
   worker: ForeignWorker;
   doc: MigrantWorkerDocument;
+  fieldKey: "expiresOn" | "visaExpiresOn" | "workPermitExpiresOn" | "areaPermitExpiresOn";
   field: string;
   date: string;
   days: number;
@@ -85,7 +86,7 @@ export function MigrantDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filter states
-  const [activeTab, setActiveTab] = useState<"urgent" | "expired" | "due" | "caution" | "all">("urgent");
+  const [activeTab, setActiveTab] = useState<"urgent" | "expired" | "due" | "ten_year_wp" | "all">("urgent");
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState<"all" | "MALE" | "FEMALE">("all");
@@ -148,7 +149,7 @@ export function MigrantDashboardPage() {
 
   const expiryRows = useMemo(() => {
     const list: ExpiryRow[] = [];
-    const fields: Array<{ key: keyof MigrantWorkerDocument; label: string }> = [
+    const fields: Array<{ key: ExpiryRow["fieldKey"]; label: string }> = [
       { key: "expiresOn", label: "วันหมดอายุเอกสาร/พาสปอร์ต" },
       { key: "visaExpiresOn", label: "วันหมดอายุ Visa" },
       { key: "workPermitExpiresOn", label: "วันหมดอายุใบอนุญาตทำงาน" },
@@ -162,7 +163,7 @@ export function MigrantDashboardPage() {
         const val = doc[f.key];
         if (typeof val === "string" && val) {
           const days = daysUntil(val);
-          list.push({ worker, doc, field: f.label, date: val, days });
+          list.push({ worker, doc, fieldKey: f.key, field: f.label, date: val, days });
         }
       }
     }
@@ -175,14 +176,56 @@ export function MigrantDashboardPage() {
     () => expiryRows.filter((r) => r.days >= 0 && r.days <= (r.doc.remindDays ?? 30)),
     [expiryRows],
   );
-  const cautionRows = useMemo(
+  const passportDueSoon30 = useMemo(
     () =>
-      expiryRows.filter((r) => {
-        const remind = r.doc.remindDays ?? 30;
-        return r.days > remind && r.days <= Math.max(90, remind);
-      }),
+      expiryRows.filter(
+        (r) =>
+          (r.doc.documentType === "PASSPORT_RED" ||
+            r.doc.documentType === "PASSPORT_GREEN") &&
+          r.days >= 0 &&
+          r.days <= 30,
+      ),
     [expiryRows],
   );
+  const passportDueSummary = useMemo(() => {
+    const redIds = new Set<string>();
+    const greenIds = new Set<string>();
+    for (const r of passportDueSoon30) {
+      if (r.doc.documentType === "PASSPORT_RED") redIds.add(r.doc.id);
+      else if (r.doc.documentType === "PASSPORT_GREEN") greenIds.add(r.doc.id);
+    }
+    const redCards = redIds.size;
+    const greenCards = greenIds.size;
+    return {
+      redCards,
+      greenCards,
+      totalCards: redCards + greenCards,
+      nearest: passportDueSoon30[0] ?? null,
+    };
+  }, [passportDueSoon30]);
+
+  const tenYearWorkPermitRows = useMemo(
+    () =>
+      expiryRows.filter(
+        (r) =>
+          r.doc.documentType === "TEN_YEAR_CARD" &&
+          r.fieldKey === "workPermitExpiresOn",
+      ),
+    [expiryRows],
+  );
+  const tenYearWorkPermitSummary = useMemo(() => {
+    const total = tenYearWorkPermitRows.length;
+    const expiredCount = tenYearWorkPermitRows.filter((r) => r.days < 0).length;
+    const due30Count = tenYearWorkPermitRows.filter(
+      (r) => r.days >= 0 && r.days <= 30,
+    ).length;
+    const nearest =
+      tenYearWorkPermitRows.find((r) => r.days >= 0) ??
+      tenYearWorkPermitRows[0] ??
+      null;
+    return { total, expiredCount, due30Count, nearest };
+  }, [tenYearWorkPermitRows]);
+
   const safe = useMemo(
     () => expiryRows.filter((r) => r.days > Math.max(90, r.doc.remindDays ?? 30)),
     [expiryRows],
@@ -241,9 +284,9 @@ export function MigrantDashboardPage() {
     } else if (activeTab === "expired") {
       list = expired;
     } else if (activeTab === "due") {
-      list = dueSoon;
-    } else if (activeTab === "caution") {
-      list = cautionRows;
+      list = passportDueSoon30;
+    } else if (activeTab === "ten_year_wp") {
+      list = tenYearWorkPermitRows;
     }
 
     if (deptFilter !== "all") {
@@ -267,7 +310,16 @@ export function MigrantDashboardPage() {
     }
 
     return list;
-  }, [expiryRows, activeTab, deptFilter, genderFilter, searchQuery, expired, dueSoon, cautionRows]);
+  }, [
+    expiryRows,
+    activeTab,
+    deptFilter,
+    genderFilter,
+    searchQuery,
+    expired,
+    passportDueSoon30,
+    tenYearWorkPermitRows,
+  ]);
 
   const nowFormatted = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
@@ -443,61 +495,124 @@ export function MigrantDashboardPage() {
               document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
             }
           }}
-          title="คลิกเพื่อกรองเฉพาะเอกสารที่ใกล้ครบกำหนดต่ออายุ"
+          title="คลิกเพื่อกรองเฉพาะพาสปอร์ตแดงและเขียวที่ใกล้หมดอายุ ≤ 30 วัน"
         >
           <div className="mdb-kpi-top">
-            <span className="mdb-kpi-title">ใกล้ครบกำหนดต่ออายุ</span>
+            <span className="mdb-kpi-title">ใกล้หมดอายุ ≤ 30 วัน</span>
             <div className="mdb-kpi-icon-wrap">
               <AlertTriangle size={20} />
             </div>
           </div>
           <div className="mdb-kpi-val-row">
             <span className="mdb-kpi-val" style={{ color: "#ea580c" }}>
-              {dueSoon.length.toLocaleString("th-TH")}
+              {passportDueSummary.totalCards.toLocaleString("th-TH")}
             </span>
-            <span className="mdb-kpi-unit">รายการ</span>
+            <span className="mdb-kpi-unit">ฉบับ</span>
+            {passportDueSoon30.length > passportDueSummary.totalCards && (
+              <span className="mdb-kpi-subcount">
+                ({passportDueSoon30.length} รายการ)
+              </span>
+            )}
+          </div>
+          <div className="mdb-kpi-breakdown">
+            <span className="mdb-kpi-chip mdb-chip-red">
+              <i /> พาสแดง <b>{passportDueSummary.redCards}</b>
+            </span>
+            <span className="mdb-kpi-chip mdb-chip-green">
+              <i /> พาสเขียว <b>{passportDueSummary.greenCards}</b>
+            </span>
           </div>
           <div className="mdb-kpi-footer">
-            <span>ตามวันแจ้งเตือนแต่ละฉบับ</span>
-            <span className="mdb-kpi-pill" style={{ background: "#fff7ed", color: "#ea580c" }}>
-              เตรียมเอกสาร
+            <span>
+              {passportDueSummary.nearest
+                ? `ใกล้สุด: ${thaiDate(passportDueSummary.nearest.date)}`
+                : "ไม่มีพาสแดง/เขียวใกล้หมด"}
+            </span>
+            <span
+              className="mdb-kpi-pill"
+              style={
+                passportDueSummary.nearest
+                  ? { background: "#fff7ed", color: "#ea580c" }
+                  : { background: "#f0fdf4", color: "#16a34a" }
+              }
+            >
+              {passportDueSummary.nearest
+                ? passportDueSummary.nearest.days === 0
+                  ? "หมดวันนี้"
+                  : `อีก ${passportDueSummary.nearest.days} วัน`
+                : "ปกติ"}
             </span>
           </div>
         </div>
 
         <div
-          className={`mdb-kpi-card mdb-kpi-caution mdb-kpi-clickable ${activeTab === "caution" ? "is-active" : ""}`}
+          className={`mdb-kpi-card mdb-kpi-caution mdb-kpi-clickable ${activeTab === "ten_year_wp" ? "is-active" : ""}`}
           role="button"
           tabIndex={0}
           onClick={() => {
-            setActiveTab("caution");
+            setActiveTab("ten_year_wp");
             document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setActiveTab("caution");
+              setActiveTab("ten_year_wp");
               document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
             }
           }}
-          title="คลิกเพื่อกรองเฉพาะเอกสารกลุ่มเฝ้าระวังล่วงหน้า (≤ 90 วัน)"
+          title="คลิกเพื่อดูรายการวันหมดอายุใบอนุญาตทำงานของบัตร 10 ปีทั้งหมด"
         >
           <div className="mdb-kpi-top">
-            <span className="mdb-kpi-title">เฝ้าระวังล่วงหน้า (≤ 90 วัน)</span>
+            <span className="mdb-kpi-title">บัตร 10 ปี (ใบอนุญาตทำงาน)</span>
             <div className="mdb-kpi-icon-wrap">
               <CalendarClock size={20} />
             </div>
           </div>
           <div className="mdb-kpi-val-row">
             <span className="mdb-kpi-val" style={{ color: "#d97706" }}>
-              {cautionRows.length.toLocaleString("th-TH")}
+              {tenYearWorkPermitSummary.total.toLocaleString("th-TH")}
             </span>
-            <span className="mdb-kpi-unit">รายการ</span>
+            <span className="mdb-kpi-unit">ฉบับ</span>
+          </div>
+          <div className="mdb-kpi-breakdown">
+            <span className="mdb-kpi-nearest-date">
+              {tenYearWorkPermitSummary.nearest ? (
+                <>
+                  ใกล้หมดสุด:{" "}
+                  <b>{thaiDate(tenYearWorkPermitSummary.nearest.date)}</b>
+                </>
+              ) : (
+                "ยังไม่มีข้อมูลวันหมดอายุ"
+              )}
+            </span>
           </div>
           <div className="mdb-kpi-footer">
-            <span>เฝ้าระวังล่วงหน้า</span>
-            <span className="mdb-kpi-pill" style={{ background: "#fffbeb", color: "#d97706" }}>
-              ช่วงวางแผน
+            <span>
+              {tenYearWorkPermitSummary.expiredCount > 0
+                ? `หมดอายุแล้ว ${tenYearWorkPermitSummary.expiredCount} ฉบับ`
+                : tenYearWorkPermitSummary.due30Count > 0
+                  ? `ใกล้หมด ≤ 30 วัน: ${tenYearWorkPermitSummary.due30Count} ฉบับ`
+                  : "วันหมดอายุใบอนุญาตทำงาน"}
+            </span>
+            <span
+              className="mdb-kpi-pill"
+              style={
+                !tenYearWorkPermitSummary.nearest
+                  ? { background: "#f1f5f9", color: "#64748b" }
+                  : tenYearWorkPermitSummary.nearest.days < 0
+                    ? { background: "#fef2f2", color: "#dc2626" }
+                    : tenYearWorkPermitSummary.nearest.days === 0
+                      ? { background: "#fff7ed", color: "#ea580c" }
+                      : { background: "#fffbeb", color: "#d97706" }
+              }
+            >
+              {!tenYearWorkPermitSummary.nearest
+                ? "ไม่มีข้อมูล"
+                : tenYearWorkPermitSummary.nearest.days < 0
+                  ? `เกินกำหนด ${formatDays(Math.abs(tenYearWorkPermitSummary.nearest.days))}`
+                  : tenYearWorkPermitSummary.nearest.days === 0
+                    ? "หมดวันนี้"
+                    : `อีก ${formatDays(tenYearWorkPermitSummary.nearest.days)}`}
             </span>
           </div>
         </div>
@@ -785,16 +900,16 @@ export function MigrantDashboardPage() {
               className={`mdb-tab-btn ${activeTab === "due" ? "active" : ""}`}
               onClick={() => setActiveTab("due")}
             >
-              <span>ใกล้ครบกำหนด</span>
-              <span className="mdb-tab-badge">{dueSoon.length}</span>
+              <span>พาสแดง/เขียว ≤ 30 วัน</span>
+              <span className="mdb-tab-badge">{passportDueSoon30.length}</span>
             </button>
             <button
               type="button"
-              className={`mdb-tab-btn ${activeTab === "caution" ? "active" : ""}`}
-              onClick={() => setActiveTab("caution")}
+              className={`mdb-tab-btn ${activeTab === "ten_year_wp" ? "active" : ""}`}
+              onClick={() => setActiveTab("ten_year_wp")}
             >
-              <span>เฝ้าระวัง (≤ 90 วัน)</span>
-              <span className="mdb-tab-badge">{cautionRows.length}</span>
+              <span>บัตร 10 ปี (ใบอนุญาตทำงาน)</span>
+              <span className="mdb-tab-badge">{tenYearWorkPermitRows.length}</span>
             </button>
             <button
               type="button"
