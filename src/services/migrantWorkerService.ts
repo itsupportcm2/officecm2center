@@ -325,17 +325,48 @@ const history = (row: any): MigrantDocumentHistory => ({
   newData: row.new_data && typeof row.new_data === "object" ? row.new_data : null,
 });
 
+const CACHE_TTL_MS = 60_000;
+let cachedSnapshot: MigrantSnapshot | null = null;
+let cachedAt = 0;
+let inFlightLoad: Promise<MigrantSnapshot> | null = null;
+
 export const migrantWorkerService = {
-  async load(): Promise<MigrantSnapshot> {
+  invalidateCache(): void {
+    cachedSnapshot = null;
+    cachedAt = 0;
+    inFlightLoad = null;
+  },
+  async load(force = false): Promise<MigrantSnapshot> {
     if (!supabase) return { workers: [], documents: [], history: [] };
-    const { data, error } = await supabase.rpc("get_migrant_worker_snapshot");
-    if (error) throw error;
-    const result = data as any;
-    return {
-      workers: (result?.workers ?? []).map(worker),
-      documents: (result?.documents ?? []).map(document),
-      history: (result?.history ?? []).map(history),
-    };
+    if (!force && cachedSnapshot && Date.now() - cachedAt < CACHE_TTL_MS) {
+      return cachedSnapshot;
+    }
+    if (!force && inFlightLoad) {
+      return inFlightLoad;
+    }
+
+    const req = (async () => {
+      const { data, error } = await supabase.rpc("get_migrant_worker_snapshot");
+      if (error) throw error;
+      const result = data as any;
+      const snapshot: MigrantSnapshot = {
+        workers: (result?.workers ?? []).map(worker),
+        documents: (result?.documents ?? []).map(document),
+        history: (result?.history ?? []).map(history),
+      };
+      cachedSnapshot = snapshot;
+      cachedAt = Date.now();
+      return snapshot;
+    })();
+
+    inFlightLoad = req;
+    try {
+      return await req;
+    } finally {
+      if (inFlightLoad === req) {
+        inFlightLoad = null;
+      }
+    }
   },
   async saveWorker(
     input: Omit<ForeignWorker, "createdAt" | "updatedAt">,
@@ -389,11 +420,13 @@ export const migrantWorkerService = {
           },
         );
         if (fallbackError) throwWorkerError(fallbackError);
+        migrantWorkerService.invalidateCache();
         return worker(fallbackData);
       }
       throwWorkerError(error);
     }
 
+    migrantWorkerService.invalidateCache();
     return worker(data);
   },
   async deleteWorker(workerId: string): Promise<void> {
@@ -409,6 +442,7 @@ export const migrantWorkerService = {
       }
       throw translateMigrantDbError(error);
     }
+    migrantWorkerService.invalidateCache();
   },
   async deleteDocument(docId: string): Promise<void> {
     if (!supabase) throw new Error("Supabase is not configured");
@@ -423,6 +457,7 @@ export const migrantWorkerService = {
       }
       throw translateMigrantDbError(error);
     }
+    migrantWorkerService.invalidateCache();
   },
   async saveDocument(
     input: Omit<MigrantWorkerDocument, "createdAt" | "updatedAt">,
@@ -461,9 +496,11 @@ export const migrantWorkerService = {
           baseParams,
         );
         if (fallbackError) throw translateMigrantDbError(fallbackError);
+        migrantWorkerService.invalidateCache();
         return;
       }
       throw translateMigrantDbError(error);
     }
+    migrantWorkerService.invalidateCache();
   },
 };

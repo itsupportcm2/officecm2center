@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import { DEPARTMENTS } from "../constants/departments";
 import {
   formatNationalId,
@@ -7,6 +6,8 @@ import {
   type MigrantDocumentType,
   type MigrantWorkerDocument,
 } from "../services/migrantWorkerService";
+
+const loadXlsx = () => import("xlsx");
 
 // ---- Column headers ----
 export const EXPORT_HEADERS = [
@@ -134,10 +135,11 @@ function toRows(
   return rows;
 }
 
-export function exportToExcel(
+export async function exportToExcel(
   workers: ForeignWorker[],
   documents: MigrantWorkerDocument[]
-): void {
+): Promise<void> {
+  const XLSX = await loadXlsx();
   const rows = toRows(workers, documents);
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
@@ -251,6 +253,16 @@ function buildValidIsoDate(year: number, month: number, day: number): string | n
   return `${gy}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+const EXCEL_EPOCH_UTC_MS = Date.UTC(1899, 11, 30);
+
+function parseExcelSerial(serial: number): string | null {
+  if (!Number.isFinite(serial) || serial < 1 || serial > 2958465) return null;
+  // Account for Excel's 1900 leap-year bug (serials < 60 are shifted by 1 day)
+  const days = Math.floor(serial) + (serial < 60 ? 1 : 0);
+  const dt = new Date(EXCEL_EPOCH_UTC_MS + days * 86_400_000);
+  return buildValidIsoDate(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+}
+
 /** Parse Excel serial numbers, ISO dates, or Thai B.E. DD/MM/YYYY strings to YYYY-MM-DD. */
 export function parseDate(val: unknown): string | null {
   if (val == null || val === "") return null;
@@ -269,10 +281,7 @@ export function parseDate(val: unknown): string | null {
 
   // Excel serial number
   if (/^\d+(\.\d+)?$/.test(s)) {
-    const d = XLSX.SSF.parse_date_code(Number(s));
-    if (d) {
-      return buildValidIsoDate(d.y, d.m, d.d);
-    }
+    return parseExcelSerial(Number(s));
   }
 
   // DD/MM/YYYY or DD-MM-YYYY (supports Thai B.E. years like 15/03/2569)
@@ -294,156 +303,144 @@ function str(val: unknown): string {
   return val == null ? "" : String(val).trim();
 }
 
-export function parseImportFile(file: File): Promise<ImportRow[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const wb = XLSX.read(data, { type: "array", cellDates: false });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const raw: unknown[][] = XLSX.utils.sheet_to_json(ws, {
-          header: 1,
-          defval: "",
-        }) as unknown[][];
+export async function parseImportFile(file: File): Promise<ImportRow[]> {
+  const XLSX = await loadXlsx();
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data, { type: "array", cellDates: false });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw: unknown[][] = XLSX.utils.sheet_to_json(ws, {
+    header: 1,
+    defval: "",
+  }) as unknown[][];
 
-        if (raw.length < 2) {
-          resolve([]);
-          return;
-        }
+  if (raw.length < 2) {
+    return [];
+  }
 
-        // Find header row (first row with รหัสพนักงาน)
-        let headerIdx = -1;
-        for (let i = 0; i < Math.min(raw.length, 10); i++) {
-          if (raw[i].some((c) => String(c).includes("รหัสพนักงาน"))) {
-            headerIdx = i;
-            break;
-          }
-        }
+  // Find header row (first row with รหัสพนักงาน)
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(raw.length, 10); i++) {
+    if (raw[i].some((c) => String(c).includes("รหัสพนักงาน"))) {
+      headerIdx = i;
+      break;
+    }
+  }
 
-        if (headerIdx === -1) {
-          // Fallback to first row
-          headerIdx = 0;
-        }
+  if (headerIdx === -1) {
+    // Fallback to first row
+    headerIdx = 0;
+  }
 
-        const headers = (raw[headerIdx] as unknown[]).map((h) =>
-          String(h).trim()
-        );
-        const col = (name: string) => headers.indexOf(name);
+  const headers = (raw[headerIdx] as unknown[]).map((h) => String(h).trim());
+  const col = (name: string) => headers.indexOf(name);
 
-        const rows: ImportRow[] = [];
-        for (let i = headerIdx + 1; i < raw.length; i++) {
-          const r = raw[i] as unknown[];
-          const employeeCode = str(r[col("รหัสพนักงาน")]);
-          if (!employeeCode) continue; // skip empty rows
+  const rows: ImportRow[] = [];
+  for (let i = headerIdx + 1; i < raw.length; i++) {
+    const r = raw[i] as unknown[];
+    const employeeCode = str(r[col("รหัสพนักงาน")]);
+    if (!employeeCode) continue; // skip empty rows
 
-          const rawDept = str(r[col("แผนก")]);
-          const normalizedDept = normalizeDepartment(rawDept);
+    const rawDept = str(r[col("แผนก")]);
+    const normalizedDept = normalizeDepartment(rawDept);
 
-          const docTypeLabel = str(r[col("ประเภทเอกสาร")]);
-          const docType: MigrantDocumentType | null =
-            DOC_TYPE_REVERSE[docTypeLabel] ?? null;
+    const docTypeLabel = str(r[col("ประเภทเอกสาร")]);
+    const docType: MigrantDocumentType | null =
+      DOC_TYPE_REVERSE[docTypeLabel] ?? null;
 
-          const docNumber = str(r[col("เลขที่เอกสาร")]);
-          const issuedOn = parseDate(r[col("วันออกเอกสาร")]);
-          const expiresOn = parseDate(r[col("วันหมดอายุเอกสาร")]);
-          const visaIssuedOn = parseDate(r[col("วันออกวีซ่า")]);
-          const visaExpiresOn = parseDate(r[col("วันหมดอายุวีซ่า")]);
-          const areaPermitIssuedOn = parseDate(r[col("วันออกใบออกนอกพื้นที่")]);
-          const areaPermitExpiresOn = parseDate(r[col("วันหมดอายุใบออกนอกพื้นที่")]);
-          const workPermitNumber = str(r[col("เลขที่ใบอนุญาตทำงาน")]);
-          const workPermitIssuedOn = parseDate(r[col("วันออกใบอนุญาตทำงาน")]);
-          const workPermitExpiresOn = parseDate(r[col("วันหมดอายุใบอนุญาตทำงาน")]);
+    const docNumber = str(r[col("เลขที่เอกสาร")]);
+    const issuedOn = parseDate(r[col("วันออกเอกสาร")]);
+    const expiresOn = parseDate(r[col("วันหมดอายุเอกสาร")]);
+    const visaIssuedOn = parseDate(r[col("วันออกวีซ่า")]);
+    const visaExpiresOn = parseDate(r[col("วันหมดอายุวีซ่า")]);
+    const areaPermitIssuedOn = parseDate(r[col("วันออกใบออกนอกพื้นที่")]);
+    const areaPermitExpiresOn = parseDate(r[col("วันหมดอายุใบออกนอกพื้นที่")]);
+    const workPermitNumber = str(r[col("เลขที่ใบอนุญาตทำงาน")]);
+    const workPermitIssuedOn = parseDate(r[col("วันออกใบอนุญาตทำงาน")]);
+    const workPermitExpiresOn = parseDate(r[col("วันหมดอายุใบอนุญาตทำงาน")]);
 
-          const rawRemind = str(r[col("แจ้งเตือนล่วงหน้า(วัน)")]);
-          const remindDays = rawRemind === "" ? 30 : Number(rawRemind);
+    const rawRemind = str(r[col("แจ้งเตือนล่วงหน้า(วัน)")]);
+    const remindDays = rawRemind === "" ? 30 : Number(rawRemind);
 
-          const rawNationalId = str(r[col("เลขบัตรประชาชน")]);
-          const idDigits = rawNationalId.replace(/\D/g, "");
+    const rawNationalId = str(r[col("เลขบัตรประชาชน")]);
+    const idDigits = rawNationalId.replace(/\D/g, "");
 
-          const errors: string[] = [];
-          if (!str(r[col("ชื่อ-สกุล")])) errors.push("ไม่มีชื่อ-สกุล");
-          if (!normalizedDept) {
-            errors.push("ไม่มีแผนก");
-          } else if (!DEPARTMENTS.includes(normalizedDept as (typeof DEPARTMENTS)[number])) {
-            errors.push(`แผนก "${rawDept}" ไม่ถูกต้อง (ใช้: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`);
-          }
+    const errors: string[] = [];
+    if (!str(r[col("ชื่อ-สกุล")])) errors.push("ไม่มีชื่อ-สกุล");
+    if (!normalizedDept) {
+      errors.push("ไม่มีแผนก");
+    } else if (!DEPARTMENTS.includes(normalizedDept as (typeof DEPARTMENTS)[number])) {
+      errors.push(`แผนก "${rawDept}" ไม่ถูกต้อง (ใช้: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`);
+    }
 
-          if (!idDigits) {
-            errors.push("ไม่มีเลขบัตรประชาชน (ต้องครบ 13 หลัก)");
-          } else if (idDigits.length !== 13) {
-            errors.push(`เลขบัตรประชาชนไม่ครบ 13 หลัก (${idDigits.length}/13)`);
-          }
+    if (!idDigits) {
+      errors.push("ไม่มีเลขบัตรประชาชน (ต้องครบ 13 หลัก)");
+    } else if (idDigits.length !== 13) {
+      errors.push(`เลขบัตรประชาชนไม่ครบ 13 หลัก (${idDigits.length}/13)`);
+    }
 
-          if (docTypeLabel === "ใบอนุญาตทำงาน") {
-            errors.push("ใบอนุญาตทำงานถูกรวมลงในเอกสารแล้ว กรุณาระบุประเภทเป็น พาสปอร์ตสีแดง/เขียว หรือ บัตรชมพู/10ปี");
-          } else if (docTypeLabel && !docType) {
-            errors.push(`ประเภทเอกสาร "${docTypeLabel}" ไม่ถูกต้อง`);
-          }
+    if (docTypeLabel === "ใบอนุญาตทำงาน") {
+      errors.push("ใบอนุญาตทำงานถูกรวมลงในเอกสารแล้ว กรุณาระบุประเภทเป็น พาสปอร์ตสีแดง/เขียว หรือ บัตรชมพู/10ปี");
+    } else if (docTypeLabel && !docType) {
+      errors.push(`ประเภทเอกสาร "${docTypeLabel}" ไม่ถูกต้อง`);
+    }
 
-          // Shared DB-matching validation when a document type is specified
-          if (docType) {
-            errors.push(
-              ...validateMigrantDocument({
-                documentType: docType,
-                documentNumber: docNumber,
-                issuedOn,
-                expiresOn,
-                visaIssuedOn,
-                visaExpiresOn,
-                areaPermitIssuedOn,
-                areaPermitExpiresOn,
-                workPermitIssuedOn,
-                workPermitExpiresOn,
-                remindDays,
-              }),
-            );
-          }
+    // Shared DB-matching validation when a document type is specified
+    if (docType) {
+      errors.push(
+        ...validateMigrantDocument({
+          documentType: docType,
+          documentNumber: docNumber,
+          issuedOn,
+          expiresOn,
+          visaIssuedOn,
+          visaExpiresOn,
+          areaPermitIssuedOn,
+          areaPermitExpiresOn,
+          workPermitIssuedOn,
+          workPermitExpiresOn,
+          remindDays,
+        }),
+      );
+    }
 
-          const phone =
-            str(r[col("เบอร์โทรศัพท์")]) ||
-            str(r[col("เบอร์โทร")]) ||
-            str(r[col("โทรศัพท์")]) ||
-            "";
+    const phone =
+      str(r[col("เบอร์โทรศัพท์")]) ||
+      str(r[col("เบอร์โทร")]) ||
+      str(r[col("โทรศัพท์")]) ||
+      "";
 
-          rows.push({
-            rowIndex: i + 1,
-            employeeCode,
-            title: str(r[col("คำนำหน้า")]),
-            fullName: str(r[col("ชื่อ-สกุล")]),
-            phone,
-            nationality: str(r[col("สัญชาติ")]),
-            department: normalizedDept || rawDept,
-            nationalId: formatNationalId(rawNationalId),
-            birthDate: parseDate(r[col("วันเกิด")]),
-            documentType: docType,
-            documentNumber: docNumber,
-            issuedOn,
-            expiresOn,
-            visaIssuedOn,
-            visaExpiresOn,
-            areaPermitIssuedOn,
-            areaPermitExpiresOn,
-            workPermitNumber,
-            workPermitIssuedOn,
-            workPermitExpiresOn,
-            remindDays: Number.isFinite(remindDays) ? remindDays : 30,
-            docNote: str(r[col("หมายเหตุเอกสาร")]),
-            errors,
-          });
-        }
+    rows.push({
+      rowIndex: i + 1,
+      employeeCode,
+      title: str(r[col("คำนำหน้า")]),
+      fullName: str(r[col("ชื่อ-สกุล")]),
+      phone,
+      nationality: str(r[col("สัญชาติ")]),
+      department: normalizedDept || rawDept,
+      nationalId: formatNationalId(rawNationalId),
+      birthDate: parseDate(r[col("วันเกิด")]),
+      documentType: docType,
+      documentNumber: docNumber,
+      issuedOn,
+      expiresOn,
+      visaIssuedOn,
+      visaExpiresOn,
+      areaPermitIssuedOn,
+      areaPermitExpiresOn,
+      workPermitNumber,
+      workPermitIssuedOn,
+      workPermitExpiresOn,
+      remindDays: Number.isFinite(remindDays) ? remindDays : 30,
+      docNote: str(r[col("หมายเหตุเอกสาร")]),
+      errors,
+    });
+  }
 
-        resolve(rows);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error("อ่านไฟล์ไม่สำเร็จ"));
-    reader.readAsArrayBuffer(file);
-  });
+  return rows;
 }
 
-export function downloadTemplate(): void {
+export async function downloadTemplate(): Promise<void> {
+  const XLSX = await loadXlsx();
   const rows = [
     EXPORT_HEADERS,
     [

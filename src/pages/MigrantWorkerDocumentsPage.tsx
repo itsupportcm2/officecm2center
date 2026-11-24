@@ -187,6 +187,8 @@ export function MigrantWorkerDocumentsPage() {
   // Navigation & View tabs
   const [viewMode, setViewMode] = useState<"workers" | "expiry" | "documents">("workers");
   const [expirySubFilter, setExpirySubFilter] = useState<"all" | "expired" | "due" | "caution" | "safe">("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Filter toolbar
   const [searchQuery, setSearchQuery] = useState("");
@@ -223,6 +225,7 @@ export function MigrantWorkerDocumentsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [importDone, setImportDone] = useState(false);
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [importSuccessCount, setImportSuccessCount] = useState(0);
@@ -240,10 +243,10 @@ export function MigrantWorkerDocumentsPage() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const load = async () => {
+  const load = async (force = false) => {
     setLoading(true);
     try {
-      const data = await migrantWorkerService.load();
+      const data = await migrantWorkerService.load(force);
       setWorkers(data.workers);
       setDocuments(data.documents);
       setHistory(data.history);
@@ -255,7 +258,7 @@ export function MigrantWorkerDocumentsPage() {
   };
 
   useEffect(() => {
-    void load();
+    void load(false);
   }, []);
 
   // Support deep-link navigation from MigrantDashboardPage (?worker=...&doc=...)
@@ -288,6 +291,17 @@ export function MigrantWorkerDocumentsPage() {
     () => new Map(workers.map((w) => [w.id, w])),
     [workers],
   );
+
+  const activeDocsByWorkerId = useMemo(() => {
+    const map = new Map<string, MigrantWorkerDocument[]>();
+    for (const d of documents) {
+      if (!d.isActive) continue;
+      const list = map.get(d.workerId);
+      if (list) list.push(d);
+      else map.set(d.workerId, [d]);
+    }
+    return map;
+  }, [documents]);
 
   // Expiry calculation across all active documents of active workers
   const expiryRows = useMemo(() => {
@@ -386,16 +400,13 @@ export function MigrantWorkerDocumentsPage() {
     return workers.filter((w) => {
       if (deptFilter !== "all" && w.department !== deptFilter) return false;
       if (genderFilter !== "all" && getWorkerGender(w) !== genderFilter) return false;
+      const wDocs = activeDocsByWorkerId.get(w.id) ?? [];
       if (docTypeFilter !== "all") {
-        const workerDocTypes = documents
-          .filter((d) => d.workerId === w.id && d.isActive)
-          .map((d) => d.documentType);
-        if (!workerDocTypes.includes(docTypeFilter as MigrantDocumentType)) return false;
+        if (!wDocs.some((d) => d.documentType === docTypeFilter)) return false;
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const docs = documents.filter((d) => d.workerId === w.id && d.isActive);
-        const matchDoc = docs.some(
+        const matchDoc = wDocs.some(
           (d) =>
             d.documentNumber.toLowerCase().includes(q) ||
             d.workPermitNumber.toLowerCase().includes(q),
@@ -411,7 +422,7 @@ export function MigrantWorkerDocumentsPage() {
       }
       return true;
     });
-  }, [workers, documents, deptFilter, genderFilter, docTypeFilter, searchQuery]);
+  }, [workers, activeDocsByWorkerId, deptFilter, genderFilter, docTypeFilter, searchQuery]);
 
   // Filtered Expiry Rows
   const filteredExpiryRows = useMemo(() => {
@@ -468,6 +479,30 @@ export function MigrantWorkerDocumentsPage() {
       return true;
     });
   }, [documents, workerMap, deptFilter, genderFilter, docTypeFilter, searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode, expirySubFilter, searchQuery, deptFilter, genderFilter, docTypeFilter, pageSize]);
+
+  const activeListLength =
+    viewMode === "workers"
+      ? filteredWorkers.length
+      : viewMode === "expiry"
+        ? filteredExpiryRows.length
+        : filteredAllDocs.length;
+  const totalPages = Math.max(1, Math.ceil(activeListLength / pageSize));
+  const pagedWorkers = useMemo(
+    () => filteredWorkers.slice((page - 1) * pageSize, page * pageSize),
+    [filteredWorkers, page, pageSize],
+  );
+  const pagedExpiryRows = useMemo(
+    () => filteredExpiryRows.slice((page - 1) * pageSize, page * pageSize),
+    [filteredExpiryRows, page, pageSize],
+  );
+  const pagedAllDocs = useMemo(
+    () => filteredAllDocs.slice((page - 1) * pageSize, page * pageSize),
+    [filteredAllDocs, page, pageSize],
+  );
 
   const editDoc = (doc: MigrantWorkerDocument) => {
     setDocForm({ ...doc });
@@ -561,7 +596,7 @@ export function MigrantWorkerDocumentsPage() {
           : "บันทึกข้อมูลพนักงานแล้ว",
       );
       setWorkerOpen(false);
-      await load();
+      await load(true);
     } catch (error) {
       setToast(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
     } finally {
@@ -577,7 +612,7 @@ export function MigrantWorkerDocumentsPage() {
       setToast(`ลบข้อมูลพนักงาน "${deleteTarget.name}" เรียบร้อยแล้ว`);
       setDeleteTarget(null);
       setWorkerOpen(false);
-      await load();
+      await load(true);
     } catch (error) {
       setToast(error instanceof Error ? error.message : "ลบข้อมูลพนักงานไม่สำเร็จ");
     } finally {
@@ -595,7 +630,7 @@ export function MigrantWorkerDocumentsPage() {
       );
       setDeleteDocTarget(null);
       setDocOpen(false);
-      await load();
+      await load(true);
     } catch (error) {
       setToast(error instanceof Error ? error.message : "ลบเอกสารไม่สำเร็จ");
     } finally {
@@ -643,7 +678,7 @@ export function MigrantWorkerDocumentsPage() {
       });
       setToast("บันทึกเอกสารแล้ว");
       setDocOpen(false);
-      await load();
+      await load(true);
     } catch (error) {
       setToast(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
     } finally {
@@ -673,8 +708,10 @@ export function MigrantWorkerDocumentsPage() {
       return;
     }
     setImporting(true);
+    setImportProgress({ done: 0, total: validRows.length });
     setImportErrors([]);
     let success = 0;
+    let processed = 0;
     const errorsList: string[] = [];
 
     try {
@@ -683,56 +720,76 @@ export function MigrantWorkerDocumentsPage() {
         documents.filter((d) => d.isActive).map((d) => [d.workerId, d]),
       );
 
+      // Group rows by employeeCode so distinct employees can run in parallel batches safely
+      const groupsMap = new Map<string, ImportRow[]>();
       for (const row of validRows) {
-        try {
-          const existingWorker = existingWorkerByCode.get(row.employeeCode);
-          const saved = await migrantWorkerService.saveWorker({
-            id: existingWorker?.id ?? "",
-            employeeCode: row.employeeCode,
-            title: row.title || existingWorker?.title || "",
-            fullName: row.fullName || existingWorker?.fullName || "",
-            phone: row.phone || existingWorker?.phone || "",
-            nationality: row.nationality || existingWorker?.nationality || "",
-            department: row.department || existingWorker?.department || "",
-            organizationUnit: existingWorker?.organizationUnit ?? "",
-            nationalId: row.nationalId || existingWorker?.nationalId || "",
-            birthDate: row.birthDate ?? existingWorker?.birthDate ?? null,
-            position: existingWorker?.position ?? "",
-            note: existingWorker?.note ?? "",
-            isActive: existingWorker?.isActive ?? true,
-          });
-          const workerId = saved.id;
-          existingWorkerByCode.set(row.employeeCode, saved);
+        const list = groupsMap.get(row.employeeCode);
+        if (list) list.push(row);
+        else groupsMap.set(row.employeeCode, [row]);
+      }
+      const employeeGroups = Array.from(groupsMap.values());
+      const BATCH_SIZE = 5;
 
-          if (row.documentType) {
-            const existingDoc = activeDocByWorkerId.get(workerId);
-            const isPassport =
-              row.documentType === "PASSPORT_RED" || row.documentType === "PASSPORT_GREEN";
-            const isArea = row.documentType === "TEN_YEAR_CARD";
-            await migrantWorkerService.saveDocument({
-              id: existingDoc?.id ?? "",
-              workerId,
-              documentType: row.documentType,
-              documentNumber: row.documentNumber,
-              issuedOn: row.issuedOn,
-              expiresOn: row.expiresOn,
-              visaIssuedOn: isPassport ? row.visaIssuedOn : null,
-              visaExpiresOn: isPassport ? row.visaExpiresOn : null,
-              areaPermitIssuedOn: isArea ? row.areaPermitIssuedOn : null,
-              areaPermitExpiresOn: isArea ? row.areaPermitExpiresOn : null,
-              workPermitNumber: row.workPermitNumber,
-              workPermitIssuedOn: row.workPermitIssuedOn,
-              workPermitExpiresOn: row.workPermitExpiresOn,
-              remindDays: row.remindDays,
-              note: row.docNote,
-              isActive: true,
-            });
-          }
-          success++;
-        } catch (rowErr) {
-          const msg = rowErr instanceof Error ? rowErr.message : "บันทึกไม่สำเร็จ";
-          errorsList.push(`แถวที่ ${row.rowIndex} (${row.employeeCode} - ${row.fullName}): ${msg}`);
-        }
+      for (let start = 0; start < employeeGroups.length; start += BATCH_SIZE) {
+        const chunk = employeeGroups.slice(start, start + BATCH_SIZE);
+        await Promise.all(
+          chunk.map(async (group) => {
+            for (const row of group) {
+              try {
+                const existingWorker = existingWorkerByCode.get(row.employeeCode);
+                const saved = await migrantWorkerService.saveWorker({
+                  id: existingWorker?.id ?? "",
+                  employeeCode: row.employeeCode,
+                  title: row.title || existingWorker?.title || "",
+                  fullName: row.fullName || existingWorker?.fullName || "",
+                  phone: row.phone || existingWorker?.phone || "",
+                  nationality: row.nationality || existingWorker?.nationality || "",
+                  department: row.department || existingWorker?.department || "",
+                  organizationUnit: existingWorker?.organizationUnit ?? "",
+                  nationalId: row.nationalId || existingWorker?.nationalId || "",
+                  birthDate: row.birthDate ?? existingWorker?.birthDate ?? null,
+                  position: existingWorker?.position ?? "",
+                  note: existingWorker?.note ?? "",
+                  isActive: existingWorker?.isActive ?? true,
+                });
+                const workerId = saved.id;
+                existingWorkerByCode.set(row.employeeCode, saved);
+
+                if (row.documentType) {
+                  const existingDoc = activeDocByWorkerId.get(workerId);
+                  const isPassport =
+                    row.documentType === "PASSPORT_RED" || row.documentType === "PASSPORT_GREEN";
+                  const isArea = row.documentType === "TEN_YEAR_CARD";
+                  await migrantWorkerService.saveDocument({
+                    id: existingDoc?.id ?? "",
+                    workerId,
+                    documentType: row.documentType,
+                    documentNumber: row.documentNumber,
+                    issuedOn: row.issuedOn,
+                    expiresOn: row.expiresOn,
+                    visaIssuedOn: isPassport ? row.visaIssuedOn : null,
+                    visaExpiresOn: isPassport ? row.visaExpiresOn : null,
+                    areaPermitIssuedOn: isArea ? row.areaPermitIssuedOn : null,
+                    areaPermitExpiresOn: isArea ? row.areaPermitExpiresOn : null,
+                    workPermitNumber: row.workPermitNumber,
+                    workPermitIssuedOn: row.workPermitIssuedOn,
+                    workPermitExpiresOn: row.workPermitExpiresOn,
+                    remindDays: row.remindDays,
+                    note: row.docNote,
+                    isActive: true,
+                  });
+                }
+                success++;
+              } catch (rowErr) {
+                const msg = rowErr instanceof Error ? rowErr.message : "บันทึกไม่สำเร็จ";
+                errorsList.push(`แถวที่ ${row.rowIndex} (${row.employeeCode} - ${row.fullName}): ${msg}`);
+              } finally {
+                processed++;
+                setImportProgress({ done: processed, total: validRows.length });
+              }
+            }
+          }),
+        );
       }
 
       setImportSuccessCount(success);
@@ -743,11 +800,12 @@ export function MigrantWorkerDocumentsPage() {
       } else {
         setToast(`นำเข้าสำเร็จ ${success} รายการ, ผิดพลาด ${errorsList.length} รายการ`);
       }
-      await load();
+      await load(true);
     } catch (err) {
       setToast(err instanceof Error ? err.message : "การนำเข้าขัดข้อง");
     } finally {
       setImporting(false);
+      setImportProgress(null);
     }
   };
 
@@ -832,7 +890,7 @@ export function MigrantWorkerDocumentsPage() {
           <button
             type="button"
             className="mwp-btn-hero-glass"
-            onClick={() => exportToExcel(workers, documents)}
+            onClick={() => void exportToExcel(workers, documents)}
             disabled={!workers.length}
             title="ดาวน์โหลด Excel"
           >
@@ -863,7 +921,7 @@ export function MigrantWorkerDocumentsPage() {
           <button
             type="button"
             className="mwp-btn-hero-glass"
-            onClick={() => void load()}
+            onClick={() => void load(true)}
             disabled={loading}
             title="รีเฟรชข้อมูล"
           >
@@ -1207,10 +1265,8 @@ export function MigrantWorkerDocumentsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredWorkers.map((w) => {
-                    const workerDocsList = documents.filter(
-                      (d) => d.workerId === w.id && d.isActive,
-                    );
+                  pagedWorkers.map((w) => {
+                    const workerDocsList = activeDocsByWorkerId.get(w.id) ?? [];
                     const isExpanded = expandedWorkerId === w.id;
                     const initial = w.fullName.trim() ? w.fullName.trim()[0] : "W";
                     const gender = getWorkerGender(w);
@@ -1609,7 +1665,7 @@ export function MigrantWorkerDocumentsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredExpiryRows.map((row) => {
+                  pagedExpiryRows.map((row) => {
                     const worker = workerMap.get(row.doc.workerId);
                     if (!worker) return null;
                     const initial = worker.fullName.trim() ? worker.fullName.trim()[0] : "W";
@@ -1772,7 +1828,7 @@ export function MigrantWorkerDocumentsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredAllDocs.map((doc) => {
+                  pagedAllDocs.map((doc) => {
                     const worker = workerMap.get(doc.workerId);
                     const daysLeft = doc.expiresOn ? daysUntil(doc.expiresOn) : null;
                     const gender = worker ? getWorkerGender(worker) : "UNKNOWN";
@@ -1888,6 +1944,40 @@ export function MigrantWorkerDocumentsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {!loading && activeListLength > 0 && (
+          <div className="pagination">
+            <label className="page-size-control">
+              แสดง
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              รายการ/หน้า
+            </label>
+            <button
+              type="button"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              ก่อนหน้า
+            </button>
+            <span className="tabular-nums">
+              หน้า {page} / {totalPages} ({activeListLength.toLocaleString("th-TH")} รายการ)
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              ถัดไป
+            </button>
           </div>
         )}
       </div>
@@ -2475,8 +2565,9 @@ export function MigrantWorkerDocumentsPage() {
               </p>
               <button
                 className="btn secondary compact"
-                onClick={downloadTemplate}
+                onClick={() => void downloadTemplate()}
                 type="button"
+                disabled={importing}
               >
                 <Download size={15} /> ดาวน์โหลด Template (.xlsx)
               </button>
@@ -2550,6 +2641,28 @@ export function MigrantWorkerDocumentsPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {importing && importProgress && (
+              <div className="import-progress-wrap">
+                <div className="import-progress-head">
+                  <span>
+                    กำลังนำเข้าข้อมูล... {importProgress.done.toLocaleString("th-TH")} /{" "}
+                    {importProgress.total.toLocaleString("th-TH")} แถว
+                  </span>
+                  <span className="tabular-nums">
+                    {Math.round((importProgress.done / Math.max(1, importProgress.total)) * 100)}%
+                  </span>
+                </div>
+                <div className="import-progress-track">
+                  <div
+                    className="import-progress-fill"
+                    style={{
+                      width: `${Math.round((importProgress.done / Math.max(1, importProgress.total)) * 100)}%`,
+                    }}
+                  />
                 </div>
               </div>
             )}

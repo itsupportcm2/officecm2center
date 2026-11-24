@@ -9,21 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;family=Noto+Sans+Thai:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet" />
-    <script>
-      try {
-        const theme = localStorage.getItem('cm_office_theme');
-        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-        const savedPalette = localStorage.getItem('cm_office_palette');
-        const palette = (savedPalette === 'emerald' || savedPalette === 'minimal' || savedPalette === 'aurora')
-          ? savedPalette
-          : 'emerald';
-        document.documentElement.setAttribute('data-palette', palette);
-      } catch (e) {}
-    </script>
+    <script src="/theme-init.js"></script>
     <title>ระบบจัดการสำนักงาน เชียงใหม่โฟรเซ่นฟูดส์</title>
   </head>
   <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>

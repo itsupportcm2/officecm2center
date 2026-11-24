@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   getWorkerAge,
   getWorkerGender,
@@ -31,7 +32,7 @@ interface MigrantPrintSheetProps {
 }
 
 /** Print-only A4 Landscape report sheet matching current filters and view tab. */
-export function MigrantPrintSheet({
+export const MigrantPrintSheet = memo(function MigrantPrintSheet({
   viewMode,
   deptFilter,
   genderFilter,
@@ -409,4 +410,4 @@ export function MigrantPrintSheet({
       </div>
     </div>
   );
-}
+});

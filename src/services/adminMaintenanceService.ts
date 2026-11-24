@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { migrantWorkerService } from "./migrantWorkerService";
 
 export type PurgeModuleKey =
   | "migrant_workers"
@@ -149,8 +150,12 @@ export const adminMaintenanceService = {
       module?: PurgeModuleKey;
       deleted?: Record<string, number>;
     };
+    const resolvedModule = payload.module ?? moduleKey;
+    if (resolvedModule === "migrant_workers") {
+      migrantWorkerService.invalidateCache();
+    }
     return {
-      module: payload.module ?? moduleKey,
+      module: resolvedModule,
       deleted: payload.deleted ?? {},
     };
   },

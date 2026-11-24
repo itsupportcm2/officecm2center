@@ -85,17 +85,19 @@ export function MigrantDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter states
+  // Filter & pagination states
   const [activeTab, setActiveTab] = useState<"urgent" | "expired" | "due" | "ten_year_wp" | "all">("urgent");
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState<"all" | "MALE" | "FEMALE">("all");
+  const [watchPage, setWatchPage] = useState(1);
+  const [watchPageSize, setWatchPageSize] = useState(20);
 
-  const load = async () => {
+  const load = async (force = false) => {
     try {
       setLoading(true);
       setError(null);
-      const snapshot = await migrantWorkerService.load();
+      const snapshot = await migrantWorkerService.load(force);
       setWorkers(snapshot.workers);
       setDocs(snapshot.documents);
     } catch (e) {
@@ -106,7 +108,7 @@ export function MigrantDashboardPage() {
   };
 
   useEffect(() => {
-    void load();
+    void load(false);
   }, []);
 
   const activeWorkers = useMemo(() => workers.filter((w) => w.isActive), [workers]);
@@ -321,6 +323,20 @@ export function MigrantDashboardPage() {
     tenYearWorkPermitRows,
   ]);
 
+  useEffect(() => {
+    setWatchPage(1);
+  }, [activeTab, deptFilter, genderFilter, searchQuery, watchPageSize]);
+
+  const watchPages = Math.max(1, Math.ceil(filteredRows.length / watchPageSize));
+  const pagedRows = useMemo(
+    () =>
+      filteredRows.slice(
+        (watchPage - 1) * watchPageSize,
+        watchPage * watchPageSize,
+      ),
+    [filteredRows, watchPage, watchPageSize],
+  );
+
   const nowFormatted = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
     year: "numeric",
@@ -357,7 +373,7 @@ export function MigrantDashboardPage() {
           <button
             type="button"
             className="mdb-btn-glass"
-            onClick={() => void load()}
+            onClick={() => void load(true)}
             disabled={loading}
             title="รีเฟรชข้อมูล"
           >
@@ -1021,7 +1037,7 @@ export function MigrantDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((r) => {
+                {pagedRows.map((r) => {
                   const remind = r.doc.remindDays ?? 30;
                   const isExp = r.days < 0;
                   const isDue = r.days >= 0 && r.days <= remind;
@@ -1158,6 +1174,39 @@ export function MigrantDashboardPage() {
             </table>
           )}
         </div>
+        {!loading && filteredRows.length > 0 && (
+          <div className="pagination">
+            <label className="page-size-control">
+              แสดง
+              <select
+                value={watchPageSize}
+                onChange={(e) => setWatchPageSize(Number(e.target.value))}
+              >
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              แถว/หน้า
+            </label>
+            <button
+              type="button"
+              disabled={watchPage === 1}
+              onClick={() => setWatchPage((p) => p - 1)}
+            >
+              ก่อนหน้า
+            </button>
+            <span className="tabular-nums">
+              หน้า {watchPage} / {watchPages} ({filteredRows.length.toLocaleString("th-TH")} รายการ)
+            </span>
+            <button
+              type="button"
+              disabled={watchPage >= watchPages}
+              onClick={() => setWatchPage((p) => p + 1)}
+            >
+              ถัดไป
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
