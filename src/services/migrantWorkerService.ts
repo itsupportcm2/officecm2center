@@ -1,3 +1,4 @@
+import { DEPARTMENTS } from "../constants/departments";
 import { supabase } from "../lib/supabase";
 
 export type MigrantDocumentType =
@@ -390,7 +391,7 @@ export const migrantWorkerService = {
     const throwWorkerError = (err: any): never => {
       if (err?.message?.includes("invalid department")) {
         throw new Error(
-          `แผนก "${input.department}" ไม่ถูกต้องในระบบ (ต้องเป็นหนึ่งใน: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`,
+          `แผนก "${input.department}" ไม่ถูกต้องในระบบ (ต้องเป็นหนึ่งใน: ${DEPARTMENTS.join(", ")})`,
         );
       }
       if (

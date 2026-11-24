@@ -369,7 +369,7 @@ export async function parseImportFile(file: File): Promise<ImportRow[]> {
     if (!normalizedDept) {
       errors.push("ไม่มีแผนก");
     } else if (!DEPARTMENTS.includes(normalizedDept as (typeof DEPARTMENTS)[number])) {
-      errors.push(`แผนก "${rawDept}" ไม่ถูกต้อง (ใช้: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`);
+      errors.push(`แผนก "${rawDept}" ไม่ถูกต้อง (ใช้: ${DEPARTMENTS.join(", ")})`);
     }
 
     if (!idDigits) {
