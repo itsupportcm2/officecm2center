@@ -5608,11 +5608,44 @@ body,
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 }
 
-/* KPI Cards Grid */
+/* KPI Cards Grid (3 summary cards top row + 2 wide expiry cards bottom row) */
 .mdb-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 16px;
+}
+
+.mdb-kpi-grid > .mdb-kpi-card {
+  grid-column: span 2;
+}
+
+.mdb-kpi-grid > .mdb-kpi-card.mdb-kpi-wide {
+  grid-column: span 3;
+}
+
+@media (max-width: 960px) {
+  .mdb-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mdb-kpi-grid > .mdb-kpi-card {
+    grid-column: span 1;
+  }
+
+  .mdb-kpi-grid > .mdb-kpi-card.mdb-kpi-wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .mdb-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mdb-kpi-grid > .mdb-kpi-card,
+  .mdb-kpi-grid > .mdb-kpi-card.mdb-kpi-wide {
+    grid-column: span 1;
+  }
 }
 
 .mdb-kpi-card {
@@ -10460,30 +10493,30 @@ button.top-user.ops-user {
   .mdb-passport-split {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-    margin-bottom: 10px;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .mdb-passport-mini {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 6px 8px;
-    border-radius: 10px;
+    gap: 3px;
+    padding: 8px 12px;
+    border-radius: 11px;
     font-variant-numeric: tabular-nums;
   }
 
   .mdb-passport-mini-head {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.72rem;
+    gap: 6px;
+    font-size: 0.78rem;
     font-weight: 700;
   }
 
   .mdb-passport-mini-head i {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
   }
@@ -10493,7 +10526,7 @@ button.top-user.ops-user {
   }
 
   .mdb-passport-mini-label {
-    font-size: 0.64rem;
+    font-size: 0.68rem;
     font-weight: 600;
     opacity: 0.78;
     line-height: 1.2;
@@ -10501,7 +10534,7 @@ button.top-user.ops-user {
   }
 
   .mdb-passport-mini-date {
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     font-weight: 700;
     line-height: 1.25;
     white-space: nowrap;
@@ -10532,10 +10565,10 @@ button.top-user.ops-user {
   .mdb-kpi-nearest-date {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 8px;
-    font-size: 0.75rem;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
     font-weight: 600;
     background: #fffbeb;
     color: #92400e;

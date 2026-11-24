@@ -259,11 +259,6 @@ export function MigrantDashboardPage() {
     return { total, expiredCount, due30Count, nearest, isFallbackCardDate };
   }, [tenYearWorkPermitRows, tenYearCardFallbackRows]);
 
-  const safe = useMemo(
-    () => expiryRows.filter((r) => r.days > Math.max(90, r.doc.remindDays ?? 30)),
-    [expiryRows],
-  );
-
   // Document types distribution
   const docTypeStats = useMemo(() => {
     const counts = new Map<MigrantDocumentType, number>();
@@ -528,7 +523,7 @@ export function MigrantDashboardPage() {
         </div>
 
         <div
-          className={`mdb-kpi-card mdb-kpi-warning mdb-kpi-clickable ${activeTab === "due" ? "is-active" : ""}`}
+          className={`mdb-kpi-card mdb-kpi-warning mdb-kpi-wide mdb-kpi-clickable ${activeTab === "due" ? "is-active" : ""}`}
           role="button"
           tabIndex={0}
           onClick={() => {
@@ -615,7 +610,7 @@ export function MigrantDashboardPage() {
         </div>
 
         <div
-          className={`mdb-kpi-card mdb-kpi-caution mdb-kpi-clickable ${activeTab === "ten_year_wp" ? "is-active" : ""}`}
+          className={`mdb-kpi-card mdb-kpi-caution mdb-kpi-wide mdb-kpi-clickable ${activeTab === "ten_year_wp" ? "is-active" : ""}`}
           role="button"
           tabIndex={0}
           onClick={() => {
@@ -684,43 +679,6 @@ export function MigrantDashboardPage() {
                   : tenYearWorkPermitSummary.nearest.days === 0
                     ? "หมดวันนี้"
                     : `อีก ${formatDays(tenYearWorkPermitSummary.nearest.days)}`}
-            </span>
-          </div>
-        </div>
-
-        <div
-          className={`mdb-kpi-card mdb-kpi-success mdb-kpi-clickable ${activeTab === "all" ? "is-active" : ""}`}
-          role="button"
-          tabIndex={0}
-          onClick={() => {
-            setActiveTab("all");
-            document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setActiveTab("all");
-              document.getElementById("mdb-watchlist")?.scrollIntoView({ behavior: "smooth" });
-            }
-          }}
-          title="คลิกเพื่อดูรายการวันหมดอายุทั้งหมด"
-        >
-          <div className="mdb-kpi-top">
-            <span className="mdb-kpi-title">สถานะปกติ &gt; 90 วัน</span>
-            <div className="mdb-kpi-icon-wrap">
-              <CheckCircle2 size={20} />
-            </div>
-          </div>
-          <div className="mdb-kpi-val-row">
-            <span className="mdb-kpi-val" style={{ color: "#16a34a" }}>
-              {safe.length.toLocaleString("th-TH")}
-            </span>
-            <span className="mdb-kpi-unit">รายการ</span>
-          </div>
-          <div className="mdb-kpi-footer">
-            <span>ระยะปลอดภัย</span>
-            <span className="mdb-kpi-pill" style={{ background: "#f0fdf4", color: "#16a34a" }}>
-              ความเสี่ยงต่ำ
             </span>
           </div>
         </div>
