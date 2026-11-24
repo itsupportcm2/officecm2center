@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#070d1f" />
+    <meta name="theme-color" content="#04231d" />
     <meta name="description" content="ระบบจัดการสำนักงาน เชียงใหม่โฟรเซ่นฟูดส์" />
     <link rel="icon" type="image/png" href="/cm_logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,6 +17,11 @@
         } else {
           document.documentElement.setAttribute('data-theme', 'light');
         }
+        const savedPalette = localStorage.getItem('cm_office_palette');
+        const palette = (savedPalette === 'emerald' || savedPalette === 'minimal' || savedPalette === 'aurora')
+          ? savedPalette
+          : 'emerald';
+        document.documentElement.setAttribute('data-palette', palette);
       } catch (e) {}
     </script>
     <title>ระบบจัดการสำนักงาน เชียงใหม่โฟรเซ่นฟูดส์</title>

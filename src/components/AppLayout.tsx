@@ -9,6 +9,7 @@ import {
   Bell,
   Boxes,
   CalendarClock,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -23,6 +24,7 @@ import {
   MapPin,
   Menu,
   Moon,
+  Palette,
   Sun,
   PackageCheck,
   PackageSearch,
@@ -155,6 +157,34 @@ const formatDays = (absDays: number): string => {
   return days > 0 ? `${months} เดือน ${days} วัน` : `${months} เดือน`;
 };
 
+type ThemePalette = "emerald" | "minimal" | "aurora";
+
+const PALETTE_OPTIONS: ReadonlyArray<{
+  id: ThemePalette;
+  name: string;
+  desc: string;
+  swatch: string;
+}> = [
+  {
+    id: "emerald",
+    name: "Frozen Emerald",
+    desc: "เขียวมรกต-ถนอมสายตา (CM)",
+    swatch: "linear-gradient(135deg, #04231d 0%, #059669 60%, #0891b2 100%)",
+  },
+  {
+    id: "minimal",
+    name: "Emerald Minimal",
+    desc: "Sidebar สว่างคลีนทั้งหน้า",
+    swatch: "linear-gradient(135deg, #f8faf8 0%, #d1fae5 50%, #059669 100%)",
+  },
+  {
+    id: "aurora",
+    name: "Aurora Blue",
+    desc: "น้ำเงินไฟฟ้า-ไซแอน 2026",
+    swatch: "linear-gradient(135deg, #060c1d 0%, #2563eb 60%, #0891b2 100%)",
+  },
+];
+
 export function AppLayout() {
   const { dueItems } = useRenewals();
   const { user, signOut } = useAuth();
@@ -187,9 +217,11 @@ export function AppLayout() {
               ? "เจ้าหน้าที่เบิกของ"
               : "ยังไม่ได้รับสิทธิ์";
   const [notifyMenuOpen, setNotifyMenuOpen] = useState(false);
+  const [paletteMenuOpen, setPaletteMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const notifyWrapRef = useRef<HTMLDivElement>(null);
+  const paletteWrapRef = useRef<HTMLDivElement>(null);
   const userWrapRef = useRef<HTMLDivElement>(null);
   const [renewalAlertsEnabled, setRenewalAlertsEnabled] = useState(() => {
     try {
@@ -214,6 +246,17 @@ export function AppLayout() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('cm_office_theme', theme);
   }, [theme]);
+
+  const [palette, setPalette] = useState<ThemePalette>(() => {
+    const saved = localStorage.getItem("cm_office_palette");
+    if (saved === "emerald" || saved === "minimal" || saved === "aurora") return saved;
+    return "emerald";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-palette", palette);
+    localStorage.setItem("cm_office_palette", palette);
+  }, [palette]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -252,6 +295,7 @@ export function AppLayout() {
         }
       } else if (e.key === "Escape") {
         setNotifyMenuOpen(false);
+        setPaletteMenuOpen(false);
         setUserMenuOpen(false);
       }
     };
@@ -261,11 +305,14 @@ export function AppLayout() {
 
   // Close topbar popovers on outside click
   useEffect(() => {
-    if (!notifyMenuOpen && !userMenuOpen) return;
+    if (!notifyMenuOpen && !paletteMenuOpen && !userMenuOpen) return;
     const onMouseDown = (e: MouseEvent) => {
       const target = e.target as Node;
       if (notifyWrapRef.current && !notifyWrapRef.current.contains(target)) {
         setNotifyMenuOpen(false);
+      }
+      if (paletteWrapRef.current && !paletteWrapRef.current.contains(target)) {
+        setPaletteMenuOpen(false);
       }
       if (userWrapRef.current && !userWrapRef.current.contains(target)) {
         setUserMenuOpen(false);
@@ -273,7 +320,7 @@ export function AppLayout() {
     };
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [notifyMenuOpen, userMenuOpen]);
+  }, [notifyMenuOpen, paletteMenuOpen, userMenuOpen]);
 
   const totalAlertCount =
     (isOperator ? pendingIssueRequests.length : 0) +
@@ -715,6 +762,7 @@ export function AppLayout() {
                   aria-expanded={notifyMenuOpen}
                   onClick={() => {
                     setNotifyMenuOpen((v) => !v);
+                    setPaletteMenuOpen(false);
                     setUserMenuOpen(false);
                   }}
                 >
@@ -812,6 +860,61 @@ export function AppLayout() {
                 )}
               </div>
             )}
+            {/* Palette Theme Switcher (2026) */}
+            <div className="ops-popover-wrap" ref={paletteWrapRef}>
+              <button
+                type="button"
+                className="icon-btn palette-toggle"
+                aria-label="เปลี่ยนโทนสีธีม"
+                title="เปลี่ยนโทนสีธีม (Frozen Emerald / Emerald Minimal / Aurora Blue)"
+                aria-expanded={paletteMenuOpen}
+                onClick={() => {
+                  setPaletteMenuOpen((v) => !v);
+                  setNotifyMenuOpen(false);
+                  setUserMenuOpen(false);
+                }}
+              >
+                <Palette size={20} />
+              </button>
+              {paletteMenuOpen && (
+                <div className="ops-popover palette-popover" role="menu">
+                  <div className="ops-popover-header">
+                    <strong>โทนสีธีม 2026</strong>
+                    <span className="ops-popover-pill">
+                      {PALETTE_OPTIONS.find((p) => p.id === palette)?.name}
+                    </span>
+                  </div>
+                  <div className="palette-list">
+                    {PALETTE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={palette === opt.id}
+                        className={`palette-option ${palette === opt.id ? "active" : ""}`}
+                        onClick={() => {
+                          setPalette(opt.id);
+                          setPaletteMenuOpen(false);
+                        }}
+                      >
+                        <span
+                          className="palette-swatch"
+                          style={{ background: opt.swatch }}
+                          aria-hidden="true"
+                        />
+                        <div className="palette-option-copy">
+                          <b>{opt.name}</b>
+                          <small>{opt.desc}</small>
+                        </div>
+                        {palette === opt.id && (
+                          <Check size={16} className="palette-check" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Theme Toggle Button (Light / Dark) */}
             <button
               type="button"
@@ -835,6 +938,7 @@ export function AppLayout() {
                 onClick={() => {
                   setUserMenuOpen((v) => !v);
                   setNotifyMenuOpen(false);
+                  setPaletteMenuOpen(false);
                 }}
               >
                 <div className="avatar">{user?.name.slice(0, 2)}</div>
@@ -853,6 +957,27 @@ export function AppLayout() {
                     </div>
                   </div>
                   <div className="ops-popover-divider" />
+                  <div className="palette-inline-section">
+                    <span>โทนสี</span>
+                    <div className="palette-inline-row">
+                      {PALETTE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          className={`palette-dot-btn ${palette === opt.id ? "active" : ""}`}
+                          title={opt.name}
+                          aria-label={`เลือกโทนสี ${opt.name}`}
+                          onClick={() => setPalette(opt.id)}
+                        >
+                          <span
+                            className="palette-swatch small"
+                            style={{ background: opt.swatch }}
+                          />
+                          <em>{opt.name.split(" ")[0]}</em>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     className="ops-popover-action"
