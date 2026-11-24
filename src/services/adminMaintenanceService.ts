@@ -134,10 +134,15 @@ export const adminMaintenanceService = {
           "ยังไม่พบฟังก์ชันล้างข้อมูลในฐานข้อมูล กรุณารันไฟล์ migration 202611240002_admin_selective_purge.sql ใน Supabase SQL Editor ก่อน",
         );
       }
+      if (msg.includes("DELETE requires a WHERE clause")) {
+        throw new Error(
+          "ฟังก์ชันล้างข้อมูลในฐานข้อมูลเป็นเวอร์ชันเก่า กรุณารันไฟล์ migration 202611240002_admin_selective_purge.sql เวอร์ชันล่าสุดใน Supabase SQL Editor ใหม่อีกครั้ง",
+        );
+      }
       if (msg.toLowerCase().includes("permission denied")) {
         throw new Error("เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถล้างข้อมูลได้");
       }
-      throw error;
+      throw new Error(msg || "ล้างข้อมูลไม่สำเร็จ");
     }
 
     const payload = (data ?? {}) as {

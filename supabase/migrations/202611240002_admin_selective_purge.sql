@@ -23,13 +23,13 @@ begin
 
   case p_module
     when 'migrant_workers' then
-      delete from public.migrant_worker_document_history;
+      delete from public.migrant_worker_document_history where id is not null;
       get diagnostics v_deleted_a = row_count;
 
-      delete from public.migrant_worker_documents;
+      delete from public.migrant_worker_documents where id is not null;
       get diagnostics v_deleted_b = row_count;
 
-      delete from public.foreign_workers;
+      delete from public.foreign_workers where id is not null;
       get diagnostics v_deleted_c = row_count;
 
       v_title := 'ล้างข้อมูลต่อภาษีแรงงานต่างด้าว';
@@ -40,10 +40,10 @@ begin
       );
 
     when 'renewals' then
-      delete from public.renewal_history;
+      delete from public.renewal_history where id is not null;
       get diagnostics v_deleted_a = row_count;
 
-      delete from public.renewals;
+      delete from public.renewals where id is not null;
       get diagnostics v_deleted_b = row_count;
 
       v_title := 'ล้างข้อมูลรายการต่ออายุสำนักงาน';
@@ -53,10 +53,10 @@ begin
       );
 
     when 'issue_requests' then
-      delete from public.issue_request_lines;
+      delete from public.issue_request_lines where id is not null;
       get diagnostics v_deleted_a = row_count;
 
-      delete from public.issue_requests;
+      delete from public.issue_requests where id is not null;
       get diagnostics v_deleted_b = row_count;
 
       v_title := 'ล้างข้อมูลคำขอเบิกสินค้า';
@@ -66,10 +66,10 @@ begin
       );
 
     when 'purchase_requests' then
-      delete from public.purchase_request_lines;
+      delete from public.purchase_request_lines where id is not null;
       get diagnostics v_deleted_a = row_count;
 
-      delete from public.purchase_requests;
+      delete from public.purchase_requests where id is not null;
       get diagnostics v_deleted_b = row_count;
 
       v_title := 'ล้างข้อมูลใบขอซื้อ';
@@ -79,7 +79,7 @@ begin
       );
 
     when 'stock_transactions' then
-      delete from public.stock_transactions;
+      delete from public.stock_transactions where id is not null;
       get diagnostics v_deleted_a = row_count;
 
       update public.stock_balances
@@ -94,7 +94,7 @@ begin
       );
 
     when 'audit_logs' then
-      delete from public.audit_logs;
+      delete from public.audit_logs where id is not null;
       get diagnostics v_deleted_a = row_count;
 
       v_title := 'ล้างบันทึกกิจกรรม (Audit Log)';
