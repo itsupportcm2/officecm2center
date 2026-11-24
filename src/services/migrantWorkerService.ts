@@ -246,7 +246,10 @@ export function translateMigrantDbError(error: any): Error {
       "รูปแบบเลขที่เอกสารไม่ถูกต้อง (พาสปอร์ตสีแดงต้องขึ้นต้นด้วย M, สีเขียวต้องขึ้นต้นด้วย CC หรือ CA)",
     );
   }
-  if (combined.includes("migrant_worker_documents_check")) {
+  if (
+    combined.includes("migrant_worker_documents_check") ||
+    combined.includes("migrant_worker_documents_type_dates_check")
+  ) {
     return new Error(
       "ข้อมูลวันที่เอกสารไม่ครบถ้วน (ต้องระบุวันออกและวันหมดอายุเอกสาร รวมถึงวันหมดอายุวีซ่าสำหรับพาสปอร์ต)",
     );
