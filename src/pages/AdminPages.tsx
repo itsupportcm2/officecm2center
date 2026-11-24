@@ -1,10 +1,27 @@
-import { Edit3, Save, Search, ShieldCheck, UserPlus } from "lucide-react";
+import {
+  AlertTriangle,
+  Edit3,
+  Save,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Modal, Toast } from "../components/ui";
 import { useAudit } from "../store/AuditContext";
+import { useAuth } from "../store/AuthContext";
+import { useIssueRequests } from "../store/IssueRequestContext";
+import { useStock } from "../store/StockContext";
 import { DEPARTMENTS } from "../constants/departments";
 import type { Role } from "../types";
 import { isSupabaseConfigured } from "../lib/supabase";
+import {
+  adminMaintenanceService,
+  PURGE_MODULES,
+  type PurgeModuleConfig,
+} from "../services/adminMaintenanceService";
 import {
   defaultSettings,
   settingsService,
@@ -429,6 +446,9 @@ export function UsersPage() {
 
 export function SettingsPage() {
   const { record } = useAudit();
+  const { user } = useAuth();
+  const { reload: reloadStock } = useStock();
+  const { reload: reloadIssueRequests } = useIssueRequests();
   const [settings, setSettings] = useState<Settings>(() =>
     isSupabaseConfigured
       ? defaults
@@ -440,9 +460,13 @@ export function SettingsPage() {
   const [editingApprover, setEditingApprover] = useState<Approver | null>(null);
   const [approverName, setApproverName] = useState("");
   const [approverSaving, setApproverSaving] = useState(false);
+  const [purgeTarget, setPurgeTarget] = useState<PurgeModuleConfig | null>(null);
+  const [purgeConfirmText, setPurgeConfirmText] = useState("");
+  const [purging, setPurging] = useState(false);
+  const [purgeError, setPurgeError] = useState("");
   const flash = (message: string) => {
     setToast(message);
-    setTimeout(() => setToast(""), 2500);
+    setTimeout(() => setToast(""), 3500);
   };
   const loadApprovers = async () => {
     try {
@@ -557,6 +581,50 @@ export function SettingsPage() {
           ? error.message
           : "เปลี่ยนสถานะผู้อนุมัติไม่สำเร็จ",
       );
+    }
+  };
+  const openPurgeModal = (mod: PurgeModuleConfig) => {
+    setPurgeTarget(mod);
+    setPurgeConfirmText("");
+    setPurgeError("");
+  };
+  const formatPurgeCounts = (deleted: Record<string, number>): string => {
+    const labelMap: Record<string, string> = {
+      workers: "พนักงาน",
+      documents: "เอกสาร",
+      history: "ประวัติ",
+      renewals: "รายการต่ออายุ",
+      requests: "คำขอ",
+      lines: "รายการย่อย",
+      transactions: "ธุรกรรม",
+      resetBalances: "รีเซ็ตยอดคลัง",
+      logs: "บันทึก",
+    };
+    const parts = Object.entries(deleted)
+      .filter(([, count]) => typeof count === "number")
+      .map(([k, count]) => `${labelMap[k] ?? k} ${count.toLocaleString("th-TH")}`);
+    return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+  };
+  const confirmPurge = async () => {
+    if (!purgeTarget || purgeConfirmText.trim() !== "ยืนยันลบ") return;
+    setPurging(true);
+    setPurgeError("");
+    try {
+      const result = await adminMaintenanceService.purgeModule(purgeTarget.key);
+      if (purgeTarget.key === "stock_transactions") {
+        await reloadStock().catch(() => undefined);
+      } else if (purgeTarget.key === "issue_requests") {
+        await reloadIssueRequests().catch(() => undefined);
+      }
+      flash(`ล้าง${purgeTarget.title}เรียบร้อยแล้ว${formatPurgeCounts(result.deleted)}`);
+      setPurgeTarget(null);
+      setPurgeConfirmText("");
+    } catch (error) {
+      setPurgeError(
+        error instanceof Error ? error.message : "ล้างข้อมูลไม่สำเร็จ",
+      );
+    } finally {
+      setPurging(false);
     }
   };
   return (
@@ -730,6 +798,110 @@ export function SettingsPage() {
           )}
         </div>
       </section>
+      {user?.role === "admin" && (
+        <section className="card danger-zone-settings">
+          <div className="card-head">
+            <div>
+              <h2>ล้างข้อมูลตามหมวดหมู่ (เฉพาะผู้ดูแลระบบ)</h2>
+              <p>
+                เลือกเคลียร์ข้อมูลเก่าหรือข้อมูลทดสอบทีละส่วนได้อย่างปลอดภัย
+                โดยไม่กระทบข้อมูลในส่วนอื่นของระบบ
+              </p>
+            </div>
+            <span className="purge-admin-pill">
+              <ShieldAlert size={15} />
+              Admin Only
+            </span>
+          </div>
+          <div className="purge-warning-banner">
+            <AlertTriangle size={18} />
+            <div>
+              <b>ข้อควรระวัง: ข้อมูลที่ถูกล้างในส่วนนั้นจะไม่สามารถกู้คืนได้</b>
+              <span>
+                แนะนำให้ส่งออกไฟล์ Excel/CSV สำรองข้อมูลก่อนดำเนินการทุกครั้ง
+                (ไม่มีปุ่มล้างทั้งระบบ เพื่อป้องกันความผิดพลาด)
+              </span>
+            </div>
+          </div>
+          <div className="purge-module-grid">
+            {PURGE_MODULES.map((mod) => (
+              <article key={mod.key} className="purge-module-card">
+                <div className="purge-module-top">
+                  <div>
+                    <span className="purge-module-badge">{mod.badge}</span>
+                    <h3>{mod.title}</h3>
+                  </div>
+                </div>
+                <p className="purge-module-desc">{mod.subtitle}</p>
+                <ul className="purge-deletes-list">
+                  {mod.deletes.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                <div className="purge-safe-note">{mod.preserves}</div>
+                <button
+                  type="button"
+                  className="btn danger"
+                  onClick={() => openPurgeModal(mod)}
+                >
+                  <Trash2 size={16} />
+                  ล้างข้อมูลส่วนนี้
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {purgeTarget && (
+        <Modal
+          title={`ยืนยันล้างข้อมูล: ${purgeTarget.title}`}
+          onClose={() => {
+            if (!purging) setPurgeTarget(null);
+          }}
+        >
+          <div className="modal-body form-stack">
+            <div className="purge-confirm-box">
+              <b>รายการที่จะถูกลบถาวร ({purgeTarget.badge}):</b>
+              <ul className="purge-deletes-list">
+                {purgeTarget.deletes.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              <p className="purge-safe-note">{purgeTarget.preserves}</p>
+            </div>
+            <label>
+              พิมพ์คำว่า <b className="danger-text">ยืนยันลบ</b> เพื่อปลดล็อกปุ่มลบข้อมูล *
+              <input
+                value={purgeConfirmText}
+                onChange={(e) => setPurgeConfirmText(e.target.value)}
+                placeholder="พิมพ์ ยืนยันลบ"
+                autoFocus
+                disabled={purging}
+              />
+            </label>
+            {purgeError && <p className="form-error">{purgeError}</p>}
+          </div>
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={purging}
+              onClick={() => setPurgeTarget(null)}
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              className="btn danger"
+              disabled={purging || purgeConfirmText.trim() !== "ยืนยันลบ"}
+              onClick={() => void confirmPurge()}
+            >
+              <Trash2 size={16} />
+              {purging ? "กำลังล้างข้อมูล..." : `ยืนยันล้าง${purgeTarget.title}`}
+            </button>
+          </div>
+        </Modal>
+      )}
       {approverOpen && (
         <Modal
           title={editingApprover ? "แก้ไขผู้อนุมัติ" : "เพิ่มผู้อนุมัติ"}
