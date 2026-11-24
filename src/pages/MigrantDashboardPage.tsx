@@ -200,6 +200,15 @@ export function MigrantDashboardPage() {
     }
     const redCards = redIds.size;
     const greenCards = greenIds.size;
+    const redRows = allPassportExpiryRows.filter(
+      (r) => r.doc.documentType === "PASSPORT_RED",
+    );
+    const greenRows = allPassportExpiryRows.filter(
+      (r) => r.doc.documentType === "PASSPORT_GREEN",
+    );
+    const redNearest = redRows.find((r) => r.days >= 0) ?? redRows[0] ?? null;
+    const greenNearest =
+      greenRows.find((r) => r.days >= 0) ?? greenRows[0] ?? null;
     const nearest =
       allPassportExpiryRows.find((r) => r.days >= 0) ??
       allPassportExpiryRows[0] ??
@@ -209,6 +218,8 @@ export function MigrantDashboardPage() {
       greenCards,
       totalCards: redCards + greenCards,
       nearest,
+      redNearest,
+      greenNearest,
     };
   }, [passportDueSoon30, allPassportExpiryRows]);
 
@@ -550,13 +561,27 @@ export function MigrantDashboardPage() {
               </span>
             )}
           </div>
-          <div className="mdb-kpi-breakdown">
-            <span className="mdb-kpi-chip mdb-chip-red">
-              <i /> พาสแดง <b>{passportDueSummary.redCards}</b>
-            </span>
-            <span className="mdb-kpi-chip mdb-chip-green">
-              <i /> พาสเขียว <b>{passportDueSummary.greenCards}</b>
-            </span>
+          <div className="mdb-passport-split">
+            <div className="mdb-passport-mini mdb-chip-red">
+              <span className="mdb-passport-mini-head">
+                <i /> พาสแดง <b>{passportDueSummary.redCards}</b>
+              </span>
+              <span className="mdb-passport-mini-date">
+                {passportDueSummary.redNearest
+                  ? thaiDate(passportDueSummary.redNearest.date)
+                  : "ไม่มีข้อมูล"}
+              </span>
+            </div>
+            <div className="mdb-passport-mini mdb-chip-green">
+              <span className="mdb-passport-mini-head">
+                <i /> พาสเขียว <b>{passportDueSummary.greenCards}</b>
+              </span>
+              <span className="mdb-passport-mini-date">
+                {passportDueSummary.greenNearest
+                  ? thaiDate(passportDueSummary.greenNearest.date)
+                  : "ไม่มีข้อมูล"}
+              </span>
+            </div>
           </div>
           <div className="mdb-kpi-footer">
             <span>
