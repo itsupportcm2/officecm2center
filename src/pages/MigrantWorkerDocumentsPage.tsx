@@ -2272,7 +2272,7 @@ export function MigrantWorkerDocumentsPage() {
                             {isArea && (
                               <>
                                 <label>
-                                  วันออกใบออกนอกพื้นที่ *
+                                  วันออกใบออกนอกพื้นที่ (ไม่บังคับ)
                                   <input
                                     type="date"
                                     value={doc.areaPermitIssuedOn ?? ""}
@@ -2284,7 +2284,7 @@ export function MigrantWorkerDocumentsPage() {
                                   />
                                 </label>
                                 <label>
-                                  วันหมดอายุใบออกนอกพื้นที่ *
+                                  วันหมดอายุใบออกนอกพื้นที่ (ไม่บังคับ)
                                   <input
                                     type="date"
                                     value={doc.areaPermitExpiresOn ?? ""}
@@ -2474,8 +2474,8 @@ export function MigrantWorkerDocumentsPage() {
             )}
             {docForm.documentType === "TEN_YEAR_CARD" && (
               <>
-                {renderDateField("areaPermitIssuedOn", "วันออกใบออกนอกพื้นที่ *")}
-                {renderDateField("areaPermitExpiresOn", "วันหมดอายุใบออกนอกพื้นที่ *")}
+                {renderDateField("areaPermitIssuedOn", "วันออกใบออกนอกพื้นที่ (ไม่บังคับ)")}
+                {renderDateField("areaPermitExpiresOn", "วันหมดอายุใบออกนอกพื้นที่ (ไม่บังคับ)")}
               </>
             )}
             <label>

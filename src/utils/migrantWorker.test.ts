@@ -55,8 +55,8 @@ describe("validateMigrantDocument", () => {
         documentNumber: "TY-112233",
         issuedOn: "2024-01-01",
         expiresOn: "2034-01-01",
-        areaPermitIssuedOn: "2024-01-01",
-        areaPermitExpiresOn: "2025-01-01",
+        areaPermitIssuedOn: null,
+        areaPermitExpiresOn: null,
         remindDays: 60,
       }),
     ).toEqual([]);
@@ -90,15 +90,14 @@ describe("validateMigrantDocument", () => {
       documentNumber: "TY-112233",
       issuedOn: "2026-05-01",
       expiresOn: "2026-04-01",
-      areaPermitIssuedOn: null,
-      areaPermitExpiresOn: null,
+      areaPermitIssuedOn: "2026-07-01",
+      areaPermitExpiresOn: "2026-06-01",
       workPermitIssuedOn: "2026-06-01",
       workPermitExpiresOn: "2026-05-01",
       remindDays: 400,
     });
     expect(reversedDatesAndBadRemind).toContain("วันหมดอายุเอกสารต้องไม่ก่อนวันออกเอกสาร");
-    expect(reversedDatesAndBadRemind).toContain("กรุณาระบุวันออกใบออกนอกพื้นที่");
-    expect(reversedDatesAndBadRemind).toContain("กรุณาระบุวันหมดอายุใบออกนอกพื้นที่");
+    expect(reversedDatesAndBadRemind).toContain("วันหมดอายุใบออกนอกพื้นที่ต้องไม่ก่อนวันออกใบออกนอกพื้นที่");
     expect(reversedDatesAndBadRemind).toContain("วันหมดอายุใบอนุญาตทำงานต้องไม่ก่อนวันออกใบอนุญาตทำงาน");
     expect(reversedDatesAndBadRemind).toContain("จำนวนวันแจ้งเตือนล่วงหน้าต้องอยู่ระหว่าง 0 ถึง 365 วัน");
   });

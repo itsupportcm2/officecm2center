@@ -185,12 +185,6 @@ export function validateMigrantDocument(doc: DocumentValidationInput): string[] 
   }
 
   if (doc.documentType === "TEN_YEAR_CARD") {
-    if (!doc.areaPermitIssuedOn) {
-      errors.push("กรุณาระบุวันออกใบออกนอกพื้นที่");
-    }
-    if (!doc.areaPermitExpiresOn) {
-      errors.push("กรุณาระบุวันหมดอายุใบออกนอกพื้นที่");
-    }
     if (
       doc.areaPermitIssuedOn &&
       doc.areaPermitExpiresOn &&
@@ -254,7 +248,7 @@ export function translateMigrantDbError(error: any): Error {
   }
   if (combined.includes("migrant_worker_documents_check")) {
     return new Error(
-      "ข้อมูลวันที่เอกสารไม่ครบถ้วน (ต้องระบุวันออกและวันหมดอายุเอกสาร รวมถึงวีซ่า/ใบออกนอกพื้นที่ตามประเภท)",
+      "ข้อมูลวันที่เอกสารไม่ครบถ้วน (ต้องระบุวันออกและวันหมดอายุเอกสาร รวมถึงวันหมดอายุวีซ่าสำหรับพาสปอร์ต)",
     );
   }
   if (combined.includes("date_order") || combined.includes("expires_on >= issued_on")) {
