@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 import { DEPARTMENTS } from "../constants/departments";
 import {
   formatNationalId,
+  validateMigrantDocument,
   type ForeignWorker,
   type MigrantDocumentType,
   type MigrantWorkerDocument,
@@ -140,12 +141,29 @@ export function exportToExcel(
   const rows = toRows(workers, documents);
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
-  // Column widths
+  // Column widths (21 columns matching EXPORT_HEADERS)
   ws["!cols"] = [
-    { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 12 }, { wch: 18 },
-    { wch: 16 }, { wch: 12 }, { wch: 20 }, { wch: 16 }, { wch: 14 },
-    { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 20 },
-    { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 20 },
+    { wch: 14 }, // รหัสพนักงาน
+    { wch: 10 }, // คำนำหน้า
+    { wch: 22 }, // ชื่อ-สกุล
+    { wch: 15 }, // เบอร์โทรศัพท์
+    { wch: 14 }, // สัญชาติ
+    { wch: 10 }, // แผนก
+    { wch: 20 }, // เลขบัตรประชาชน
+    { wch: 13 }, // วันเกิด
+    { wch: 18 }, // ประเภทเอกสาร
+    { wch: 16 }, // เลขที่เอกสาร
+    { wch: 14 }, // วันออกเอกสาร
+    { wch: 16 }, // วันหมดอายุเอกสาร
+    { wch: 14 }, // วันออกวีซ่า
+    { wch: 16 }, // วันหมดอายุวีซ่า
+    { wch: 20 }, // วันออกใบออกนอกพื้นที่
+    { wch: 22 }, // วันหมดอายุใบออกนอกพื้นที่
+    { wch: 18 }, // เลขที่ใบอนุญาตทำงาน
+    { wch: 18 }, // วันออกใบอนุญาตทำงาน
+    { wch: 20 }, // วันหมดอายุใบอนุญาตทำงาน
+    { wch: 18 }, // แจ้งเตือนล่วงหน้า(วัน)
+    { wch: 22 }, // หมายเหตุเอกสาร
   ];
 
   const wb = XLSX.utils.book_new();
@@ -210,36 +228,63 @@ export interface ImportRow {
   errors: string[];
 }
 
-function parseDate(val: unknown): string | null {
-  if (!val) return null;
+function toGregorianYear(year: number): number {
+  return year >= 2400 ? year - 543 : year;
+}
+
+function buildValidIsoDate(year: number, month: number, day: number): string | null {
+  const gy = toGregorianYear(year);
+  if (!Number.isInteger(gy) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+  if (gy < 1900 || gy > 2200 || month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+  const dt = new Date(Date.UTC(gy, month - 1, day));
+  if (
+    dt.getUTCFullYear() !== gy ||
+    dt.getUTCMonth() !== month - 1 ||
+    dt.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return `${gy}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** Parse Excel serial numbers, ISO dates, or Thai B.E. DD/MM/YYYY strings to YYYY-MM-DD. */
+export function parseDate(val: unknown): string | null {
+  if (val == null || val === "") return null;
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    return buildValidIsoDate(val.getFullYear(), val.getMonth() + 1, val.getDate());
+  }
+
   const s = String(val).trim();
   if (!s) return null;
 
-  // Already YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // YYYY-MM-DD or YYYY/MM/DD (supports Thai B.E. years like 2569-03-15)
+  const ymd = s.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+  if (ymd) {
+    return buildValidIsoDate(Number(ymd[1]), Number(ymd[2]), Number(ymd[3]));
+  }
 
   // Excel serial number
   if (/^\d+(\.\d+)?$/.test(s)) {
     const d = XLSX.SSF.parse_date_code(Number(s));
     if (d) {
-      const mm = String(d.m).padStart(2, "0");
-      const dd = String(d.d).padStart(2, "0");
-      return `${d.y}-${mm}-${dd}`;
+      return buildValidIsoDate(d.y, d.m, d.d);
     }
   }
 
-  // DD/MM/YYYY or DD-MM-YYYY
+  // DD/MM/YYYY or DD-MM-YYYY (supports Thai B.E. years like 15/03/2569)
   const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   if (dmy) {
-    const dd = dmy[1].padStart(2, "0");
-    const mm = dmy[2].padStart(2, "0");
-    return `${dmy[3]}-${mm}-${dd}`;
+    return buildValidIsoDate(Number(dmy[3]), Number(dmy[2]), Number(dmy[1]));
   }
 
-  // Try native parsing as last resort
+  // Fallback native date string parsing
   const parsed = new Date(s);
   if (!isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(0, 10);
+    return buildValidIsoDate(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate());
   }
 
   return null;
@@ -310,6 +355,12 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
           const workPermitIssuedOn = parseDate(r[col("วันออกใบอนุญาตทำงาน")]);
           const workPermitExpiresOn = parseDate(r[col("วันหมดอายุใบอนุญาตทำงาน")]);
 
+          const rawRemind = str(r[col("แจ้งเตือนล่วงหน้า(วัน)")]);
+          const remindDays = rawRemind === "" ? 30 : Number(rawRemind);
+
+          const rawNationalId = str(r[col("เลขบัตรประชาชน")]);
+          const idDigits = rawNationalId.replace(/\D/g, "");
+
           const errors: string[] = [];
           if (!str(r[col("ชื่อ-สกุล")])) errors.push("ไม่มีชื่อ-สกุล");
           if (!normalizedDept) {
@@ -318,22 +369,35 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
             errors.push(`แผนก "${rawDept}" ไม่ถูกต้อง (ใช้: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`);
           }
 
+          if (!idDigits) {
+            errors.push("ไม่มีเลขบัตรประชาชน (ต้องครบ 13 หลัก)");
+          } else if (idDigits.length !== 13) {
+            errors.push(`เลขบัตรประชาชนไม่ครบ 13 หลัก (${idDigits.length}/13)`);
+          }
+
           if (docTypeLabel === "ใบอนุญาตทำงาน") {
             errors.push("ใบอนุญาตทำงานถูกรวมลงในเอกสารแล้ว กรุณาระบุประเภทเป็น พาสปอร์ตสีแดง/เขียว หรือ บัตรชมพู/10ปี");
           } else if (docTypeLabel && !docType) {
             errors.push(`ประเภทเอกสาร "${docTypeLabel}" ไม่ถูกต้อง`);
           }
 
-          // Document specific checks if a document type is chosen
+          // Shared DB-matching validation when a document type is specified
           if (docType) {
-            if (!docNumber) errors.push("กรุณากรอกเลขที่เอกสาร");
-            if (!expiresOn) errors.push("กรุณาระบุวันหมดอายุเอกสาร");
-            if ((docType === "PASSPORT_RED" || docType === "PASSPORT_GREEN") && !visaExpiresOn) {
-              errors.push("พาสปอร์ตต้องระบุวันหมดอายุวีซ่า");
-            }
-            if (docType === "TEN_YEAR_CARD" && !areaPermitExpiresOn) {
-              errors.push("บัตร 10 ปีต้องระบุวันหมดอายุใบออกนอกพื้นที่");
-            }
+            errors.push(
+              ...validateMigrantDocument({
+                documentType: docType,
+                documentNumber: docNumber,
+                issuedOn,
+                expiresOn,
+                visaIssuedOn,
+                visaExpiresOn,
+                areaPermitIssuedOn,
+                areaPermitExpiresOn,
+                workPermitIssuedOn,
+                workPermitExpiresOn,
+                remindDays,
+              }),
+            );
           }
 
           const phone =
@@ -350,7 +414,7 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
             phone,
             nationality: str(r[col("สัญชาติ")]),
             department: normalizedDept || rawDept,
-            nationalId: formatNationalId(str(r[col("เลขบัตรประชาชน")])),
+            nationalId: formatNationalId(rawNationalId),
             birthDate: parseDate(r[col("วันเกิด")]),
             documentType: docType,
             documentNumber: docNumber,
@@ -363,7 +427,7 @@ export function parseImportFile(file: File): Promise<ImportRow[]> {
             workPermitNumber,
             workPermitIssuedOn,
             workPermitExpiresOn,
-            remindDays: Number(r[col("แจ้งเตือนล่วงหน้า(วัน)")]) || 30,
+            remindDays: Number.isFinite(remindDays) ? remindDays : 30,
             docNote: str(r[col("หมายเหตุเอกสาร")]),
             errors,
           });

@@ -38,6 +38,7 @@ import {
   getWorkerGender,
   getWorkerAge,
   formatNationalId,
+  validateMigrantDocument,
   type ForeignWorker,
   type MigrantDocumentType,
   type MigrantWorkerDocument,
@@ -154,8 +155,8 @@ const thaiDate = (date: string) =>
     year: "numeric",
   }).format(new Date(`${date}T00:00:00`));
 
-const status = (days: number, remind: number) =>
-  days < 0 ? "expired" : days <= remind ? "due" : "normal";
+const getExpiryStatusClass = (days: number, remind: number) =>
+  days < 0 ? "mwp-status-pill-expired" : days <= remind ? "mwp-status-pill-due" : "mwp-status-pill-normal";
 
 /** แปลงจำนวนวันเป็น "X วัน / X เดือน Y วัน / X ปี Y เดือน" */
 const formatDays = (absDays: number): string => {
@@ -214,17 +215,17 @@ export function MigrantWorkerDocumentsPage() {
   const [importSuccessCount, setImportSuccessCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const addDocRow = () => {
-    setWorkerDocs([...workerDocs, blankNewDoc("PASSPORT_RED")]);
-  };
-  const removeDocRow = (id: string) => {
-    setWorkerDocs(workerDocs.filter((d) => d.id !== id));
-  };
   const updateDocRow = (id: string, updates: Partial<InitialDocItem>) => {
     setWorkerDocs(
       workerDocs.map((d) => (d.id === id ? { ...d, ...updates } : d)),
     );
   };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(""), 4000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   const load = async () => {
     setLoading(true);
@@ -248,10 +249,10 @@ export function MigrantWorkerDocumentsPage() {
     [workers],
   );
 
-  // Expiry calculation across all active documents
+  // Expiry calculation across all active documents of active workers
   const expiryRows = useMemo(() => {
     return documents
-      .filter((d) => d.isActive && workerMap.has(d.workerId))
+      .filter((d) => d.isActive && Boolean(workerMap.get(d.workerId)?.isActive))
       .flatMap((d) => {
         const rows: {
           doc: MigrantWorkerDocument;
@@ -296,11 +297,27 @@ export function MigrantWorkerDocumentsPage() {
 
   // Overall counts for summary
   const totalActiveWorkers = useMemo(() => workers.filter((w) => w.isActive).length, [workers]);
-  const totalActiveDocs = useMemo(() => documents.filter((d) => d.isActive).length, [documents]);
+  const totalActiveDocs = useMemo(
+    () => documents.filter((d) => d.isActive && Boolean(workerMap.get(d.workerId)?.isActive)).length,
+    [documents, workerMap],
+  );
   const expiredCount = useMemo(() => expiryRows.filter((r) => r.days < 0).length, [expiryRows]);
-  const dueCount = useMemo(() => expiryRows.filter((r) => r.days >= 0 && r.days <= 30).length, [expiryRows]);
-  const cautionCount = useMemo(() => expiryRows.filter((r) => r.days > 30 && r.days <= 90).length, [expiryRows]);
-  const safeCount = useMemo(() => expiryRows.filter((r) => r.days > 90).length, [expiryRows]);
+  const dueCount = useMemo(
+    () => expiryRows.filter((r) => r.days >= 0 && r.days <= (r.doc.remindDays ?? 30)).length,
+    [expiryRows],
+  );
+  const cautionCount = useMemo(
+    () =>
+      expiryRows.filter((r) => {
+        const remind = r.doc.remindDays ?? 30;
+        return r.days > remind && r.days <= Math.max(90, remind);
+      }).length,
+    [expiryRows],
+  );
+  const safeCount = useMemo(
+    () => expiryRows.filter((r) => r.days > Math.max(90, r.doc.remindDays ?? 30)).length,
+    [expiryRows],
+  );
 
   // Gender counts
   const genderStats = useMemo(() => {
@@ -362,10 +379,11 @@ export function MigrantWorkerDocumentsPage() {
       const worker = workerMap.get(row.doc.workerId);
       if (!worker) return false;
 
+      const remind = row.doc.remindDays ?? 30;
       if (expirySubFilter === "expired" && row.days >= 0) return false;
-      if (expirySubFilter === "due" && (row.days < 0 || row.days > 30)) return false;
-      if (expirySubFilter === "caution" && (row.days <= 30 || row.days > 90)) return false;
-      if (expirySubFilter === "safe" && row.days <= 90) return false;
+      if (expirySubFilter === "due" && (row.days < 0 || row.days > remind)) return false;
+      if (expirySubFilter === "caution" && (row.days <= remind || row.days > Math.max(90, remind))) return false;
+      if (expirySubFilter === "safe" && row.days <= Math.max(90, remind)) return false;
 
       if (deptFilter !== "all" && worker.department !== deptFilter) return false;
       if (genderFilter !== "all" && getWorkerGender(worker) !== genderFilter) return false;
@@ -446,24 +464,10 @@ export function MigrantWorkerDocumentsPage() {
     if (!workerForm.id && includeDocs && workerDocs.length > 0) {
       for (let i = 0; i < workerDocs.length; i++) {
         const d = workerDocs[i];
-        const docLabel = labels[d.documentType];
-        if (!d.documentNumber.trim()) {
-          setToast(`กรุณากรอกเลขที่เอกสารสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
-          return;
-        }
-        if (!d.expiresOn) {
-          setToast(`กรุณาระบุวันหมดอายุสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
-          return;
-        }
-        if (
-          (d.documentType === "PASSPORT_RED" || d.documentType === "PASSPORT_GREEN") &&
-          !d.visaExpiresOn
-        ) {
-          setToast(`กรุณาระบุวันหมดอายุวีซ่าสำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
-          return;
-        }
-        if (d.documentType === "TEN_YEAR_CARD" && !d.areaPermitExpiresOn) {
-          setToast(`กรุณาระบุวันหมดอายุใบออกนอกพื้นที่สำหรับ "${docLabel}" (ฉบับที่ ${i + 1})`);
+        const docErrors = validateMigrantDocument(d);
+        if (docErrors.length > 0) {
+          const docLabel = labels[d.documentType];
+          setToast(`${docLabel}: ${docErrors[0]}`);
           return;
         }
       }
@@ -546,8 +550,20 @@ export function MigrantWorkerDocumentsPage() {
       setToast("กรุณาเลือกพนักงาน");
       return;
     }
-    if (!docForm.documentNumber.trim()) {
-      setToast("กรุณาระบุเลขที่เอกสาร");
+    const docErrors = validateMigrantDocument(docForm);
+    if (docErrors.length > 0) {
+      setToast(docErrors[0]);
+      return;
+    }
+    if (
+      docForm.isActive &&
+      documents.some(
+        (d) => d.workerId === docForm.workerId && d.isActive && d.id !== docForm.id,
+      )
+    ) {
+      setToast(
+        "พนักงานคนนี้มีเอกสารหลักที่ใช้งานอยู่แล้ว 1 ฉบับ กรุณาแก้ไขเอกสารเดิม หรือปิดใช้งานเอกสารเดิมก่อนเพิ่มฉบับใหม่",
+      );
       return;
     }
     setSaving(true);
@@ -604,38 +620,39 @@ export function MigrantWorkerDocumentsPage() {
     const errorsList: string[] = [];
 
     try {
-      const workerCodeMap = new Map<string, string>();
-      for (const w of workers) workerCodeMap.set(w.employeeCode, w.id);
+      const existingWorkerByCode = new Map(workers.map((w) => [w.employeeCode, w]));
+      const activeDocByWorkerId = new Map(
+        documents.filter((d) => d.isActive).map((d) => [d.workerId, d]),
+      );
 
       for (const row of validRows) {
         try {
-          let workerId = workerCodeMap.get(row.employeeCode);
-          if (!workerId) {
-            const saved = await migrantWorkerService.saveWorker({
-              id: "",
-              employeeCode: row.employeeCode,
-              title: row.title,
-              fullName: row.fullName,
-              phone: row.phone || "",
-              nationality: row.nationality,
-              department: row.department,
-              organizationUnit: "",
-              nationalId: row.nationalId,
-              birthDate: row.birthDate,
-              position: "",
-              note: "",
-              isActive: true,
-            });
-            workerId = saved.id;
-            workerCodeMap.set(row.employeeCode, workerId);
-          }
+          const existingWorker = existingWorkerByCode.get(row.employeeCode);
+          const saved = await migrantWorkerService.saveWorker({
+            id: existingWorker?.id ?? "",
+            employeeCode: row.employeeCode,
+            title: row.title || existingWorker?.title || "",
+            fullName: row.fullName || existingWorker?.fullName || "",
+            phone: row.phone || existingWorker?.phone || "",
+            nationality: row.nationality || existingWorker?.nationality || "",
+            department: row.department || existingWorker?.department || "",
+            organizationUnit: existingWorker?.organizationUnit ?? "",
+            nationalId: row.nationalId || existingWorker?.nationalId || "",
+            birthDate: row.birthDate ?? existingWorker?.birthDate ?? null,
+            position: existingWorker?.position ?? "",
+            note: existingWorker?.note ?? "",
+            isActive: existingWorker?.isActive ?? true,
+          });
+          const workerId = saved.id;
+          existingWorkerByCode.set(row.employeeCode, saved);
 
           if (row.documentType) {
+            const existingDoc = activeDocByWorkerId.get(workerId);
             const isPassport =
               row.documentType === "PASSPORT_RED" || row.documentType === "PASSPORT_GREEN";
             const isArea = row.documentType === "TEN_YEAR_CARD";
             await migrantWorkerService.saveDocument({
-              id: "",
+              id: existingDoc?.id ?? "",
               workerId,
               documentType: row.documentType,
               documentNumber: row.documentNumber,
@@ -884,7 +901,7 @@ export function MigrantWorkerDocumentsPage() {
           title="คลิกเพื่อดูรายการที่ใกล้ครบกำหนด"
         >
           <div className="mwp-stat-top">
-            <span className="mwp-stat-title">ใกล้ครบกำหนด (≤ 30 วัน)</span>
+            <span className="mwp-stat-title">ใกล้ครบกำหนด</span>
             <div className="mwp-stat-icon">
               <CalendarClock size={18} />
             </div>
@@ -895,7 +912,7 @@ export function MigrantWorkerDocumentsPage() {
           </div>
           <div className="mwp-stat-hint" style={{ color: "#ea580c", fontWeight: 600 }}>
             <Clock size={12} />
-            <span>ระยะเตรียมเอกสารล่วงหน้า</span>
+            <span>ตามระยะแจ้งเตือนแต่ละฉบับ</span>
           </div>
         </div>
       </section>
@@ -967,14 +984,14 @@ export function MigrantWorkerDocumentsPage() {
                 className={`mwp-sub-pill ${expirySubFilter === "due" ? "active" : ""}`}
                 onClick={() => setExpirySubFilter("due")}
               >
-                ใกล้ครบ ≤ 30 วัน ({dueCount})
+                ใกล้ครบกำหนด ({dueCount})
               </button>
               <button
                 type="button"
                 className={`mwp-sub-pill ${expirySubFilter === "caution" ? "active" : ""}`}
                 onClick={() => setExpirySubFilter("caution")}
               >
-                31 - 90 วัน ({cautionCount})
+                เฝ้าระวัง ≤ 90 วัน ({cautionCount})
               </button>
               <button
                 type="button"
@@ -1121,19 +1138,24 @@ export function MigrantWorkerDocumentsPage() {
                     const gender = getWorkerGender(w);
                     const age = getWorkerAge(w.birthDate);
 
-                    // Check if any document has expired or is due
-                    const hasExpiredDoc = workerDocsList.some((d) => {
-                      if (d.expiresOn && daysUntil(d.expiresOn) < 0) return true;
-                      if (d.visaExpiresOn && daysUntil(d.visaExpiresOn) < 0) return true;
-                      if (d.workPermitExpiresOn && daysUntil(d.workPermitExpiresOn) < 0) return true;
-                      return false;
-                    });
-                    const hasDueDoc = !hasExpiredDoc && workerDocsList.some((d) => {
-                      if (d.expiresOn && daysUntil(d.expiresOn) <= 30) return true;
-                      if (d.visaExpiresOn && daysUntil(d.visaExpiresOn) <= 30) return true;
-                      if (d.workPermitExpiresOn && daysUntil(d.workPermitExpiresOn) <= 30) return true;
-                      return false;
-                    });
+                    // Check all 4 expiry fields (including area permit) against document's remindDays
+                    const getDocDates = (d: MigrantWorkerDocument) =>
+                      [
+                        d.expiresOn,
+                        d.visaExpiresOn,
+                        d.areaPermitExpiresOn,
+                        d.workPermitExpiresOn,
+                      ].filter((dt): dt is string => Boolean(dt));
+
+                    const hasExpiredDoc = workerDocsList.some((d) =>
+                      getDocDates(d).some((dt) => daysUntil(dt) < 0),
+                    );
+                    const hasDueDoc =
+                      !hasExpiredDoc &&
+                      workerDocsList.some((d) => {
+                        const remind = d.remindDays ?? 30;
+                        return getDocDates(d).some((dt) => daysUntil(dt) <= remind);
+                      });
 
                     return (
                       <>
@@ -1235,8 +1257,8 @@ export function MigrantWorkerDocumentsPage() {
                               {hasDueDoc && (
                                 <span
                                   className="mwp-status-pill mwp-status-pill-due"
-                                  title="มีเอกสารใกล้ครบกำหนด 30 วัน"
                                   style={{ alignSelf: "center" }}
+                                  title="มีเอกสารใกล้ครบกำหนดตามระยะแจ้งเตือน"
                                 >
                                   ⚠️ ใกล้ครบ
                                 </span>
@@ -1344,9 +1366,32 @@ export function MigrantWorkerDocumentsPage() {
                                   </div>
                                 ) : (
                                   workerDocsList.map((doc) => {
-                                    const passportExpDays = doc.expiresOn ? daysUntil(doc.expiresOn) : null;
-                                    const visaExpDays = doc.visaExpiresOn ? daysUntil(doc.visaExpiresOn) : null;
-                                    const workPermitExpDays = doc.workPermitExpiresOn ? daysUntil(doc.workPermitExpiresOn) : null;
+                                    const remind = doc.remindDays ?? 30;
+                                    const miniDateItems = [
+                                      doc.expiresOn
+                                        ? {
+                                            label: doc.documentType.includes("PASSPORT")
+                                              ? "หมดอายุพาสปอร์ต:"
+                                              : "หมดอายุบัตร:",
+                                            date: doc.expiresOn,
+                                          }
+                                        : null,
+                                      doc.visaExpiresOn
+                                        ? { label: "หมดอายุวีซ่า:", date: doc.visaExpiresOn }
+                                        : null,
+                                      doc.areaPermitExpiresOn
+                                        ? {
+                                            label: "หมดอายุใบออกนอกพื้นที่:",
+                                            date: doc.areaPermitExpiresOn,
+                                          }
+                                        : null,
+                                      doc.workPermitExpiresOn
+                                        ? {
+                                            label: "หมดอายุ Work Permit:",
+                                            date: doc.workPermitExpiresOn,
+                                          }
+                                        : null,
+                                    ].filter((item): item is { label: string; date: string } => item !== null);
 
                                     return (
                                       <div key={doc.id} className="mwp-doc-mini-card">
@@ -1375,73 +1420,22 @@ export function MigrantWorkerDocumentsPage() {
                                         </div>
 
                                         <div className="mwp-doc-mini-dates">
-                                          {doc.expiresOn && (
-                                            <div>
-                                              <span style={{ color: "#64748b", fontSize: "0.72rem" }}>
-                                                {doc.documentType.includes("PASSPORT") ? "หมดอายุพาสปอร์ต:" : "หมดอายุบัตร:"}
-                                              </span>
-                                              <div style={{ fontWeight: 600 }}>{thaiDate(doc.expiresOn)}</div>
-                                              {passportExpDays !== null && (
-                                                <span
-                                                  className={`mwp-status-pill ${
-                                                    passportExpDays < 0
-                                                      ? "mwp-status-pill-expired"
-                                                      : passportExpDays <= 30
-                                                        ? "mwp-status-pill-due"
-                                                        : "mwp-status-pill-normal"
-                                                  }`}
-                                                >
-                                                  {passportExpDays < 0
-                                                    ? `เกิน ${formatDays(Math.abs(passportExpDays))}`
-                                                    : `อีก ${formatDays(passportExpDays)}`}
+                                          {miniDateItems.map((item) => {
+                                            const expDays = daysUntil(item.date);
+                                            return (
+                                              <div key={item.label}>
+                                                <span style={{ color: "#64748b", fontSize: "0.72rem" }}>
+                                                  {item.label}
                                                 </span>
-                                              )}
-                                            </div>
-                                          )}
-
-                                          {doc.visaExpiresOn && (
-                                            <div>
-                                              <span style={{ color: "#64748b", fontSize: "0.72rem" }}>หมดอายุวีซ่า:</span>
-                                              <div style={{ fontWeight: 600 }}>{thaiDate(doc.visaExpiresOn)}</div>
-                                              {visaExpDays !== null && (
-                                                <span
-                                                  className={`mwp-status-pill ${
-                                                    visaExpDays < 0
-                                                      ? "mwp-status-pill-expired"
-                                                      : visaExpDays <= 30
-                                                        ? "mwp-status-pill-due"
-                                                        : "mwp-status-pill-normal"
-                                                  }`}
-                                                >
-                                                  {visaExpDays < 0
-                                                    ? `เกิน ${formatDays(Math.abs(visaExpDays))}`
-                                                    : `อีก ${formatDays(visaExpDays)}`}
+                                                <div style={{ fontWeight: 600 }}>{thaiDate(item.date)}</div>
+                                                <span className={`mwp-status-pill ${getExpiryStatusClass(expDays, remind)}`}>
+                                                  {expDays < 0
+                                                    ? `เกิน ${formatDays(Math.abs(expDays))}`
+                                                    : `อีก ${formatDays(expDays)}`}
                                                 </span>
-                                              )}
-                                            </div>
-                                          )}
-
-                                          {doc.workPermitExpiresOn && (
-                                            <div>
-                                              <span style={{ color: "#64748b", fontSize: "0.72rem" }}>หมดอายุ Work Permit:</span>
-                                              <div style={{ fontWeight: 600 }}>{thaiDate(doc.workPermitExpiresOn)}</div>
-                                              {workPermitExpDays !== null && (
-                                                <span
-                                                  className={`mwp-status-pill ${
-                                                    workPermitExpDays < 0
-                                                      ? "mwp-status-pill-expired"
-                                                      : workPermitExpDays <= 30
-                                                        ? "mwp-status-pill-due"
-                                                        : "mwp-status-pill-normal"
-                                                  }`}
-                                                >
-                                                  {workPermitExpDays < 0
-                                                    ? `เกิน ${formatDays(Math.abs(workPermitExpDays))}`
-                                                    : `อีก ${formatDays(workPermitExpDays)}`}
-                                                </span>
-                                              )}
-                                            </div>
-                                          )}
+                                              </div>
+                                            );
+                                          })}
                                         </div>
 
                                         <button
@@ -1512,9 +1506,10 @@ export function MigrantWorkerDocumentsPage() {
                     const worker = workerMap.get(row.doc.workerId);
                     if (!worker) return null;
                     const initial = worker.fullName.trim() ? worker.fullName.trim()[0] : "W";
+                    const remind = row.doc.remindDays ?? 30;
                     const isExp = row.days < 0;
-                    const isDue30 = row.days >= 0 && row.days <= 30;
-                    const isDue90 = row.days > 30 && row.days <= 90;
+                    const isDue = row.days >= 0 && row.days <= remind;
+                    const isCaution = row.days > remind && row.days <= Math.max(90, remind);
                     const gender = getWorkerGender(worker);
                     const workerAge = getWorkerAge(worker.birthDate);
 
@@ -1526,10 +1521,10 @@ export function MigrantWorkerDocumentsPage() {
                     } else if (row.days === 0) {
                       statusClass = "mwp-status-pill-due";
                       statusText = "ครบกำหนดวันนี้!";
-                    } else if (isDue30) {
+                    } else if (isDue) {
                       statusClass = "mwp-status-pill-due";
                       statusText = `อีก ${formatDays(row.days)}`;
-                    } else if (isDue90) {
+                    } else if (isCaution) {
                       statusClass = "mwp-status-pill-caution";
                       statusText = `อีก ${formatDays(row.days)}`;
                     }
@@ -1713,13 +1708,7 @@ export function MigrantWorkerDocumentsPage() {
                               <div style={{ fontWeight: 600 }}>{thaiDate(doc.expiresOn)}</div>
                               {daysLeft !== null && (
                                 <span
-                                  className={`mwp-status-pill ${
-                                    daysLeft < 0
-                                      ? "mwp-status-pill-expired"
-                                      : daysLeft <= 30
-                                        ? "mwp-status-pill-due"
-                                        : "mwp-status-pill-normal"
-                                  }`}
+                                  className={`mwp-status-pill ${getExpiryStatusClass(daysLeft, doc.remindDays ?? 30)}`}
                                   style={{ fontSize: "0.72rem", padding: "2px 8px" }}
                                 >
                                   {daysLeft < 0
@@ -1943,7 +1932,7 @@ export function MigrantWorkerDocumentsPage() {
 
                 {includeDocs && (
                   <div className="doc-list-container">
-                    {workerDocs.map((doc, idx) => {
+                    {workerDocs.map((doc) => {
                       const isPassport =
                         doc.documentType === "PASSPORT_RED" ||
                         doc.documentType === "PASSPORT_GREEN";
@@ -1952,19 +1941,12 @@ export function MigrantWorkerDocumentsPage() {
                         <div key={doc.id} className="combined-doc-card">
                           <div className="combined-doc-header">
                             <span className="combined-doc-badge">
-                              <FileText size={15} /> ฉบับที่ {idx + 1}:{" "}
+                              <FileText size={15} /> เอกสารประจำตัวหลัก:{" "}
                               {labels[doc.documentType]}
                             </span>
-                            {workerDocs.length > 1 && (
-                              <button
-                                type="button"
-                                className="icon-action text-danger"
-                                onClick={() => removeDocRow(doc.id)}
-                                title="ลบเอกสารฉบับนี้"
-                              >
-                                <Trash2 size={15} /> ลบฉบับนี้
-                              </button>
-                            )}
+                            <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>
+                              (1 ฉบับหลักต่อพนักงาน 1 คน)
+                            </span>
                           </div>
                           <div className="form-grid">
                             <label>
@@ -2001,7 +1983,7 @@ export function MigrantWorkerDocumentsPage() {
                               />
                             </label>
                             <label>
-                              {isPassport ? "วันออกเล่มพาสปอร์ต" : "วันออกบัตร"}
+                              {isPassport ? "วันออกเล่มพาสปอร์ต *" : "วันออกบัตร *"}
                               <input
                                 type="date"
                                 value={doc.issuedOn ?? ""}
@@ -2134,14 +2116,6 @@ export function MigrantWorkerDocumentsPage() {
                         </div>
                       );
                     })}
-
-                    <button
-                      type="button"
-                      className="btn secondary compact add-doc-btn"
-                      onClick={addDocRow}
-                    >
-                      <Plus size={15} /> เพิ่มเอกสารอีกฉบับ
-                    </button>
                   </div>
                 )}
               </div>
@@ -2247,8 +2221,8 @@ export function MigrantWorkerDocumentsPage() {
             {renderDateField(
               "issuedOn",
               docForm.documentType.includes("PASSPORT")
-                ? "วันออกเล่มพาสปอร์ต"
-                : "วันออกบัตร",
+                ? "วันออกเล่มพาสปอร์ต *"
+                : "วันออกบัตร *",
             )}
             {renderDateField(
               "expiresOn",
@@ -2514,8 +2488,8 @@ export function MigrantWorkerDocumentsPage() {
                 <span className="mwp-print-criterion-val">
                   {expirySubFilter === "all" && "ทั้งหมด"}
                   {expirySubFilter === "expired" && "หมดอายุแล้ว"}
-                  {expirySubFilter === "due" && "ใกล้ครบกำหนด (≤ 30 วัน)"}
-                  {expirySubFilter === "caution" && "เตือนล่วงหน้า (31-90 วัน)"}
+                  {expirySubFilter === "due" && "ใกล้ครบกำหนด (ตามวันแจ้งเตือน)"}
+                  {expirySubFilter === "caution" && "เฝ้าระวังล่วงหน้า (≤ 90 วัน)"}
                   {expirySubFilter === "safe" && "ปกติ (> 90 วัน)"}
                 </span>
               </div>
@@ -2580,10 +2554,11 @@ export function MigrantWorkerDocumentsPage() {
                   const worker = workerMap.get(row.doc.workerId);
                   const gender = worker ? getWorkerGender(worker) : "UNKNOWN";
                   const workerAge = worker ? getWorkerAge(worker.birthDate) : null;
+                  const remind = row.doc.remindDays ?? 30;
                   return (
                     <tr
                       key={`print-exp-${row.doc.id}-${row.field}-${idx}`}
-                      className={row.days < 0 ? "print-row-expired" : row.days <= 30 ? "print-row-due" : ""}
+                      className={row.days < 0 ? "print-row-expired" : row.days <= remind ? "print-row-due" : ""}
                     >
                       <td style={{ textAlign: "center" }}>{idx + 1}</td>
                       <td><b>{worker?.employeeCode || "-"}</b></td>
@@ -2605,7 +2580,7 @@ export function MigrantWorkerDocumentsPage() {
                       <td style={{ textAlign: "center" }}>
                         {row.days < 0 ? (
                           <span className="print-badge-danger">หมดอายุ</span>
-                        ) : row.days <= 30 ? (
+                        ) : row.days <= remind ? (
                           <span className="print-badge-warning">ใกล้ครบ</span>
                         ) : (
                           <span className="print-badge-normal">ปกติ</span>

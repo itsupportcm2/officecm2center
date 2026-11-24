@@ -169,11 +169,24 @@ export function MigrantDashboardPage() {
     return list.sort((a, b) => a.days - b.days);
   }, [activeDocs, activeWorkerMap]);
 
-  // Breakdown buckets
+  // Breakdown buckets (using each document's configured remindDays)
   const expired = useMemo(() => expiryRows.filter((r) => r.days < 0), [expiryRows]);
-  const due30 = useMemo(() => expiryRows.filter((r) => r.days >= 0 && r.days <= 30), [expiryRows]);
-  const due90 = useMemo(() => expiryRows.filter((r) => r.days > 30 && r.days <= 90), [expiryRows]);
-  const safe = useMemo(() => expiryRows.filter((r) => r.days > 90), [expiryRows]);
+  const dueSoon = useMemo(
+    () => expiryRows.filter((r) => r.days >= 0 && r.days <= (r.doc.remindDays ?? 30)),
+    [expiryRows],
+  );
+  const cautionRows = useMemo(
+    () =>
+      expiryRows.filter((r) => {
+        const remind = r.doc.remindDays ?? 30;
+        return r.days > remind && r.days <= Math.max(90, remind);
+      }),
+    [expiryRows],
+  );
+  const safe = useMemo(
+    () => expiryRows.filter((r) => r.days > Math.max(90, r.doc.remindDays ?? 30)),
+    [expiryRows],
+  );
 
   // Document types distribution
   const docTypeStats = useMemo(() => {
@@ -224,13 +237,13 @@ export function MigrantDashboardPage() {
   const filteredRows = useMemo(() => {
     let list = expiryRows;
     if (activeTab === "urgent") {
-      list = list.filter((r) => r.days <= 30);
+      list = list.filter((r) => r.days <= (r.doc.remindDays ?? 30));
     } else if (activeTab === "expired") {
       list = expired;
     } else if (activeTab === "due") {
-      list = due30;
+      list = dueSoon;
     } else if (activeTab === "caution") {
-      list = due90;
+      list = cautionRows;
     }
 
     if (deptFilter !== "all") {
@@ -254,7 +267,7 @@ export function MigrantDashboardPage() {
     }
 
     return list;
-  }, [expiryRows, activeTab, deptFilter, genderFilter, searchQuery, expired, due30, due90]);
+  }, [expiryRows, activeTab, deptFilter, genderFilter, searchQuery, expired, dueSoon, cautionRows]);
 
   const nowFormatted = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
@@ -377,19 +390,19 @@ export function MigrantDashboardPage() {
 
         <div className="mdb-kpi-card mdb-kpi-warning">
           <div className="mdb-kpi-top">
-            <span className="mdb-kpi-title">ใกล้หมดอายุ ≤ 30 วัน</span>
+            <span className="mdb-kpi-title">ใกล้ครบกำหนดต่ออายุ</span>
             <div className="mdb-kpi-icon-wrap">
               <AlertTriangle size={20} />
             </div>
           </div>
           <div className="mdb-kpi-val-row">
             <span className="mdb-kpi-val" style={{ color: "#ea580c" }}>
-              {due30.length.toLocaleString("th-TH")}
+              {dueSoon.length.toLocaleString("th-TH")}
             </span>
             <span className="mdb-kpi-unit">รายการ</span>
           </div>
           <div className="mdb-kpi-footer">
-            <span>ระยะเร่งด่วน</span>
+            <span>ตามวันแจ้งเตือนแต่ละฉบับ</span>
             <span className="mdb-kpi-pill" style={{ background: "#fff7ed", color: "#ea580c" }}>
               เตรียมเอกสาร
             </span>
@@ -398,14 +411,14 @@ export function MigrantDashboardPage() {
 
         <div className="mdb-kpi-card mdb-kpi-caution">
           <div className="mdb-kpi-top">
-            <span className="mdb-kpi-title">ใกล้หมดอายุ 31-90 วัน</span>
+            <span className="mdb-kpi-title">เฝ้าระวังล่วงหน้า (≤ 90 วัน)</span>
             <div className="mdb-kpi-icon-wrap">
               <CalendarClock size={20} />
             </div>
           </div>
           <div className="mdb-kpi-val-row">
             <span className="mdb-kpi-val" style={{ color: "#d97706" }}>
-              {due90.length.toLocaleString("th-TH")}
+              {cautionRows.length.toLocaleString("th-TH")}
             </span>
             <span className="mdb-kpi-unit">รายการ</span>
           </div>
@@ -660,8 +673,8 @@ export function MigrantDashboardPage() {
               className={`mdb-tab-btn ${activeTab === "urgent" ? "active" : ""}`}
               onClick={() => setActiveTab("urgent")}
             >
-              <span>เร่งด่วนทั้งหมด (≤ 30 วัน)</span>
-              <span className="mdb-tab-badge">{expired.length + due30.length}</span>
+              <span>เร่งด่วนทั้งหมด</span>
+              <span className="mdb-tab-badge">{expired.length + dueSoon.length}</span>
             </button>
             <button
               type="button"
@@ -684,16 +697,16 @@ export function MigrantDashboardPage() {
               className={`mdb-tab-btn ${activeTab === "due" ? "active" : ""}`}
               onClick={() => setActiveTab("due")}
             >
-              <span>ใกล้ครบกำหนด (1-30 วัน)</span>
-              <span className="mdb-tab-badge">{due30.length}</span>
+              <span>ใกล้ครบกำหนด</span>
+              <span className="mdb-tab-badge">{dueSoon.length}</span>
             </button>
             <button
               type="button"
               className={`mdb-tab-btn ${activeTab === "caution" ? "active" : ""}`}
               onClick={() => setActiveTab("caution")}
             >
-              <span>31 - 90 วัน</span>
-              <span className="mdb-tab-badge">{due90.length}</span>
+              <span>เฝ้าระวัง (≤ 90 วัน)</span>
+              <span className="mdb-tab-badge">{cautionRows.length}</span>
             </button>
             <button
               type="button"
@@ -788,9 +801,10 @@ export function MigrantDashboardPage() {
               </thead>
               <tbody>
                 {filteredRows.map((r) => {
+                  const remind = r.doc.remindDays ?? 30;
                   const isExp = r.days < 0;
-                  const isDue30 = r.days >= 0 && r.days <= 30;
-                  const isDue90 = r.days > 30 && r.days <= 90;
+                  const isDue = r.days >= 0 && r.days <= remind;
+                  const isCaution = r.days > remind && r.days <= Math.max(90, remind);
                   const initial = r.worker.fullName.trim() ? r.worker.fullName.trim()[0] : "W";
                   const gender = getWorkerGender(r.worker);
                   const workerAge = getWorkerAge(r.worker.birthDate);
@@ -803,10 +817,10 @@ export function MigrantDashboardPage() {
                   } else if (r.days === 0) {
                     statusClass = "mdb-status-pill-due";
                     statusText = "ครบกำหนดวันนี้!";
-                  } else if (isDue30) {
+                  } else if (isDue) {
                     statusClass = "mdb-status-pill-due";
                     statusText = `อีก ${formatDays(r.days)}`;
-                  } else if (isDue90) {
+                  } else if (isCaution) {
                     statusClass = "mdb-status-pill-caution";
                     statusText = `อีก ${formatDays(r.days)}`;
                   }

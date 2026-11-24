@@ -135,23 +135,163 @@ export const formatNationalId = (val: string | null | undefined): string => {
   return res;
 };
 
-const worker = (row: any): ForeignWorker => ({
-  id: String(row.id),
-  employeeCode: String(row.employee_code),
-  fullName: String(row.full_name),
-  nationality: String(row.nationality ?? ""),
-  department: String(row.department),
-  organizationUnit: String(row.organization_unit ?? ""),
-  phone: String(row.phone ?? row.organization_unit ?? ""),
-  title: String(row.title ?? ""),
-  nationalId: formatNationalId(row.national_id),
-  birthDate: row.birth_date ?? null,
-  position: String(row.position ?? ""),
-  note: String(row.note ?? ""),
-  isActive: Boolean(row.is_active),
-  createdAt: String(row.created_at),
-  updatedAt: String(row.updated_at),
-});
+export interface DocumentValidationInput {
+  documentType: MigrantDocumentType;
+  documentNumber: string;
+  issuedOn: string | null;
+  expiresOn: string | null;
+  visaIssuedOn?: string | null;
+  visaExpiresOn?: string | null;
+  areaPermitIssuedOn?: string | null;
+  areaPermitExpiresOn?: string | null;
+  workPermitIssuedOn?: string | null;
+  workPermitExpiresOn?: string | null;
+  remindDays?: number;
+}
+
+/** Validate migrant document fields to match PostgreSQL table check constraints. */
+export function validateMigrantDocument(doc: DocumentValidationInput): string[] {
+  const errors: string[] = [];
+  const num = (doc.documentNumber || "").trim();
+
+  if (!num) {
+    errors.push("กรุณากรอกเลขที่เอกสาร");
+  } else if (doc.documentType === "PASSPORT_RED" && !/^M/i.test(num)) {
+    errors.push("เลขที่พาสปอร์ตสีแดงต้องขึ้นต้นด้วยตัว M (เช่น ME123456)");
+  } else if (doc.documentType === "PASSPORT_GREEN" && !/^(CC|CA)/i.test(num)) {
+    errors.push("เลขที่พาสปอร์ตสีเขียวต้องขึ้นต้นด้วย CC หรือ CA");
+  }
+
+  if (!doc.issuedOn) {
+    errors.push("กรุณาระบุวันออกเอกสาร");
+  }
+  if (!doc.expiresOn) {
+    errors.push("กรุณาระบุวันหมดอายุเอกสาร");
+  }
+  if (doc.issuedOn && doc.expiresOn && doc.expiresOn < doc.issuedOn) {
+    errors.push("วันหมดอายุเอกสารต้องไม่ก่อนวันออกเอกสาร");
+  }
+
+  if (doc.documentType === "PASSPORT_RED" || doc.documentType === "PASSPORT_GREEN") {
+    if (!doc.visaExpiresOn) {
+      errors.push("กรุณาระบุวันหมดอายุวีซ่า");
+    }
+    if (doc.visaIssuedOn && doc.visaExpiresOn && doc.visaExpiresOn < doc.visaIssuedOn) {
+      errors.push("วันหมดอายุวีซ่าต้องไม่ก่อนวันออกวีซ่า");
+    }
+  }
+
+  if (doc.documentType === "TEN_YEAR_CARD") {
+    if (!doc.areaPermitIssuedOn) {
+      errors.push("กรุณาระบุวันออกใบออกนอกพื้นที่");
+    }
+    if (!doc.areaPermitExpiresOn) {
+      errors.push("กรุณาระบุวันหมดอายุใบออกนอกพื้นที่");
+    }
+    if (
+      doc.areaPermitIssuedOn &&
+      doc.areaPermitExpiresOn &&
+      doc.areaPermitExpiresOn < doc.areaPermitIssuedOn
+    ) {
+      errors.push("วันหมดอายุใบออกนอกพื้นที่ต้องไม่ก่อนวันออกใบออกนอกพื้นที่");
+    }
+  }
+
+  if (
+    doc.workPermitIssuedOn &&
+    doc.workPermitExpiresOn &&
+    doc.workPermitExpiresOn < doc.workPermitIssuedOn
+  ) {
+    errors.push("วันหมดอายุใบอนุญาตทำงานต้องไม่ก่อนวันออกใบอนุญาตทำงาน");
+  }
+
+  if (
+    doc.remindDays !== undefined &&
+    (!Number.isFinite(doc.remindDays) || doc.remindDays < 0 || doc.remindDays > 365)
+  ) {
+    errors.push("จำนวนวันแจ้งเตือนล่วงหน้าต้องอยู่ระหว่าง 0 ถึง 365 วัน");
+  }
+
+  return errors;
+}
+
+function isRpcNotFoundError(error: any, fnName: string): boolean {
+  if (!error) return false;
+  const msg = String(error.message ?? "");
+  return (
+    error.code === "PGRST202" ||
+    msg.includes("Could not find the function") ||
+    (msg.includes("function") && msg.includes(fnName))
+  );
+}
+
+/** Translate PostgreSQL constraint and RPC errors into readable Thai messages. */
+export function translateMigrantDbError(error: any): Error {
+  const code = String(error?.code ?? "");
+  const msg = String(error?.message ?? "");
+  const details = String(error?.details ?? "");
+  const combined = `${msg} ${details}`;
+
+  if (
+    combined.includes("migrant_worker_one_active_identity_document_idx") ||
+    (code === "23505" && combined.toLowerCase().includes("identity_document"))
+  ) {
+    return new Error(
+      "พนักงานคนนี้มีเอกสารหลักที่ใช้งานอยู่แล้ว 1 ฉบับ กรุณาแก้ไขเอกสารเดิม หรือปิดใช้งานเอกสารเดิมก่อนเพิ่มฉบับใหม่",
+    );
+  }
+  if (
+    combined.includes("migrant_worker_documents_document_number_check") ||
+    combined.includes("^M") ||
+    combined.includes("^(CC|CA)")
+  ) {
+    return new Error(
+      "รูปแบบเลขที่เอกสารไม่ถูกต้อง (พาสปอร์ตสีแดงต้องขึ้นต้นด้วย M, สีเขียวต้องขึ้นต้นด้วย CC หรือ CA)",
+    );
+  }
+  if (combined.includes("migrant_worker_documents_check")) {
+    return new Error(
+      "ข้อมูลวันที่เอกสารไม่ครบถ้วน (ต้องระบุวันออกและวันหมดอายุเอกสาร รวมถึงวีซ่า/ใบออกนอกพื้นที่ตามประเภท)",
+    );
+  }
+  if (combined.includes("date_order") || combined.includes("expires_on >= issued_on")) {
+    return new Error("วันหมดอายุต้องไม่ก่อนวันออกเอกสาร");
+  }
+  if (combined.toLowerCase().includes("permission denied")) {
+    return new Error(
+      "ไม่มีสิทธิ์ดำเนินการ กรุณาตรวจสอบสิทธิ์ผู้ใช้งานหรืออัปเดตฟังก์ชันฐานข้อมูล",
+    );
+  }
+
+  return error instanceof Error ? error : new Error(msg || "ดำเนินการไม่สำเร็จ");
+}
+
+const worker = (row: any): ForeignWorker => {
+  const hasPhoneColumn = Object.prototype.hasOwnProperty.call(row ?? {}, "phone");
+  const rawPhone = String(row?.phone ?? "").trim();
+  const rawOrg = String(row?.organization_unit ?? "").trim();
+  const looksLikePhone = /^[0-9+\-\s()]{7,30}$/.test(rawOrg);
+  const phone = rawPhone || (!hasPhoneColumn || looksLikePhone ? rawOrg : "");
+  const organizationUnit = looksLikePhone && !rawPhone ? "" : rawOrg;
+
+  return {
+    id: String(row.id),
+    employeeCode: String(row.employee_code),
+    fullName: String(row.full_name),
+    nationality: String(row.nationality ?? ""),
+    department: String(row.department),
+    organizationUnit,
+    phone,
+    title: String(row.title ?? ""),
+    nationalId: formatNationalId(row.national_id),
+    birthDate: row.birth_date ?? null,
+    position: String(row.position ?? ""),
+    note: String(row.note ?? ""),
+    isActive: Boolean(row.is_active),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+};
 const document = (row: any): MigrantWorkerDocument => ({
   id: String(row.id),
   workerId: String(row.worker_id),
@@ -197,131 +337,129 @@ export const migrantWorkerService = {
     input: Omit<ForeignWorker, "createdAt" | "updatedAt">,
   ): Promise<ForeignWorker> {
     if (!supabase) throw new Error("Supabase is not configured");
-    const { data, error } = await supabase.rpc("save_foreign_worker_details", {
+
+    const baseParams = {
       p_worker_id: input.id || null,
       p_employee_code: input.employeeCode,
       p_full_name: input.fullName,
       p_nationality: input.nationality,
       p_department: input.department,
-      p_organization_unit: (input.phone ?? input.organizationUnit ?? "").trim(),
       p_title: input.title,
       p_national_id: input.nationalId ? formatNationalId(input.nationalId) : "",
       p_birth_date: input.birthDate,
       p_position: input.position,
       p_note: input.note,
       p_is_active: input.isActive ?? true,
-    });
-    if (error) {
-      if (error.message?.includes("invalid department")) {
-        throw new Error(`แผนก "${input.department}" ไม่ถูกต้องในระบบ (ต้องเป็นหนึ่งใน: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`);
+    };
+
+    const throwWorkerError = (err: any): never => {
+      if (err?.message?.includes("invalid department")) {
+        throw new Error(
+          `แผนก "${input.department}" ไม่ถูกต้องในระบบ (ต้องเป็นหนึ่งใน: EC, HR, AP, AC, PC, IT, DC, LAB, R&D, QC, RM, PR, PA, ST, MC, SE, O&E, SERVICE)`,
+        );
       }
-      if (error.message?.includes("employee code already exists")) {
+      if (
+        err?.message?.includes("employee code already exists") ||
+        err?.message?.includes("foreign_workers_employee_code_key")
+      ) {
         throw new Error(`รหัสพนักงาน "${input.employeeCode}" มีอยู่แล้วในระบบ`);
       }
-      throw error;
+      throw translateMigrantDbError(err);
+    };
+
+    // First try 13-param RPC (with dedicated p_phone column)
+    const { data, error } = await supabase.rpc("save_foreign_worker_details", {
+      ...baseParams,
+      p_organization_unit: (input.organizationUnit ?? "").trim(),
+      p_phone: (input.phone ?? "").trim(),
+    });
+
+    if (error) {
+      // Fallback to 12-param signature if 202611240001 migration hasn't run yet
+      if (isRpcNotFoundError(error, "save_foreign_worker_details")) {
+        const { data: fallbackData, error: fallbackError } = await supabase.rpc(
+          "save_foreign_worker_details",
+          {
+            ...baseParams,
+            p_organization_unit: (input.phone || input.organizationUnit || "").trim(),
+          },
+        );
+        if (fallbackError) throwWorkerError(fallbackError);
+        return worker(fallbackData);
+      }
+      throwWorkerError(error);
     }
+
     return worker(data);
   },
   async deleteWorker(workerId: string): Promise<void> {
     if (!supabase) throw new Error("Supabase is not configured");
-
-    // 1. Fetch document IDs to delete histories
-    const { data: docs } = await supabase
-      .from("migrant_worker_documents")
-      .select("id")
-      .eq("worker_id", workerId);
-
-    const docIds = (docs ?? []).map((d: any) => d.id);
-    if (docIds.length > 0) {
-      await supabase
-        .from("migrant_worker_document_history")
-        .delete()
-        .in("document_id", docIds);
-
-      await supabase
-        .from("migrant_worker_documents")
-        .delete()
-        .eq("worker_id", workerId);
+    const { error } = await supabase.rpc("delete_foreign_worker", {
+      p_worker_id: workerId,
+    });
+    if (error) {
+      if (isRpcNotFoundError(error, "delete_foreign_worker")) {
+        throw new Error(
+          "ยังไม่พบฟังก์ชันลบข้อมูลในฐานข้อมูล กรุณารันไฟล์ migration 202611240001_migrant_worker_delete_and_phone.sql ใน Supabase SQL Editor ก่อน",
+        );
+      }
+      throw translateMigrantDbError(error);
     }
-
-    // 2. Delete worker record
-    const { error } = await supabase
-      .from("foreign_workers")
-      .delete()
-      .eq("id", workerId);
-
-    if (error) throw error;
   },
   async deleteDocument(docId: string): Promise<void> {
     if (!supabase) throw new Error("Supabase is not configured");
-    await supabase
-      .from("migrant_worker_document_history")
-      .delete()
-      .eq("document_id", docId);
-    const { error } = await supabase
-      .from("migrant_worker_documents")
-      .delete()
-      .eq("id", docId);
-    if (error) throw error;
+    const { error } = await supabase.rpc("delete_migrant_worker_document", {
+      p_document_id: docId,
+    });
+    if (error) {
+      if (isRpcNotFoundError(error, "delete_migrant_worker_document")) {
+        throw new Error(
+          "ยังไม่พบฟังก์ชันลบเอกสารในฐานข้อมูล กรุณารันไฟล์ migration 202611240001_migrant_worker_delete_and_phone.sql ใน Supabase SQL Editor ก่อน",
+        );
+      }
+      throw translateMigrantDbError(error);
+    }
   },
   async saveDocument(
     input: Omit<MigrantWorkerDocument, "createdAt" | "updatedAt">,
   ): Promise<void> {
     if (!supabase) throw new Error("Supabase is not configured");
-    
+
+    const baseParams = {
+      p_document_id: input.id || null,
+      p_worker_id: input.workerId,
+      p_document_type: input.documentType,
+      p_document_number: input.documentNumber,
+      p_issued_on: input.issuedOn,
+      p_expires_on: input.expiresOn,
+      p_visa_issued_on: input.visaIssuedOn,
+      p_visa_expires_on: input.visaExpiresOn,
+      p_area_permit_issued_on: input.areaPermitIssuedOn,
+      p_area_permit_expires_on: input.areaPermitExpiresOn,
+      p_remind_days: input.remindDays,
+      p_note: input.note,
+      p_is_active: input.isActive,
+    };
+
     // First try with 16 params (including work permit columns)
-    const { error } = await supabase.rpc(
-      "save_migrant_worker_document_details",
-      {
-        p_document_id: input.id || null,
-        p_worker_id: input.workerId,
-        p_document_type: input.documentType,
-        p_document_number: input.documentNumber,
-        p_issued_on: input.issuedOn,
-        p_expires_on: input.expiresOn,
-        p_visa_issued_on: input.visaIssuedOn,
-        p_visa_expires_on: input.visaExpiresOn,
-        p_area_permit_issued_on: input.areaPermitIssuedOn,
-        p_area_permit_expires_on: input.areaPermitExpiresOn,
-        p_remind_days: input.remindDays,
-        p_note: input.note,
-        p_is_active: input.isActive,
-        p_work_permit_number: input.workPermitNumber ?? "",
-        p_work_permit_issued_on: input.workPermitIssuedOn ?? null,
-        p_work_permit_expires_on: input.workPermitExpiresOn ?? null,
-      },
-    );
+    const { error } = await supabase.rpc("save_migrant_worker_document_details", {
+      ...baseParams,
+      p_work_permit_number: input.workPermitNumber ?? "",
+      p_work_permit_issued_on: input.workPermitIssuedOn ?? null,
+      p_work_permit_expires_on: input.workPermitExpiresOn ?? null,
+    });
 
     if (error) {
       // If function with 16 params not found (migration not yet run in Supabase), fallback to 13 params
-      const isParamMismatch =
-        error.code === "PGRST202" ||
-        error.message?.includes("Could not find the function") ||
-        (error.message?.includes("function") && error.message?.includes("save_migrant_worker_document_details"));
-
-      if (isParamMismatch) {
+      if (isRpcNotFoundError(error, "save_migrant_worker_document_details")) {
         const { error: fallbackError } = await supabase.rpc(
           "save_migrant_worker_document_details",
-          {
-            p_document_id: input.id || null,
-            p_worker_id: input.workerId,
-            p_document_type: input.documentType,
-            p_document_number: input.documentNumber,
-            p_issued_on: input.issuedOn,
-            p_expires_on: input.expiresOn,
-            p_visa_issued_on: input.visaIssuedOn,
-            p_visa_expires_on: input.visaExpiresOn,
-            p_area_permit_issued_on: input.areaPermitIssuedOn,
-            p_area_permit_expires_on: input.areaPermitExpiresOn,
-            p_remind_days: input.remindDays,
-            p_note: input.note,
-            p_is_active: input.isActive,
-          },
+          baseParams,
         );
-        if (fallbackError) throw fallbackError;
+        if (fallbackError) throw translateMigrantDbError(fallbackError);
         return;
       }
-      throw error;
+      throw translateMigrantDbError(error);
     }
   },
 };

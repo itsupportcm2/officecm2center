@@ -300,6 +300,7 @@ export function AppLayout() {
           if (!doc.isActive) continue;
           const worker = workerMap.get(doc.workerId);
           if (!worker || !worker.isActive) continue;
+          const remindDays = doc.remindDays ?? 30;
 
           const checkField = (val: string | null, label: string) => {
             if (!val) return;
@@ -308,7 +309,7 @@ export function AppLayout() {
                 new Date(new Date().toDateString()).getTime()) /
                 86400000,
             );
-            if (days <= 30) {
+            if (days <= remindDays) {
               urgent.push({
                 workerName: worker.fullName,
                 employeeCode: worker.employeeCode,
