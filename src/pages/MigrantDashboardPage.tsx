@@ -178,16 +178,18 @@ export function MigrantDashboardPage() {
     () => expiryRows.filter((r) => r.days >= 0 && r.days <= (r.doc.remindDays ?? 30)),
     [expiryRows],
   );
-  const passportDueSoon30 = useMemo(
+  const allPassportExpiryRows = useMemo(
     () =>
       expiryRows.filter(
         (r) =>
-          (r.doc.documentType === "PASSPORT_RED" ||
-            r.doc.documentType === "PASSPORT_GREEN") &&
-          r.days >= 0 &&
-          r.days <= 30,
+          r.doc.documentType === "PASSPORT_RED" ||
+          r.doc.documentType === "PASSPORT_GREEN",
       ),
     [expiryRows],
+  );
+  const passportDueSoon30 = useMemo(
+    () => allPassportExpiryRows.filter((r) => r.days >= 0 && r.days <= 30),
+    [allPassportExpiryRows],
   );
   const passportDueSummary = useMemo(() => {
     const redIds = new Set<string>();
@@ -198,13 +200,17 @@ export function MigrantDashboardPage() {
     }
     const redCards = redIds.size;
     const greenCards = greenIds.size;
+    const nearest =
+      allPassportExpiryRows.find((r) => r.days >= 0) ??
+      allPassportExpiryRows[0] ??
+      null;
     return {
       redCards,
       greenCards,
       totalCards: redCards + greenCards,
-      nearest: passportDueSoon30[0] ?? null,
+      nearest,
     };
-  }, [passportDueSoon30]);
+  }, [passportDueSoon30, allPassportExpiryRows]);
 
   const tenYearWorkPermitRows = useMemo(
     () =>
@@ -215,18 +221,32 @@ export function MigrantDashboardPage() {
       ),
     [expiryRows],
   );
+  const tenYearCardFallbackRows = useMemo(
+    () =>
+      expiryRows.filter(
+        (r) =>
+          r.doc.documentType === "TEN_YEAR_CARD" && r.fieldKey === "expiresOn",
+      ),
+    [expiryRows],
+  );
   const tenYearWorkPermitSummary = useMemo(() => {
     const total = tenYearWorkPermitRows.length;
     const expiredCount = tenYearWorkPermitRows.filter((r) => r.days < 0).length;
     const due30Count = tenYearWorkPermitRows.filter(
       (r) => r.days >= 0 && r.days <= 30,
     ).length;
-    const nearest =
+    const wpNearest =
       tenYearWorkPermitRows.find((r) => r.days >= 0) ??
       tenYearWorkPermitRows[0] ??
       null;
-    return { total, expiredCount, due30Count, nearest };
-  }, [tenYearWorkPermitRows]);
+    const cardNearest =
+      tenYearCardFallbackRows.find((r) => r.days >= 0) ??
+      tenYearCardFallbackRows[0] ??
+      null;
+    const nearest = wpNearest ?? cardNearest;
+    const isFallbackCardDate = !wpNearest && Boolean(cardNearest);
+    return { total, expiredCount, due30Count, nearest, isFallbackCardDate };
+  }, [tenYearWorkPermitRows, tenYearCardFallbackRows]);
 
   const safe = useMemo(
     () => expiryRows.filter((r) => r.days > Math.max(90, r.doc.remindDays ?? 30)),
@@ -542,21 +562,27 @@ export function MigrantDashboardPage() {
             <span>
               {passportDueSummary.nearest
                 ? `ใกล้สุด: ${thaiDate(passportDueSummary.nearest.date)}`
-                : "ไม่มีพาสแดง/เขียวใกล้หมด"}
+                : "ไม่มีข้อมูลพาสแดง/เขียว"}
             </span>
             <span
               className="mdb-kpi-pill"
               style={
-                passportDueSummary.nearest
-                  ? { background: "#fff7ed", color: "#ea580c" }
-                  : { background: "#f0fdf4", color: "#16a34a" }
+                !passportDueSummary.nearest
+                  ? { background: "#f1f5f9", color: "#64748b" }
+                  : passportDueSummary.nearest.days < 0
+                    ? { background: "#fef2f2", color: "#dc2626" }
+                    : passportDueSummary.nearest.days <= 30
+                      ? { background: "#fff7ed", color: "#ea580c" }
+                      : { background: "#f0fdf4", color: "#16a34a" }
               }
             >
-              {passportDueSummary.nearest
-                ? passportDueSummary.nearest.days === 0
-                  ? "หมดวันนี้"
-                  : `อีก ${passportDueSummary.nearest.days} วัน`
-                : "ปกติ"}
+              {!passportDueSummary.nearest
+                ? "ไม่มีข้อมูล"
+                : passportDueSummary.nearest.days < 0
+                  ? `เกินกำหนด ${formatDays(Math.abs(passportDueSummary.nearest.days))}`
+                  : passportDueSummary.nearest.days === 0
+                    ? "หมดวันนี้"
+                    : `อีก ${formatDays(passportDueSummary.nearest.days)}`}
             </span>
           </div>
         </div>
@@ -594,7 +620,9 @@ export function MigrantDashboardPage() {
             <span className="mdb-kpi-nearest-date">
               {tenYearWorkPermitSummary.nearest ? (
                 <>
-                  ใกล้หมดสุด:{" "}
+                  {tenYearWorkPermitSummary.isFallbackCardDate
+                    ? "บัตรใกล้สุด: "
+                    : "ใกล้หมดสุด: "}
                   <b>{thaiDate(tenYearWorkPermitSummary.nearest.date)}</b>
                 </>
               ) : (
@@ -617,9 +645,9 @@ export function MigrantDashboardPage() {
                   ? { background: "#f1f5f9", color: "#64748b" }
                   : tenYearWorkPermitSummary.nearest.days < 0
                     ? { background: "#fef2f2", color: "#dc2626" }
-                    : tenYearWorkPermitSummary.nearest.days === 0
+                    : tenYearWorkPermitSummary.nearest.days <= 30
                       ? { background: "#fff7ed", color: "#ea580c" }
-                      : { background: "#fffbeb", color: "#d97706" }
+                      : { background: "#f0fdf4", color: "#16a34a" }
               }
             >
               {!tenYearWorkPermitSummary.nearest
