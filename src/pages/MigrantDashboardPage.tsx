@@ -908,7 +908,7 @@ export function MigrantDashboardPage() {
                       </td>
 
                       <td>
-                        <span style={{ fontWeight: 600, color: "#1e293b" }}>{thaiDate(r.date)}</span>
+                        <span style={{ fontWeight: 600, color: "var(--text-primary, #1e293b)" }}>{thaiDate(r.date)}</span>
                       </td>
 
                       <td>
@@ -919,8 +919,12 @@ export function MigrantDashboardPage() {
                         <button
                           type="button"
                           className="mdb-action-btn"
-                          onClick={() => navigate("/migrant-workers")}
-                          title="ไปที่หน้าเอกสาร"
+                          onClick={() =>
+                            navigate(
+                              `/migrant-workers?worker=${encodeURIComponent(r.worker.employeeCode)}&doc=${encodeURIComponent(r.doc.id)}`,
+                            )
+                          }
+                          title="ไปที่หน้าเอกสารของพนักงานคนนี้"
                         >
                           <span>จัดการ</span>
                           <ExternalLink size={13} />

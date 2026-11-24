@@ -50,6 +50,8 @@ export interface MigrantDocumentHistory {
   changedAt: string;
   changedByName: string;
   note: string | null;
+  previousData: Record<string, any> | null;
+  newData: Record<string, any> | null;
 }
 export interface MigrantSnapshot {
   workers: ForeignWorker[];
@@ -319,6 +321,8 @@ const history = (row: any): MigrantDocumentHistory => ({
   changedAt: String(row.changed_at),
   changedByName: String(row.changed_by_name ?? "ผู้ใช้งาน"),
   note: row.note ?? null,
+  previousData: row.previous_data && typeof row.previous_data === "object" ? row.previous_data : null,
+  newData: row.new_data && typeof row.new_data === "object" ? row.new_data : null,
 });
 
 export const migrantWorkerService = {
