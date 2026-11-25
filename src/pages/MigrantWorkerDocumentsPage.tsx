@@ -89,6 +89,14 @@ export interface InitialDocItem {
   note: string;
 }
 
+/** Compare employee codes in ascending natural numeric order. */
+function compareEmployeeCode(a?: string | null, b?: string | null): number {
+  return (a ?? "").trim().localeCompare((b ?? "").trim(), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 const blankNewDoc = (
   type: MigrantDocumentType = "PASSPORT_RED",
 ): InitialDocItem => ({
@@ -346,7 +354,14 @@ export function MigrantWorkerDocumentsPage() {
           });
         return rows;
       })
-      .sort((a, b) => a.days - b.days);
+      .sort(
+        (a, b) =>
+          a.days - b.days ||
+          compareEmployeeCode(
+            workerMap.get(a.doc.workerId)?.employeeCode,
+            workerMap.get(b.doc.workerId)?.employeeCode,
+          ),
+      );
   }, [documents, workerMap]);
 
   // Overall counts for summary
@@ -397,31 +412,33 @@ export function MigrantWorkerDocumentsPage() {
 
   // Filtered Workers list
   const filteredWorkers = useMemo(() => {
-    return workers.filter((w) => {
-      if (deptFilter !== "all" && w.department !== deptFilter) return false;
-      if (genderFilter !== "all" && getWorkerGender(w) !== genderFilter) return false;
-      const wDocs = activeDocsByWorkerId.get(w.id) ?? [];
-      if (docTypeFilter !== "all") {
-        if (!wDocs.some((d) => d.documentType === docTypeFilter)) return false;
-      }
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchDoc = wDocs.some(
-          (d) =>
-            d.documentNumber.toLowerCase().includes(q) ||
-            d.workPermitNumber.toLowerCase().includes(q),
-        );
-        const matchWorker =
-          w.fullName.toLowerCase().includes(q) ||
-          w.employeeCode.toLowerCase().includes(q) ||
-          w.department.toLowerCase().includes(q) ||
-          (w.phone && w.phone.toLowerCase().includes(q)) ||
-          (w.nationalId && w.nationalId.toLowerCase().includes(q)) ||
-          (w.nationality && w.nationality.toLowerCase().includes(q));
-        if (!matchDoc && !matchWorker) return false;
-      }
-      return true;
-    });
+    return workers
+      .filter((w) => {
+        if (deptFilter !== "all" && w.department !== deptFilter) return false;
+        if (genderFilter !== "all" && getWorkerGender(w) !== genderFilter) return false;
+        const wDocs = activeDocsByWorkerId.get(w.id) ?? [];
+        if (docTypeFilter !== "all") {
+          if (!wDocs.some((d) => d.documentType === docTypeFilter)) return false;
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const matchDoc = wDocs.some(
+            (d) =>
+              d.documentNumber.toLowerCase().includes(q) ||
+              d.workPermitNumber.toLowerCase().includes(q),
+          );
+          const matchWorker =
+            w.fullName.toLowerCase().includes(q) ||
+            w.employeeCode.toLowerCase().includes(q) ||
+            w.department.toLowerCase().includes(q) ||
+            (w.phone && w.phone.toLowerCase().includes(q)) ||
+            (w.nationalId && w.nationalId.toLowerCase().includes(q)) ||
+            (w.nationality && w.nationality.toLowerCase().includes(q));
+          if (!matchDoc && !matchWorker) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => compareEmployeeCode(a.employeeCode, b.employeeCode));
   }, [workers, activeDocsByWorkerId, deptFilter, genderFilter, docTypeFilter, searchQuery]);
 
   // Filtered Expiry Rows
@@ -458,26 +475,33 @@ export function MigrantWorkerDocumentsPage() {
 
   // Filtered All Documents list
   const filteredAllDocs = useMemo(() => {
-    return documents.filter((doc) => {
-      const worker = workerMap.get(doc.workerId);
-      if (!worker) return false;
+    return documents
+      .filter((doc) => {
+        const worker = workerMap.get(doc.workerId);
+        if (!worker) return false;
 
-      if (deptFilter !== "all" && worker.department !== deptFilter) return false;
-      if (genderFilter !== "all" && getWorkerGender(worker) !== genderFilter) return false;
-      if (docTypeFilter !== "all" && doc.documentType !== docTypeFilter) return false;
+        if (deptFilter !== "all" && worker.department !== deptFilter) return false;
+        if (genderFilter !== "all" && getWorkerGender(worker) !== genderFilter) return false;
+        if (docTypeFilter !== "all" && doc.documentType !== docTypeFilter) return false;
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const match =
-          worker.fullName.toLowerCase().includes(q) ||
-          worker.employeeCode.toLowerCase().includes(q) ||
-          worker.department.toLowerCase().includes(q) ||
-          doc.documentNumber.toLowerCase().includes(q) ||
-          doc.workPermitNumber.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-      return true;
-    });
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const match =
+            worker.fullName.toLowerCase().includes(q) ||
+            worker.employeeCode.toLowerCase().includes(q) ||
+            worker.department.toLowerCase().includes(q) ||
+            doc.documentNumber.toLowerCase().includes(q) ||
+            doc.workPermitNumber.toLowerCase().includes(q);
+          if (!match) return false;
+        }
+        return true;
+      })
+      .sort((a, b) =>
+        compareEmployeeCode(
+          workerMap.get(a.workerId)?.employeeCode,
+          workerMap.get(b.workerId)?.employeeCode,
+        ),
+      );
   }, [documents, workerMap, deptFilter, genderFilter, docTypeFilter, searchQuery]);
 
   useEffect(() => {
