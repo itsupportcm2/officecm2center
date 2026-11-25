@@ -48,6 +48,55 @@ export const MigrantPrintSheet = memo(function MigrantPrintSheet({
   thaiDate,
   formatDays,
 }: MigrantPrintSheetProps) {
+  const isTenYearPrint = docTypeFilter === "TEN_YEAR_CARD";
+
+  const tenYearExpiryRows = isTenYearPrint
+    ? filteredExpiryRows.filter((row, index, arr) => {
+        return arr.findIndex((r) => r.doc.id === row.doc.id) === index;
+      })
+    : filteredExpiryRows;
+
+  const tenYearRows = isTenYearPrint
+    ? viewMode === "expiry"
+      ? tenYearExpiryRows.map((row, idx) => {
+          const remind = row.doc.remindDays ?? 30;
+          const rowClass =
+            row.days < 0
+              ? "print-row-expired"
+              : row.days <= remind
+                ? "print-row-due"
+                : "";
+          return {
+            key: `print-ty-exp-${row.doc.id}-${idx}`,
+            worker: workerMap.get(row.doc.workerId),
+            doc: row.doc,
+            rowClass,
+          };
+        })
+      : viewMode === "workers"
+        ? filteredWorkers.map((w) => {
+            const doc =
+              documents.find(
+                (d) =>
+                  d.workerId === w.id &&
+                  d.isActive &&
+                  d.documentType === "TEN_YEAR_CARD",
+              ) ?? documents.find((d) => d.workerId === w.id && d.isActive);
+            return {
+              key: `print-ty-w-${w.id}`,
+              worker: w,
+              doc,
+              rowClass: "",
+            };
+          })
+        : filteredAllDocs.map((doc) => ({
+            key: `print-ty-doc-${doc.id}`,
+            worker: workerMap.get(doc.workerId),
+            doc,
+            rowClass: "",
+          }))
+    : [];
+
   return (
     <div className="mwp-print-sheet" aria-hidden="true">
       {/* Header */}
@@ -84,11 +133,17 @@ export const MigrantPrintSheet = memo(function MigrantPrintSheet({
         </div>
         <h2 className="mwp-print-title">
           {viewMode === "expiry" &&
-            "📋 รายงานติดตามวันหมดอายุเอกสารแรงงานต่างด้าว (Expiration & Renewal Watchlist)"}
+            (isTenYearPrint
+              ? "📋 รายงานติดตามวันหมดอายุเอกสารแรงงานต่างด้าว (บัตร 10 ปี)"
+              : "📋 รายงานติดตามวันหมดอายุเอกสารแรงงานต่างด้าว (Expiration & Renewal Watchlist)")}
           {viewMode === "workers" &&
-            "📋 รายงานประวัติพนักงานและสถานะเอกสารแรงงานต่างด้าว (Foreign Worker Directory)"}
+            (isTenYearPrint
+              ? "📋 รายงานประวัติพนักงานและสถานะเอกสารแรงงานต่างด้าว (บัตร 10 ปี)"
+              : "📋 รายงานประวัติพนักงานและสถานะเอกสารแรงงานต่างด้าว (Foreign Worker Directory)")}
           {viewMode === "documents" &&
-            "📋 ทะเบียนเอกสารแรงงานต่างด้าวทั้งหมด (Migrant Worker Document Registry)"}
+            (isTenYearPrint
+              ? "📋 ทะเบียนเอกสารแรงงานต่างด้าว (บัตร 10 ปี)"
+              : "📋 ทะเบียนเอกสารแรงงานต่างด้าวทั้งหมด (Migrant Worker Document Registry)")}
         </h2>
       </header>
 
@@ -144,16 +199,77 @@ export const MigrantPrintSheet = memo(function MigrantPrintSheet({
           )}
           {viewMode === "expiry" && (
             <>
-              รวม {filteredExpiryRows.length} รายการ (
-              {`พนักงาน ${new Set(filteredExpiryRows.map((r) => r.doc.workerId)).size} คน`})
+              รวม {tenYearExpiryRows.length} รายการ (
+              {`พนักงาน ${new Set(tenYearExpiryRows.map((r) => r.doc.workerId)).size} คน`})
             </>
           )}
           {viewMode === "documents" && <>รวม {filteredAllDocs.length} ฉบับ</>}
         </div>
       </div>
 
-      {/* View 1: EXPIRY REPORT TABLE */}
-      {viewMode === "expiry" && (
+      {/* TEN-YEAR CARD DEDICATED 10-COLUMN PRINT TABLE (All 3 Views) */}
+      {isTenYearPrint ? (
+        <table className="mwp-print-table">
+          <thead>
+            <tr>
+              <th style={{ width: "35px", textAlign: "center" }}>ลำดับ</th>
+              <th style={{ width: "60px", textAlign: "center" }}>แผนก</th>
+              <th style={{ width: "75px", textAlign: "center" }}>รหัสพนักงาน</th>
+              <th style={{ width: "55px", textAlign: "center" }}>คำนำหน้า</th>
+              <th>ชื่อ-นามสกุล</th>
+              <th style={{ width: "50px", textAlign: "center" }}>อายุ</th>
+              <th style={{ width: "120px", textAlign: "center" }}>เลขประจำตัวประชาชน</th>
+              <th style={{ width: "90px", textAlign: "center" }}>วันหมดอายุบัตร</th>
+              <th style={{ width: "95px", textAlign: "center" }}>วันหมดอายุใบทำงาน</th>
+              <th style={{ width: "110px", textAlign: "center" }}>วันหมดอายุใบออกนอกพื้นที่</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tenYearRows.length === 0 ? (
+              <tr>
+                <td colSpan={10} style={{ textAlign: "center", padding: "16px" }}>
+                  ไม่พบรายการบัตร 10 ปีที่ตรงตามเงื่อนไขที่เลือก
+                </td>
+              </tr>
+            ) : (
+              tenYearRows.map(({ key, worker, doc, rowClass }, idx) => {
+                const age = worker ? getWorkerAge(worker.birthDate) : null;
+                return (
+                  <tr key={key} className={rowClass}>
+                    <td style={{ textAlign: "center" }}>{idx + 1}</td>
+                    <td style={{ textAlign: "center" }}>
+                      <b>{worker?.department || "-"}</b>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <b>{worker?.employeeCode || "-"}</b>
+                    </td>
+                    <td style={{ textAlign: "center" }}>{worker?.title || "-"}</td>
+                    <td>{worker?.fullName || "-"}</td>
+                    <td style={{ textAlign: "center" }}>
+                      {age !== null ? `${age} ปี` : "-"}
+                    </td>
+                    <td style={{ textAlign: "center" }} className="mono">
+                      {worker?.nationalId || "-"}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      {doc?.expiresOn ? thaiDate(doc.expiresOn) : "-"}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      {doc?.workPermitExpiresOn ? thaiDate(doc.workPermitExpiresOn) : "-"}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      {doc?.areaPermitExpiresOn ? thaiDate(doc.areaPermitExpiresOn) : "-"}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      ) : (
+        <>
+          {/* View 1: EXPIRY REPORT TABLE */}
+          {viewMode === "expiry" && (
         <table className="mwp-print-table">
           <thead>
             <tr>
@@ -383,6 +499,8 @@ export const MigrantPrintSheet = memo(function MigrantPrintSheet({
             )}
           </tbody>
         </table>
+      )}
+        </>
       )}
 
       {/* Signatures Block */}
