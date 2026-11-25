@@ -365,7 +365,7 @@ export const MigrantPrintSheet = memo(function MigrantPrintSheet({
               <th style={{ width: "100px", textAlign: "center" }}>เลขที่เอกสาร</th>
               <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุเล่ม</th>
               <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุวีซ่า</th>
-              <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุใบงาน</th>
+              <th style={{ width: "85px", textAlign: "center" }}>วันหมดอายุใบทำงาน</th>
             </tr>
           </thead>
           <tbody>
@@ -452,7 +452,7 @@ export const MigrantPrintSheet = memo(function MigrantPrintSheet({
               <th style={{ width: "85px", textAlign: "center" }}>หมดอายุเล่ม/บัตร</th>
               <th style={{ width: "85px", textAlign: "center" }}>หมดอายุวีซ่า</th>
               <th>เลขที่ใบอนุญาตทำงาน</th>
-              <th style={{ width: "85px", textAlign: "center" }}>หมดอายุใบงาน</th>
+              <th style={{ width: "85px", textAlign: "center" }}>หมดอายุใบทำงาน</th>
             </tr>
           </thead>
           <tbody>
