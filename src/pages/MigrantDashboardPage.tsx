@@ -267,8 +267,7 @@ export function MigrantDashboardPage() {
       tenYearCardFallbackRows[0] ??
       null;
     const nearest = wpNearest ?? cardNearest;
-    const isFallbackCardDate = !wpNearest && Boolean(cardNearest);
-    return { total, expiredCount, due30Count, nearest, isFallbackCardDate };
+    return { total, expiredCount, due30Count, nearest, wpNearest, cardNearest };
   }, [tenYearWorkPermitRows, tenYearCardFallbackRows]);
 
   // Document types distribution
@@ -664,19 +663,22 @@ export function MigrantDashboardPage() {
             </span>
             <span className="mdb-kpi-unit">ฉบับ</span>
           </div>
-          <div className="mdb-kpi-breakdown">
-            <span className="mdb-kpi-nearest-date">
-              {tenYearWorkPermitSummary.nearest ? (
-                <>
-                  {tenYearWorkPermitSummary.isFallbackCardDate
-                    ? "บัตรใกล้สุด: "
-                    : "ใกล้หมดสุด: "}
-                  <b>{thaiDate(tenYearWorkPermitSummary.nearest.date)}</b>
-                </>
-              ) : (
-                "ยังไม่มีข้อมูลวันหมดอายุ"
-              )}
-            </span>
+          <div className="mdb-tenyear-split">
+            <div className="mdb-passport-mini mdb-chip-amber">
+              <span className="mdb-passport-mini-label">บัตร 10 ปีใกล้หมดสุด</span>
+              <span className="mdb-passport-mini-date">
+                {tenYearWorkPermitSummary.cardNearest
+                  ? thaiDate(tenYearWorkPermitSummary.cardNearest.date)
+                  : "ไม่มีข้อมูล"}
+              </span>
+              <span className="mdb-passport-mini-divider" />
+              <span className="mdb-passport-mini-label">ใบอนุญาตทำงานใกล้สุด</span>
+              <span className="mdb-passport-mini-date">
+                {tenYearWorkPermitSummary.wpNearest
+                  ? thaiDate(tenYearWorkPermitSummary.wpNearest.date)
+                  : "ไม่มีข้อมูล"}
+              </span>
+            </div>
           </div>
           <div className="mdb-kpi-footer">
             <span>
