@@ -209,6 +209,16 @@ export function MigrantDashboardPage() {
     const redNearest = redRows.find((r) => r.days >= 0) ?? redRows[0] ?? null;
     const greenNearest =
       greenRows.find((r) => r.days >= 0) ?? greenRows[0] ?? null;
+    const redWpRows = redRows.filter(
+      (r) => r.fieldKey === "workPermitExpiresOn",
+    );
+    const greenWpRows = greenRows.filter(
+      (r) => r.fieldKey === "workPermitExpiresOn",
+    );
+    const redWorkPermitNearest =
+      redWpRows.find((r) => r.days >= 0) ?? redWpRows[0] ?? null;
+    const greenWorkPermitNearest =
+      greenWpRows.find((r) => r.days >= 0) ?? greenWpRows[0] ?? null;
     const nearest =
       allPassportExpiryRows.find((r) => r.days >= 0) ??
       allPassportExpiryRows[0] ??
@@ -220,6 +230,8 @@ export function MigrantDashboardPage() {
       nearest,
       redNearest,
       greenNearest,
+      redWorkPermitNearest,
+      greenWorkPermitNearest,
     };
   }, [passportDueSoon30, allPassportExpiryRows]);
 
@@ -567,6 +579,13 @@ export function MigrantDashboardPage() {
                   ? thaiDate(passportDueSummary.redNearest.date)
                   : "ไม่มีข้อมูล"}
               </span>
+              <span className="mdb-passport-mini-divider" />
+              <span className="mdb-passport-mini-label">ใบอนุญาตทำงานใกล้สุด</span>
+              <span className="mdb-passport-mini-date">
+                {passportDueSummary.redWorkPermitNearest
+                  ? thaiDate(passportDueSummary.redWorkPermitNearest.date)
+                  : "ไม่มีข้อมูล"}
+              </span>
             </div>
             <div className="mdb-passport-mini mdb-chip-green">
               <span className="mdb-passport-mini-head">
@@ -576,6 +595,13 @@ export function MigrantDashboardPage() {
               <span className="mdb-passport-mini-date">
                 {passportDueSummary.greenNearest
                   ? thaiDate(passportDueSummary.greenNearest.date)
+                  : "ไม่มีข้อมูล"}
+              </span>
+              <span className="mdb-passport-mini-divider" />
+              <span className="mdb-passport-mini-label">ใบอนุญาตทำงานใกล้สุด</span>
+              <span className="mdb-passport-mini-date">
+                {passportDueSummary.greenWorkPermitNearest
+                  ? thaiDate(passportDueSummary.greenWorkPermitNearest.date)
                   : "ไม่มีข้อมูล"}
               </span>
             </div>

@@ -10521,6 +10521,14 @@ button.top-user.ops-user {
     text-overflow: ellipsis;
   }
 
+  .mdb-passport-mini-divider {
+    display: block;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.16;
+    margin: 3px 0 1px;
+  }
+
   .mdb-chip-red {
     background: #fef2f2;
     color: #b91c1c;
