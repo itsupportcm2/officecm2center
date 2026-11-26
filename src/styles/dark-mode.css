@@ -1,0 +1,1804 @@
+/* ========================================================= */
+/* Dark Mode Global & Component Rules                        */
+/* ========================================================= */
+[data-theme="dark"] body {
+  background: var(--bg-page) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .main-area,
+[data-theme="dark"] .ops-main,
+[data-theme="dark"] .content,
+[data-theme="dark"] .ops-content,
+[data-theme="dark"] .app-shell {
+  background: var(--bg-page) !important;
+}
+
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .ops-sidebar {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--border-line) !important;
+}
+
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .ops-topbar {
+  background: var(--topbar-bg) !important;
+  border-bottom: 1px solid var(--border-line) !important;
+}
+
+[data-theme="dark"] .ops-heading h1 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .ops-heading p {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .ops-search {
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .ops-search input {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .ops-search kbd {
+  background: var(--bg-subtle) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .icon-btn {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-line) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .icon-btn:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .theme-toggle:hover {
+  transform: rotate(15deg);
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .table-card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .content-card,
+[data-theme="dark"] .mwp-main-card,
+[data-theme="dark"] .mdb-card,
+[data-theme="dark"] .modal-container,
+[data-theme="dark"] .modal-box,
+[data-theme="dark"] .renewal-news-modal {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .modal-header h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .modal-actions {
+  border-top-color: var(--border-line) !important;
+}
+
+/* Tables in Dark Mode */
+[data-theme="dark"] table,
+[data-theme="dark"] .mwp-table,
+[data-theme="dark"] .table {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] table th,
+[data-theme="dark"] .mwp-table th,
+[data-theme="dark"] .table th {
+  background: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] table td,
+[data-theme="dark"] .mwp-table td,
+[data-theme="dark"] .table td {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] table tbody tr:hover,
+[data-theme="dark"] .mwp-table tbody tr:hover,
+[data-theme="dark"] .table tbody tr:hover {
+  background: var(--bg-hover) !important;
+}
+
+[data-theme="dark"] .mwp-worker-name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .mwp-worker-meta {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .mwp-dept-badge {
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .mwp-expand-row td {
+  background: var(--bg-page) !important;
+}
+
+[data-theme="dark"] .mwp-expand-container {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+}
+
+[data-theme="dark"] .mwp-doc-mini-card {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .mwp-expand-title {
+  color: var(--text-primary) !important;
+}
+
+/* Inputs, Selects, and Buttons */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .mwp-search-input,
+[data-theme="dark"] .mwp-select {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .btn.secondary,
+[data-theme="dark"] .mwp-btn-action,
+[data-theme="dark"] .mwp-btn-print {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .btn.secondary:hover,
+[data-theme="dark"] .mwp-btn-action:hover,
+[data-theme="dark"] .mwp-btn-print:hover {
+  background: var(--bg-hover) !important;
+  border-color: var(--blue) !important;
+}
+
+/* Migrant Worker UI in Dark Mode */
+[data-theme="dark"] .mwp-stat-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+}
+
+[data-theme="dark"] .mwp-stat-title {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .mwp-stat-val {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .mwp-view-nav {
+  border-bottom-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn.active {
+  color: #60a5fa !important;
+  border-bottom-color: #60a5fa !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-badge {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .mwp-sub-pill {
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .mwp-sub-pill.active {
+  background: #1e3a8a !important;
+  color: #bfdbfe !important;
+  border-color: #3b82f6 !important;
+}
+
+[data-theme="dark"] .mwp-toolbar {
+  border-bottom-color: var(--border-line) !important;
+}
+
+/* Migrant Dashboard in Dark Mode */
+[data-theme="dark"] .mdb-kpi-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+}
+
+[data-theme="dark"] .mdb-kpi-title {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .mdb-kpi-val {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .mdb-chart-box,
+[data-theme="dark"] .mdb-stat-card {
+  background: var(--bg-card) !important;
+  border-color: var(--border-card) !important;
+}
+
+[data-theme="dark"] .mdb-card-header {
+  border-bottom-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .mdb-card-header h2,
+[data-theme="dark"] .mdb-card-header h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .mdb-watchlist-table th {
+  background: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .mdb-watchlist-table td {
+  border-color: var(--border-line) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Modals & Popups in Dark Mode */
+[data-theme="dark"] .renewal-news-list article {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-line) !important;
+}
+
+[data-theme="dark"] .renewal-news-list b {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .renewal-news-list p {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .renewal-news-modal footer {
+  border-top-color: var(--border-line) !important;
+}
+
+
+/* ========================================================= */
+/* ENHANCED HIGH-CONTRAST DARK MODE RULES                     */
+/* ========================================================= */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] small {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] b,
+[data-theme="dark"] strong {
+  color: #f8fafc;
+}
+
+/* Text utility classes */
+[data-theme="dark"] .mwp-count-text,
+[data-theme="dark"] .mdb-count-text,
+[data-theme="dark"] .mdb-kpi-subtext {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-stat-hint-active {
+  color: #f8fafc !important;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .mwp-muted-text,
+[data-theme="dark"] .muted,
+[data-theme="dark"] .text-muted {
+  color: #94a3b8 !important;
+}
+
+/* Dashboard KPI & Panels */
+[data-theme="dark"] .mdb-panel {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mdb-panel-header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mdb-panel-title h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-panel-title p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-kpi-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-kpi-title {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mdb-kpi-unit {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-kpi-footer {
+  color: #94a3b8 !important;
+  border-top-color: #223250 !important;
+}
+
+/* Donut & Stats */
+[data-theme="dark"] .mdb-donut-center-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-donut-center-label {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-donut-item-name {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .mdb-donut-item-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-donut-item-track,
+[data-theme="dark"] .mdb-dept-bar-wrap {
+  background: #1e2c4a !important;
+}
+
+/* Department Rank List */
+[data-theme="dark"] .mdb-dept-rank {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mdb-dept-badge {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-dept-count {
+  color: #f8fafc !important;
+}
+
+/* Nationality Cards */
+[data-theme="dark"] .mdb-nat-card {
+  background: #18233c !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mdb-nat-card:hover {
+  background: #1e2c4a !important;
+}
+
+[data-theme="dark"] .mdb-nat-name {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-nat-count {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-nat-pct {
+  color: #94a3b8 !important;
+}
+
+/* Watchlist & Table Card */
+[data-theme="dark"] .mdb-watchlist-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mdb-watchlist-title h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-watchlist-title p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-controls-bar {
+  background: #0d1527 !important;
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .mdb-tab-btn {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mdb-tab-btn:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-tab-btn.active {
+  background: #1e3a8a !important;
+  color: #bfdbfe !important;
+}
+
+/* Gender distribution card on Dashboard */
+[data-theme="dark"] .mdb-gender-dual-track {
+  background: #1e2c4a !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-male {
+  background: #0f1f3d !important;
+  border-color: #1e3a8a !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-female {
+  background: #331024 !important;
+  border-color: #701a4f !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-male .mdb-gender-stat-icon {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-female .mdb-gender-stat-icon {
+  background: #701a4f !important;
+  color: #f472b6 !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mdb-gender-stat-pct {
+  color: #94a3b8 !important;
+}
+
+/* Migrant Worker Document Page Components */
+[data-theme="dark"] .mwp-stat-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-stat-title {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-stat-val {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-stat-unit {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mwp-stat-hint {
+  border-top-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-main-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-view-nav {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-btn.active {
+  color: #60a5fa !important;
+  border-bottom-color: #60a5fa !important;
+}
+
+[data-theme="dark"] .mwp-view-tab-badge {
+  background: #18233c !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-toolbar {
+  background: #0d1527 !important;
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-search-input,
+[data-theme="dark"] .mwp-select,
+[data-theme="dark"] .mdb-search-input,
+[data-theme="dark"] .mdb-select {
+  background: #131d33 !important;
+  border-color: #2a3c60 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-search-input::placeholder,
+[data-theme="dark"] .mdb-search-input::placeholder {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] select option {
+  background: #131d33 !important;
+  color: #f8fafc !important;
+}
+
+/* Tables and Rows in Dark Mode */
+[data-theme="dark"] .mwp-table th,
+[data-theme="dark"] .mdb-watchlist-table th,
+[data-theme="dark"] .table th {
+  background: #18233c !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .mwp-table td,
+[data-theme="dark"] .mdb-watchlist-table td,
+[data-theme="dark"] .table td {
+  border-bottom: 1px solid #1e2c4a !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .mwp-table tbody tr:hover,
+[data-theme="dark"] .mdb-watchlist-table tbody tr:hover,
+[data-theme="dark"] .table tbody tr:hover {
+  background: #192742 !important;
+}
+
+[data-theme="dark"] .mwp-row-expanded,
+[data-theme="dark"] .mwp-expand-row td {
+  background: #0a1120 !important;
+  border-bottom-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-expand-container {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .mwp-expand-header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-expand-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-doc-mini-card {
+  background: #0d1527 !important;
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .mwp-doc-mini-dates {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-worker-name {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-worker-meta {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .mwp-dept-badge {
+  background: #1e2c4a !important;
+  border-color: #2a3c60 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .mwp-btn-action,
+[data-theme="dark"] .mwp-btn-print {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .mwp-btn-action:hover,
+[data-theme="dark"] .mwp-btn-print:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+/* Modals & Forms in Dark Mode */
+[data-theme="dark"] .modal-container,
+[data-theme="dark"] .modal-box {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .modal-header h2,
+[data-theme="dark"] .modal-header h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .modal-close {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .modal-close:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .form-grid label {
+  color: #cbd5e1 !important;
+}
+
+/* Renewal Alert News Popup in Dark Mode */
+[data-theme="dark"] .renewal-news-modal {
+  background: #131d33 !important;
+  border: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .renewal-news-list article {
+  background: #18233c !important;
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .renewal-news-list b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .renewal-news-list p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .renewal-news-modal > footer {
+  border-top-color: #223250 !important;
+}
+
+
+/* ========================================================= */
+/* UNIVERSAL COMPLETE DARK MODE OVERRIDES (ALL PAGES)        */
+/* ========================================================= */
+
+/* Metric Cards & Dashboard Overview */
+[data-theme="dark"] .metric-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .metric-card strong {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .metric-card span {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .metric-card small,
+[data-theme="dark"] .detail-stock small,
+[data-theme="dark"] .report-cards small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .metric-icon.navy {
+  background: #1e293b !important;
+  color: #93c5fd !important;
+}
+[data-theme="dark"] .metric-icon.teal {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+}
+[data-theme="dark"] .metric-icon.amber {
+  background: #78350f !important;
+  color: #fcd34d !important;
+}
+[data-theme="dark"] .metric-icon.red {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+[data-theme="dark"] .metric-icon.blue {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+/* Common Card & Card Head */
+[data-theme="dark"] .card-head {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .card-head h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .card-head p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .card-head > a {
+  color: #60a5fa !important;
+}
+
+/* Codes, SKUs, and IDs */
+[data-theme="dark"] .mono {
+  color: #cbd5e1 !important;
+}
+
+/* Search Bars & Inputs across all pages */
+[data-theme="dark"] .search,
+[data-theme="dark"] .admin-search {
+  background: #131d33 !important;
+  border-color: #2a3c60 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .search input,
+[data-theme="dark"] .admin-search input {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .search input::placeholder,
+[data-theme="dark"] .admin-search input::placeholder {
+  color: #64748b !important;
+}
+
+/* Filter toolbars */
+[data-theme="dark"] .filters select,
+[data-theme="dark"] .filters input,
+[data-theme="dark"] .report-range input {
+  background: #131d33 !important;
+  border-color: #2a3c60 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .filters > span {
+  color: #94a3b8 !important;
+}
+
+/* Status & Role Badges in Dark Mode */
+[data-theme="dark"] .status-normal,
+[data-theme="dark"] .tx-in {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+  border: 1px solid #059669;
+}
+
+[data-theme="dark"] .status-low,
+[data-theme="dark"] .tx-adjust {
+  background: #78350f !important;
+  color: #fcd34d !important;
+  border: 1px solid #d97706;
+}
+
+[data-theme="dark"] .status-out,
+[data-theme="dark"] .tx-out {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+  border: 1px solid #dc2626;
+}
+
+[data-theme="dark"] .tx-transfer {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+  border: 1px solid #2563eb;
+}
+
+[data-theme="dark"] .status-expired {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .status-due {
+  background: #78350f !important;
+  color: #fcd34d !important;
+}
+
+[data-theme="dark"] .role-admin {
+  background: #3b0764 !important;
+  color: #d8b4fe !important;
+}
+
+[data-theme="dark"] .role-staff {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .role-viewer {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .role-issuer {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+}
+
+[data-theme="dark"] .role-fulfiller {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .role-employee_document_officer {
+  background: #042f2e !important;
+  color: #5eead4 !important;
+}
+
+/* Category & Ranking Bars on Stock Dashboard */
+[data-theme="dark"] .category-bars,
+[data-theme="dark"] .rank-bars,
+[data-theme="dark"] .top-items {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .bar,
+[data-theme="dark"] .rank-bars > div > i {
+  background: #1e2c4a !important;
+}
+
+[data-theme="dark"] .stock-note {
+  background: #102447 !important;
+  border: 1px solid #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .top-items > div > span {
+  background: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+/* Row Action Menus (3 dots dropdown) */
+[data-theme="dark"] .row-menu > div {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .row-menu a,
+[data-theme="dark"] .row-menu button {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .row-menu a:hover,
+[data-theme="dark"] .row-menu button:hover {
+  background: #1e2c4a !important;
+}
+
+/* Pagination */
+[data-theme="dark"] .pagination {
+  border-top-color: #223250 !important;
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .pagination button {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .pagination button:hover:not(:disabled) {
+  background: #1e2c4a !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Product Icon in inventory */
+[data-theme="dark"] .inventory-card .product-icon,
+[data-theme="dark"] .preview-item .product-icon {
+  background: #1e2c4a !important;
+  color: #60a5fa !important;
+}
+
+/* Item Detail Page */
+[data-theme="dark"] .back-link {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .back-link:hover {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .detail-hero {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .detail-image {
+  background: #18233c !important;
+  color: #60a5fa !important;
+  border: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .detail-main h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .detail-main p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .detail-stock {
+  border-color: #223250 !important;
+}
+
+[data-theme="dark"] .detail-stock strong {
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .detail-stock span {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .detail-tags > span:last-child {
+  background: #18233c !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #27395d !important;
+}
+
+[data-theme="dark"] .info-list > div {
+  border-bottom-color: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .info-list dt {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .info-list dd {
+  color: #f8fafc !important;
+}
+
+/* Stock Form Page & Preview */
+[data-theme="dark"] .stock-title {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .stock-title h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .stock-title p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .stock-preview {
+  background: #0b1528 !important;
+  border: 1px solid #1e3152 !important;
+}
+
+[data-theme="dark"] .stock-preview > span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .preview-item {
+  border-bottom-color: #1e3152 !important;
+}
+
+[data-theme="dark"] .preview-item b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .preview-item small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .stock-math span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .stock-math strong {
+  color: #f8fafc !important;
+}
+
+/* Location balances */
+[data-theme="dark"] .location-balance-list > span {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .location-balance-list > span.active {
+  background: #1e3a8a !important;
+  border-color: #3b82f6 !important;
+  color: #bfdbfe !important;
+}
+
+[data-theme="dark"] .location-balance-list b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .balance-breakdown > div {
+  border-bottom-color: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .balance-breakdown span {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .balance-breakdown h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .total-after-note {
+  background: #0c1a33 !important;
+  border-color: #1e3a8a !important;
+  color: #cbd5e1 !important;
+}
+
+/* Issue Requests & Fulfillment Pages */
+[data-theme="dark"] .issue-request-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-request-card > header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .issue-request-card h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-request-card header p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-request-meta {
+  background: #0d1527 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .issue-line {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-line-number {
+  background: #1e3a8a !important;
+  color: #bfdbfe !important;
+}
+
+[data-theme="dark"] .issue-lines-heading h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-lines-heading p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-request-note {
+  border-top-color: #1e2c4a !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .issue-request-rejection {
+  background: #3b1016 !important;
+  border-color: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .signature-heading b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .signature-heading small,
+[data-theme="dark"] .signature-disclaimer {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .request-signature {
+  background: #18233c !important;
+  border-top-color: #1e2c4a !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .request-signature b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .request-signature small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-review-meta span {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-meta b {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-meta small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-review-signature {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-signature small {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .issue-review-signature p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .issue-review-notice {
+  background: #102447 !important;
+  border: 1px solid #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .issue-request-preview {
+  background: #0b1528 !important;
+  border: 1px solid #1e3152 !important;
+}
+
+/* Master Data Pages (Categories, Locations) */
+[data-theme="dark"] .master-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .master-card h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .master-card p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .master-card strong,
+[data-theme="dark"] .master-card .count {
+  color: #f8fafc !important;
+}
+
+/* Settings & Admin Pages */
+[data-theme="dark"] .settings-form {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .toggle-list label {
+  border-bottom-color: #223250 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .toggle-list small {
+  color: #94a3b8 !important;
+}
+
+/* Data Tools & Audits */
+[data-theme="dark"] .data-hero {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-hero h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-hero p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .data-tool-card {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-tool-card h3 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .data-tool-card p,
+[data-theme="dark"] .data-tool-card li {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .data-note {
+  background: #382405 !important;
+  border-color: #854d0e !important;
+  color: #fde047 !important;
+}
+
+[data-theme="dark"] .history-summary {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .history-summary strong {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .history-summary small {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .renewal-overview article {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .renewal-overview strong {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .renewal-overview span {
+  color: #94a3b8 !important;
+}
+
+/* Modals & Forms in Migrant Worker Documents Page */
+[data-theme="dark"] .section-title-bar {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .section-title {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .checkbox-inline {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .combined-doc-card {
+  background: #0d1527 !important;
+  border-color: #223250 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .combined-doc-header {
+  border-bottom-color: #223250 !important;
+}
+
+[data-theme="dark"] .combined-doc-badge {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .add-doc-btn {
+  background: #18233c !important;
+  border-color: #2a3c60 !important;
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .add-doc-btn:hover {
+  background: #1e2c4a !important;
+  border-color: #3b82f6 !important;
+}
+
+[data-theme="dark"] .import-step {
+  background: #18233c !important;
+  border-color: #27395d !important;
+}
+
+[data-theme="dark"] .import-step-title {
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .import-hint {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .import-upload-label {
+  background: #0d1527 !important;
+  border-color: #2a3c60 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .import-upload-label:hover {
+  border-color: #3b82f6 !important;
+  background: #131d33 !important;
+}
+
+/* Login Page Dark Mode */
+[data-theme="dark"] .login-page {
+  background: #070c16 !important;
+}
+
+[data-theme="dark"] .login-card {
+  background: #131d33 !important;
+  border: 1px solid #27395d !important;
+  color: #f8fafc !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .login-card h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .login-card > p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .demo-note {
+  color: #94a3b8 !important;
+}
+
+/* ========================================================= */
+/* Enterprise UI/UX Upgrade (Packages A + B + C)             */
+/* ========================================================= */
+
+.tabular-nums,
+.quantity,
+.mwp-stat-val,
+.mdb-kpi-val {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toast Feedback Variants */
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  animation: toastSlideUp 0.2s ease-out;
+}
+.toast.toast-success {
+  background: #14532d;
+  color: #f0fdf4;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+.toast.toast-error {
+  background: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Upgraded Empty State */
+.empty-mark {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 10px;
+  border-radius: 14px;
+  background: var(--bg-subtle, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  display: grid;
+  place-items: center;
+}
+
+/* Enterprise Login Upgrade */
+.login-brand {
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 480px;
+  gap: 22px;
+}
+.login-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.login-company-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #93c5fd;
+  margin-bottom: 6px;
+}
+.login-features-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.login-features-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.login-features-list svg {
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+.input-icon input {
+  padding-right: 40px;
+}
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.password-toggle-btn:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-primary, #0f172a);
+}
+.input-icon .password-toggle-btn svg {
+  position: static;
+  left: auto;
+  top: auto;
+  color: inherit;
+}
+
+/* Topbar Popover Menus & Notification Count Badge */
+.ops-popover-wrap {
+  position: relative;
+}
+.notify-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e11d48;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--topbar-bg, #ffffff);
+}
+.ops-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 70;
+  width: 310px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-line, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  padding: 12px;
+  color: var(--text-primary, #0f172a);
+}
+.user-popover {
+  width: 260px;
+}
+.ops-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-line, #e2e8f0);
+  font-size: 0.9rem;
+}
+.ops-popover-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-subtle, #f1f5f9);
+  color: var(--text-secondary, #334155);
+}
+.ops-popover-empty {
+  padding: 20px 10px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted, #64748b);
+}
+.ops-popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ops-popover-item {
+  width: 100%;
+  border: 1px solid var(--border-line, #e2e8f0);
+  background: var(--bg-surface, #ffffff);
+  border-radius: 10px;
+  padding: 9px 11px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary, #0f172a);
+}
+.ops-popover-item:hover {
+  background: var(--bg-hover, #f8fafc);
+  border-color: var(--blue, #175cd3);
+}
+.ops-popover-item svg {
+  color: var(--blue, #175cd3);
+}
+.ops-popover-item b {
+  display: block;
+  font-size: 0.82rem;
+}
+.ops-popover-item small {
+  display: block;
+  font-size: 0.73rem;
+  color: var(--text-muted, #64748b);
+}
+.ops-popover-count {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.ops-user-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 4px 10px;
+}
+.ops-user-summary strong {
+  font-size: 0.92rem;
+}
+.ops-user-summary span {
+  font-size: 0.76rem;
+  color: var(--text-muted, #64748b);
+}
+.ops-user-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ops-popover-divider {
+  height: 1px;
+  background: var(--border-line, #e2e8f0);
+  margin: 6px 0;
+}
+.ops-popover-action {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  cursor: pointer;
+}
+.ops-popover-action:hover {
+  background: var(--bg-hover, #f8fafc);
+}
+.ops-popover-action.danger {
+  color: #dc2626;
+}
+button.top-user.ops-user {
+  cursor: pointer;
+  border: 1px solid var(--border-line, #e2e8f0);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #0f172a);
+}
+
+/* Operations Dashboard Hero & KPI Cards */
+.ops-dashboard-hero {
+  margin-bottom: 18px;
+}
+.ops-kpi-grid {
+  margin-bottom: 18px;
+}
+.ops-kpi-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Inventory Pagination Size Control */
+.pagination {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.pagination-size-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+.pagination-size-select {
+  width: auto;
+  display: inline-block;
+  margin-top: 0;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+.pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Renewals 4-Card Clickable Overview & Search Bar */
+.renewal-overview {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.renewal-overview article.clickable {
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.renewal-overview article.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  border-color: var(--blue, #175cd3);
+}
+.renewal-overview article.clickable.active {
+  border-color: var(--blue, #175cd3);
+  box-shadow: 0 0 0 2px rgba(23, 92, 211, 0.22);
+}
+.renewal-overview-icon.total {
+  background: #eff6ff;
+  color: #175cd3;
+}
+.renewal-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.renewal-search-bar .search {
+  flex: 1 1 240px;
+}
+.renewal-cat-select {
+  min-width: 170px;
+  border: 1px solid var(--input-border, #cbd5e1);
+  border-radius: 9px;
+  padding: 8px 11px;
+  background: var(--input-bg, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-size: 0.84rem;
+}
+@media (max-width: 960px) {
+  .renewal-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Dark Theme Overrides for New UI Elements */
+[data-theme="dark"] .password-toggle-btn {
+  color: #94a3b8;
+}
+[data-theme="dark"] .password-toggle-btn:hover {
+  color: #f8fafc;
+}
+[data-theme="dark"] .notify-count-badge {
+  border-color: var(--topbar-bg, #0f172a);
+}
+[data-theme="dark"] .ops-popover {
+  background: #131d33 !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65) !important;
+}
+[data-theme="dark"] .ops-popover-item {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .ops-popover-item:hover {
+  background: #1e2c4a !important;
+  border-color: #3b82f6 !important;
+}
+[data-theme="dark"] .ops-popover-action {
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .ops-popover-action.danger {
+  color: #f87171 !important;
+}
+[data-theme="dark"] .ops-popover-action:hover {
+  background: #1e2c4a !important;
+}
+[data-theme="dark"] .ops-popover-pill {
+  background: #1e2c4a !important;
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] button.top-user.ops-user {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .renewal-overview-icon.total {
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: #60a5fa !important;
+}
+[data-theme="dark"] .renewal-cat-select {
+  background: #18233c !important;
+  border-color: #27395d !important;
+  color: #f8fafc !important;
+}
+

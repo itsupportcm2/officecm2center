@@ -21,6 +21,7 @@ import {
   Plus,
   Printer,
   RefreshCw,
+  Rows3,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -32,17 +33,16 @@ import {
 } from "lucide-react";
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ThaiDateInput } from "../components/ThaiDateInput";
 import { MigrantDocHistoryModal } from "../components/migrant/MigrantDocHistoryModal";
+import { MigrantDocumentFormModal } from "../components/migrant/MigrantDocumentFormModal";
+import { MigrantImportModal } from "../components/migrant/MigrantImportModal";
 import { MigrantPrintSheet } from "../components/migrant/MigrantPrintSheet";
-import { Confirm, Modal, TableSkeleton, Toast } from "../components/ui";
-import { DEPARTMENTS } from "../constants/departments";
-import { isoToThaiDisplay } from "../utils/thaiDateInput";
+import { MigrantWorkerFormModal } from "../components/migrant/MigrantWorkerFormModal";
+import { Confirm, TableSkeleton, Toast } from "../components/ui";
 import {
   migrantWorkerService,
   getWorkerGender,
   getWorkerAge,
-  formatNationalId,
   validateMigrantDocument,
   type ForeignWorker,
   type MigrantDocumentHistory,
@@ -199,10 +199,28 @@ export function MigrantWorkerDocumentsPage() {
   const [expirySubFilter, setExpirySubFilter] = useState<"all" | "expired" | "due" | "caution" | "safe">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [tableDensity, setTableDensity] = useState<"comfortable" | "compact">(() => {
+    try {
+      return localStorage.getItem("office_table_density") === "compact"
+        ? "compact"
+        : "comfortable";
+    } catch {
+      return "comfortable";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("office_table_density", tableDensity);
+    } catch {
+      // Ignore storage errors in private mode
+    }
+  }, [tableDensity]);
 
   // Filter toolbar
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [deptFilter, setDeptFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState<"all" | "MALE" | "FEMALE">("all");
   const [docTypeFilter, setDocTypeFilter] = useState("all");
@@ -270,6 +288,34 @@ export function MigrantWorkerDocumentsPage() {
 
   useEffect(() => {
     void load(false);
+  }, []);
+
+  // Keyboard shortcut: press '/' outside inputs to focus page search box
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "/" ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   // Support deep-link navigation from MigrantDashboardPage (?worker=...&doc=...)
@@ -836,27 +882,6 @@ export function MigrantWorkerDocumentsPage() {
     }
   };
 
-  const renderDateField = (
-    key:
-      | "issuedOn"
-      | "expiresOn"
-      | "visaIssuedOn"
-      | "visaExpiresOn"
-      | "areaPermitIssuedOn"
-      | "areaPermitExpiresOn"
-      | "workPermitIssuedOn"
-      | "workPermitExpiresOn",
-    label: string,
-  ) => (
-    <label>
-      {label}
-      <ThaiDateInput
-        value={docForm[key] ?? ""}
-        onChange={(val) => setDocForm({ ...docForm, [key]: val || null })}
-      />
-    </label>
-  );
-
   return (
     <div className="mwp-container">
       {/* Hero Header */}
@@ -1151,11 +1176,18 @@ export function MigrantWorkerDocumentsPage() {
           <div className="mwp-search-wrap">
             <Search size={16} className="mwp-search-icon" />
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="ค้นหาชื่อ-สกุล, รหัสบุคลากร, แผนก, สัญชาติ หรือเลขที่เอกสาร..."
+              placeholder="ค้นหาชื่อ-สกุล, รหัสบุคลากร, แผนก, สัญชาติ หรือเลขที่เอกสาร... (กด / เพื่อค้นหา)"
               className="mwp-search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setSearchQuery("");
+                  e.currentTarget.blur();
+                }
+              }}
             />
             {searchQuery && (
               <button
@@ -1250,6 +1282,17 @@ export function MigrantWorkerDocumentsPage() {
             </span>
             <button
               type="button"
+              className={`mwp-density-btn${tableDensity === "compact" ? " is-active" : ""}`}
+              onClick={() =>
+                setTableDensity((prev) => (prev === "compact" ? "comfortable" : "compact"))
+              }
+              title="สลับความหนาแน่นของแถวตาราง (ปกติ / กะทัดรัด)"
+            >
+              <Rows3 size={14} />
+              <span>{tableDensity === "compact" ? "มุมมอง: กะทัดรัด" : "มุมมอง: ปกติ"}</span>
+            </button>
+            <button
+              type="button"
               className="mwp-btn-print"
               onClick={() => window.print()}
               title="พิมพ์รายงานข้อมูลที่กรองอยู่ (A4 Landscape / บันทึก PDF)"
@@ -1265,7 +1308,7 @@ export function MigrantWorkerDocumentsPage() {
         {/* ============================================================ */}
         {viewMode === "workers" && (
           <div className="mwp-table-wrap">
-            <table className="mwp-table">
+            <table className={`mwp-table${tableDensity === "compact" ? " is-compact" : ""}`}>
               <thead>
                 <tr>
                   <th>พนักงาน</th>
@@ -1652,7 +1695,7 @@ export function MigrantWorkerDocumentsPage() {
         {/* ============================================================ */}
         {viewMode === "expiry" && (
           <div className="mwp-table-wrap">
-            <table className="mwp-table">
+            <table className={`mwp-table${tableDensity === "compact" ? " is-compact" : ""}`}>
               <thead>
                 <tr>
                   <th>พนักงาน</th>
@@ -1814,7 +1857,7 @@ export function MigrantWorkerDocumentsPage() {
         {/* ============================================================ */}
         {viewMode === "documents" && (
           <div className="mwp-table-wrap">
-            <table className="mwp-table">
+            <table className={`mwp-table${tableDensity === "compact" ? " is-compact" : ""}`}>
               <thead>
                 <tr>
                   <th>ประเภทเอกสาร</th>
@@ -1997,734 +2040,58 @@ export function MigrantWorkerDocumentsPage() {
       {/* Worker Modal (Add / Edit Worker + Initial Documents)         */}
       {/* ============================================================ */}
       {workerOpen && (
-        <Modal
-          title={workerForm.id ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงานใหม่และเอกสาร"}
+        <MigrantWorkerFormModal
+          workerForm={workerForm}
+          setWorkerForm={setWorkerForm}
+          includeDocs={includeDocs}
+          setIncludeDocs={setIncludeDocs}
+          workerDocs={workerDocs}
+          updateDocRow={updateDocRow}
+          labels={labels}
+          titles={TITLES}
+          saving={saving}
           onClose={() => setWorkerOpen(false)}
-        >
-          <div className="modal-body form-stack">
-            <div>
-              <h3 className="section-title">
-                <Users size={16} /> ข้อมูลพนักงาน
-              </h3>
-              <div className="form-grid" style={{ marginTop: "12px" }}>
-                <label>
-                  รหัสบุคลากร *
-                  <input
-                    value={workerForm.employeeCode}
-                    onChange={(e) =>
-                      setWorkerForm({
-                        ...workerForm,
-                        employeeCode: e.target.value,
-                      })
-                    }
-                    placeholder="เช่น CM-1234 หรือ EMP-001"
-                  />
-                </label>
-                <label>
-                  คำนำหน้า (ระบุเพศ)
-                  <select
-                    value={workerForm.title}
-                    onChange={(e) =>
-                      setWorkerForm({ ...workerForm, title: e.target.value })
-                    }
-                  >
-                    <option value="">เลือกคำนำหน้า</option>
-                    {TITLES.map((t) => (
-                      <option key={t} value={t}>
-                        {t} {t === "นาย" || t === "MR." ? "(ชาย)" : "(หญิง)"}
-                      </option>
-                    ))}
-                    {workerForm.title && !TITLES.includes(workerForm.title) && (
-                      <option value={workerForm.title}>{workerForm.title}</option>
-                    )}
-                  </select>
-                </label>
-                <label>
-                  ชื่อ-สกุล *
-                  <input
-                    value={workerForm.fullName}
-                    onChange={(e) =>
-                      setWorkerForm({ ...workerForm, fullName: e.target.value })
-                    }
-                    placeholder="ระบุชื่อและนามสกุล"
-                  />
-                </label>
-                <label>
-                  แผนกในระบบ *
-                  <select
-                    value={workerForm.department}
-                    onChange={(e) =>
-                      setWorkerForm({
-                        ...workerForm,
-                        department: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="">เลือกแผนก</option>
-                    {DEPARTMENTS.map((x) => (
-                      <option key={x} value={x}>
-                        {x}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  สัญชาติ
-                  <input
-                    value={workerForm.nationality}
-                    onChange={(e) =>
-                      setWorkerForm({
-                        ...workerForm,
-                        nationality: e.target.value,
-                      })
-                    }
-                    placeholder="เช่น เมียนมา, กัมพูชา, ลาว"
-                  />
-                </label>
-                <label>
-                  วันเกิด
-                  <ThaiDateInput
-                    value={workerForm.birthDate ?? ""}
-                    onChange={(val) =>
-                      setWorkerForm({
-                        ...workerForm,
-                        birthDate: val || null,
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  เลขประจำตัว / บัตรประชาชน (13 หลัก) *
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={17}
-                    required
-                    value={workerForm.nationalId}
-                    onChange={(e) =>
-                      setWorkerForm({
-                        ...workerForm,
-                        nationalId: formatNationalId(e.target.value),
-                      })
-                    }
-                    placeholder="0-0506-51005-43-4"
-                    style={{
-                      fontFamily: "monospace",
-                      borderColor:
-                        workerForm.nationalId &&
-                        workerForm.nationalId.replace(/\D/g, "").length < 13
-                          ? "#dc2626"
-                          : workerForm.nationalId.replace(/\D/g, "").length === 13
-                            ? "#16a34a"
-                            : undefined,
-                    }}
-                  />
-                  {workerForm.nationalId ? (
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        marginTop: "2px",
-                        display: "block",
-                        color:
-                          workerForm.nationalId.replace(/\D/g, "").length === 13
-                            ? "#16a34a"
-                            : "#dc2626",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {workerForm.nationalId.replace(/\D/g, "").length === 13
-                        ? "✓ ครบ 13 หลักถูกต้องตามรูปแบบ"
-                        : `⚠️ ยังไม่ครบ 13 หลัก (กรอกแล้ว ${workerForm.nationalId.replace(/\D/g, "").length}/13 หลัก)`}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: "0.75rem", marginTop: "2px", display: "block", color: "#64748b" }}>
-                      * จำเป็นต้องระบุเลขประจำตัว 13 หลัก (เช่น 0-0506-51005-43-4)
-                    </span>
-                  )}
-                </label>
-                <label>
-                  เบอร์โทรศัพท์ (ถ้ามี)
-                  <input
-                    type="tel"
-                    value={workerForm.phone ?? ""}
-                    onChange={(e) =>
-                      setWorkerForm({
-                        ...workerForm,
-                        phone: e.target.value,
-                      })
-                    }
-                    placeholder="เช่น 081-234-5678 (เว้นว่างได้)"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {!workerForm.id && (
-              <div className="doc-section-wrapper" style={{ marginTop: "16px" }}>
-                <div className="section-title-bar">
-                  <h3 className="section-title">
-                    <FileText size={16} /> บันทึกเอกสารเริ่มต้นพร้อมกัน
-                  </h3>
-                  <label className="checkbox-inline">
-                    <input
-                      type="checkbox"
-                      checked={includeDocs}
-                      onChange={(e) => setIncludeDocs(e.target.checked)}
-                    />{" "}
-                    เพิ่มเอกสารพร้อมกัน
-                  </label>
-                </div>
-
-                {includeDocs && (
-                  <div className="doc-list-container">
-                    {workerDocs.map((doc) => {
-                      const isPassport =
-                        doc.documentType === "PASSPORT_RED" ||
-                        doc.documentType === "PASSPORT_GREEN";
-                      const isArea = doc.documentType === "TEN_YEAR_CARD";
-                      return (
-                        <div key={doc.id} className="combined-doc-card">
-                          <div className="combined-doc-header">
-                            <span className="combined-doc-badge">
-                              <FileText size={15} /> เอกสารประจำตัวหลัก:{" "}
-                              {labels[doc.documentType]}
-                            </span>
-                            <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #64748b)" }}>
-                              (1 ฉบับหลักต่อพนักงาน 1 คน)
-                            </span>
-                          </div>
-                          <div className="form-grid">
-                            <label>
-                              ประเภทเอกสาร *
-                              <select
-                                value={doc.documentType}
-                                onChange={(e) =>
-                                  updateDocRow(doc.id, {
-                                    documentType: e.target.value as MigrantDocumentType,
-                                  })
-                                }
-                              >
-                                {Object.entries(labels).map(([k, v]) => (
-                                  <option value={k} key={k}>
-                                    {v}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <label>
-                              เลขที่เอกสาร *
-                              <input
-                                value={doc.documentNumber}
-                                onChange={(e) =>
-                                  updateDocRow(doc.id, {
-                                    documentNumber: e.target.value,
-                                  })
-                                }
-                                placeholder={
-                                  isPassport
-                                    ? "เช่น ME... หรือ CC..."
-                                    : "ระบุเลขที่เอกสาร"
-                                }
-                              />
-                            </label>
-                            <label>
-                              {isPassport ? "วันออกเล่มพาสปอร์ต *" : "วันออกบัตร *"}
-                              <ThaiDateInput
-                                value={doc.issuedOn ?? ""}
-                                onChange={(val) =>
-                                  updateDocRow(doc.id, {
-                                    issuedOn: val || null,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              {isPassport ? "วันหมดอายุเล่มพาสปอร์ต *" : "วันหมดอายุบัตร *"}
-                              <ThaiDateInput
-                                value={doc.expiresOn ?? ""}
-                                onChange={(val) =>
-                                  updateDocRow(doc.id, {
-                                    expiresOn: val || null,
-                                  })
-                                }
-                              />
-                            </label>
-                            {isPassport && (
-                              <>
-                                <label>
-                                  วันออกวีซ่า
-                                  <ThaiDateInput
-                                    value={doc.visaIssuedOn ?? ""}
-                                    onChange={(val) =>
-                                      updateDocRow(doc.id, {
-                                        visaIssuedOn: val || null,
-                                      })
-                                    }
-                                  />
-                                </label>
-                                <label>
-                                  วันหมดอายุวีซ่า *
-                                  <ThaiDateInput
-                                    value={doc.visaExpiresOn ?? ""}
-                                    onChange={(val) =>
-                                      updateDocRow(doc.id, {
-                                        visaExpiresOn: val || null,
-                                      })
-                                    }
-                                  />
-                                </label>
-                              </>
-                            )}
-                            {isArea && (
-                              <>
-                                <label>
-                                  วันออกใบออกนอกพื้นที่ (ไม่บังคับ)
-                                  <ThaiDateInput
-                                    value={doc.areaPermitIssuedOn ?? ""}
-                                    onChange={(val) =>
-                                      updateDocRow(doc.id, {
-                                        areaPermitIssuedOn: val || null,
-                                      })
-                                    }
-                                  />
-                                </label>
-                                <label>
-                                  วันหมดอายุใบออกนอกพื้นที่ (ไม่บังคับ)
-                                  <ThaiDateInput
-                                    value={doc.areaPermitExpiresOn ?? ""}
-                                    onChange={(val) =>
-                                      updateDocRow(doc.id, {
-                                        areaPermitExpiresOn: val || null,
-                                      })
-                                    }
-                                  />
-                                </label>
-                              </>
-                            )}
-                            <label>
-                              เลขที่ใบอนุญาตทำงาน
-                              <input
-                                value={doc.workPermitNumber}
-                                onChange={(e) =>
-                                  updateDocRow(doc.id, {
-                                    workPermitNumber: e.target.value,
-                                  })
-                                }
-                                placeholder="ระบุเลขที่ใบอนุญาตทำงาน (เว้นว่างได้)"
-                              />
-                            </label>
-                            <label>
-                              วันออกใบอนุญาตทำงาน
-                              <ThaiDateInput
-                                value={doc.workPermitIssuedOn ?? ""}
-                                onChange={(val) =>
-                                  updateDocRow(doc.id, {
-                                    workPermitIssuedOn: val || null,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              วันหมดอายุใบอนุญาตทำงาน
-                              <ThaiDateInput
-                                value={doc.workPermitExpiresOn ?? ""}
-                                onChange={(val) =>
-                                  updateDocRow(doc.id, {
-                                    workPermitExpiresOn: val || null,
-                                  })
-                                }
-                              />
-                            </label>
-                            <label>
-                              แจ้งเตือนล่วงหน้า (วัน)
-                              <input
-                                type="number"
-                                min="0"
-                                max="365"
-                                value={doc.remindDays}
-                                onChange={(e) =>
-                                  updateDocRow(doc.id, {
-                                    remindDays: Number(e.target.value),
-                                  })
-                                }
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="modal-actions">
-            {workerForm.id && (
-              <button
-                type="button"
-                className="btn danger"
-                style={{ marginRight: "auto" }}
-                onClick={() => {
-                  setDeleteTarget({
-                    id: workerForm.id,
-                    name: [workerForm.title, workerForm.fullName].filter(Boolean).join(" "),
-                    code: workerForm.employeeCode,
-                  });
-                }}
-              >
-                <Trash2 size={15} />
-                <span>ลบข้อมูลพนักงาน</span>
-              </button>
-            )}
-            <button className="btn secondary" onClick={() => setWorkerOpen(false)}>
-              ยกเลิก
-            </button>
-            <button
-              className="btn primary"
-              disabled={saving}
-              onClick={() => void saveWorker()}
-            >
-              {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-            </button>
-          </div>
-        </Modal>
+          onSave={() => void saveWorker()}
+          onRequestDelete={(target) => setDeleteTarget(target)}
+        />
       )}
 
       {/* ============================================================ */}
       {/* Document Modal (Add / Edit Document)                         */}
       {/* ============================================================ */}
       {docOpen && (
-        <Modal
-          title={docForm.id ? "ต่ออายุหรือแก้ไขเอกสาร" : "เพิ่มเอกสารใหม่"}
+        <MigrantDocumentFormModal
+          docForm={docForm}
+          setDocForm={setDocForm}
+          workers={workers}
+          workerMap={workerMap}
+          documents={documents}
+          labels={labels}
+          saving={saving}
           onClose={() => setDocOpen(false)}
-        >
-          <div className="modal-body form-grid">
-            <label>
-              พนักงาน *
-              <select
-                value={docForm.workerId}
-                onChange={(e) => setDocForm({ ...docForm, workerId: e.target.value })}
-              >
-                <option value="">เลือกพนักงาน</option>
-                {workers
-                  .filter((w) => w.isActive)
-                  .map((w) => (
-                    <option value={w.id} key={w.id}>
-                      {w.employeeCode} — {w.fullName} ({w.department})
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              ประเภทเอกสาร *
-              <select
-                value={docForm.documentType}
-                onChange={(e) =>
-                  setDocForm({
-                    ...docForm,
-                    documentType: e.target.value as MigrantDocumentType,
-                  })
-                }
-              >
-                {Object.entries(labels).map(([k, v]) => (
-                  <option value={k} key={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              เลขที่เอกสาร *
-              <input
-                value={docForm.documentNumber}
-                onChange={(e) => setDocForm({ ...docForm, documentNumber: e.target.value })}
-                placeholder={
-                  docForm.documentType.includes("PASSPORT")
-                    ? "เช่น ME... หรือ CC..."
-                    : "ระบุเลขที่เอกสาร"
-                }
-              />
-            </label>
-            <label>
-              แจ้งเตือนล่วงหน้า (วัน)
-              <input
-                type="number"
-                min="0"
-                max="365"
-                value={docForm.remindDays}
-                onChange={(e) => setDocForm({ ...docForm, remindDays: Number(e.target.value) })}
-              />
-            </label>
-            {renderDateField(
-              "issuedOn",
-              docForm.documentType.includes("PASSPORT")
-                ? "วันออกเล่มพาสปอร์ต *"
-                : "วันออกบัตร *",
-            )}
-            {renderDateField(
-              "expiresOn",
-              docForm.documentType.includes("PASSPORT")
-                ? "วันหมดอายุเล่มพาสปอร์ต *"
-                : "วันหมดอายุบัตร *",
-            )}
-            {(docForm.documentType === "PASSPORT_RED" ||
-              docForm.documentType === "PASSPORT_GREEN") && (
-              <>
-                {renderDateField("visaIssuedOn", "วันออกวีซ่า")}
-                {renderDateField("visaExpiresOn", "วันหมดอายุวีซ่า *")}
-              </>
-            )}
-            {docForm.documentType === "TEN_YEAR_CARD" && (
-              <>
-                {renderDateField("areaPermitIssuedOn", "วันออกใบออกนอกพื้นที่ (ไม่บังคับ)")}
-                {renderDateField("areaPermitExpiresOn", "วันหมดอายุใบออกนอกพื้นที่ (ไม่บังคับ)")}
-              </>
-            )}
-            <label>
-              เลขที่ใบอนุญาตทำงาน
-              <input
-                value={docForm.workPermitNumber}
-                onChange={(e) => setDocForm({ ...docForm, workPermitNumber: e.target.value })}
-                placeholder="ระบุเลขที่ใบอนุญาตทำงาน (เว้นว่างได้)"
-              />
-            </label>
-            {renderDateField("workPermitIssuedOn", "วันออกใบอนุญาตทำงาน")}
-            {renderDateField("workPermitExpiresOn", "วันหมดอายุใบอนุญาตทำงาน")}
-            <label style={{ gridColumn: "1 / -1" }}>
-              หมายเหตุ
-              <textarea
-                value={docForm.note}
-                onChange={(e) => setDocForm({ ...docForm, note: e.target.value })}
-                rows={2}
-              />
-            </label>
-            <label className="checkbox-row" style={{ gridColumn: "1 / -1" }}>
-              <input
-                type="checkbox"
-                checked={docForm.isActive}
-                onChange={(e) => setDocForm({ ...docForm, isActive: e.target.checked })}
-              />{" "}
-              เปิดใช้งานเอกสารนี้
-            </label>
-          </div>
-          <div className="modal-actions">
-            {docForm.id && (
-              <div style={{ display: "flex", gap: "8px", marginRight: "auto" }}>
-                <button
-                  type="button"
-                  className="btn danger"
-                  onClick={() => {
-                    const owner = workerMap.get(docForm.workerId);
-                    setDeleteDocTarget({
-                      id: docForm.id,
-                      docNumber: docForm.documentNumber || "-",
-                      docTypeLabel: labels[docForm.documentType],
-                      workerName: owner?.fullName ?? "-",
-                    });
-                  }}
-                >
-                  <Trash2 size={15} />
-                  <span>ลบเอกสาร</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => {
-                    const existing = documents.find((d) => d.id === docForm.id);
-                    if (existing) setHistoryDoc(existing);
-                  }}
-                >
-                  <Clock size={15} />
-                  <span>ดูประวัติการแก้ไข</span>
-                </button>
-              </div>
-            )}
-            <button className="btn secondary" onClick={() => setDocOpen(false)}>
-              ยกเลิก
-            </button>
-            <button
-              className="btn primary"
-              disabled={saving}
-              onClick={() => void saveDoc()}
-            >
-              {saving ? "กำลังบันทึก..." : "บันทึกเอกสาร"}
-            </button>
-          </div>
-        </Modal>
+          onSave={() => void saveDoc()}
+          onRequestDelete={(target) => setDeleteDocTarget(target)}
+          onOpenHistory={(doc) => setHistoryDoc(doc)}
+        />
       )}
 
       {/* ============================================================ */}
       {/* Import Modal                                                 */}
       {/* ============================================================ */}
       {importOpen && (
-        <Modal title="นำเข้าข้อมูลจากไฟล์" onClose={() => setImportOpen(false)}>
-          <div className="modal-body import-modal-body">
-            {/* Step 1: download template */}
-            <div className="import-step">
-              <h3 className="import-step-title">1. ดาวน์โหลด Template</h3>
-              <p className="import-hint">
-                ดาวน์โหลดไฟล์ตัวอย่างเพื่อกรอกข้อมูล แล้วอัปโหลดกลับมา (รองรับวันที่ทั้งแบบ วว/ดด/พ.ศ. เช่น 15/03/2569 และ ค.ศ. ระบบแปลงปีให้อัตโนมัติ)
-              </p>
-              <button
-                className="btn secondary compact"
-                onClick={() => void downloadTemplate()}
-                type="button"
-                disabled={importing}
-              >
-                <Download size={15} /> ดาวน์โหลด Template (.xlsx)
-              </button>
-            </div>
-
-            {/* Step 2: upload file */}
-            <div className="import-step">
-              <h3 className="import-step-title">2. อัปโหลดไฟล์ข้อมูล</h3>
-              <div className="import-upload-area">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  id="import-file-input"
-                  style={{ display: "none" }}
-                  onChange={(e) => void handleImportFile(e)}
-                />
-                <label
-                  htmlFor="import-file-input"
-                  className="import-upload-label"
-                >
-                  <FileUp size={28} />
-                  <span>คลิกเพื่อเลือกไฟล์ .xlsx, .xls หรือ .csv</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Step 3: preview */}
-            {importRows.length > 0 && (
-              <div className="import-step">
-                <h3 className="import-step-title">
-                  3. ตรวจสอบข้อมูล ({importRows.length} แถว /{" "}
-                  {importRows.filter((r) => r.errors.length === 0).length}{" "}
-                  แถวถูกต้อง)
-                </h3>
-                <div className="table-wrap import-preview-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>แถว</th>
-                        <th>รหัส</th>
-                        <th>ชื่อ-สกุล</th>
-                        <th>แผนก</th>
-                        <th>ประเภทเอกสาร</th>
-                        <th>วันหมดอายุ</th>
-                        <th>สถานะ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {importRows.map((row) => (
-                        <tr
-                          key={row.rowIndex}
-                          className={row.errors.length ? "import-row-error" : "import-row-ok"}
-                        >
-                          <td className="mono">{row.rowIndex}</td>
-                          <td className="mono">{row.employeeCode}</td>
-                          <td>{row.fullName || <em className="text-muted">-</em>}</td>
-                          <td>{row.department || <em className="text-muted">-</em>}</td>
-                          <td>{row.documentType ?? <em className="text-muted">ไม่มีเอกสาร</em>}</td>
-                          <td className="mono">{isoToThaiDisplay(row.expiresOn) || "-"}</td>
-                          <td>
-                            {row.errors.length ? (
-                              <span className="status status-expired" title={row.errors.join(", ")}>
-                                ⚠ {row.errors.join(", ")}
-                              </span>
-                            ) : (
-                              <span className="status status-normal">✓ ถูกต้อง</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {importing && importProgress && (
-              <div className="import-progress-wrap">
-                <div className="import-progress-head">
-                  <span>
-                    กำลังนำเข้าข้อมูล... {importProgress.done.toLocaleString("th-TH")} /{" "}
-                    {importProgress.total.toLocaleString("th-TH")} แถว
-                  </span>
-                  <span className="tabular-nums">
-                    {Math.round((importProgress.done / Math.max(1, importProgress.total)) * 100)}%
-                  </span>
-                </div>
-                <div className="import-progress-track">
-                  <div
-                    className="import-progress-fill"
-                    style={{
-                      width: `${Math.round((importProgress.done / Math.max(1, importProgress.total)) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {importDone && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {importSuccessCount > 0 && (
-                  <p className="import-success">
-                    ✅ นำเข้าข้อมูลสำเร็จ {importSuccessCount} รายการ
-                  </p>
-                )}
-                {importErrors.length > 0 && (
-                  <div
-                    style={{
-                      background: "#fef2f2",
-                      border: "1px solid #fecaca",
-                      borderRadius: "8px",
-                      padding: "12px 14px",
-                      color: "#991b1b",
-                      fontSize: "0.85rem",
-                      maxHeight: "150px",
-                      overflowY: "auto",
-                    }}
-                  >
-                    <b>⚠️ พบข้อผิดพลาด {importErrors.length} รายการ:</b>
-                    <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
-                      {importErrors.map((err, i) => (
-                        <li key={i}>{err}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="modal-actions">
-            <button
-              className="btn secondary"
-              onClick={() => setImportOpen(false)}
-              type="button"
-            >
-              ปิด
-            </button>
-            <button
-              className="btn primary"
-              type="button"
-              disabled={
-                importing ||
-                importDone ||
-                !importRows.filter((r) => r.errors.length === 0).length
-              }
-              onClick={() => void runImport()}
-            >
-              {importing
-                ? "กำลังนำเข้า..."
-                : `นำเข้า ${importRows.filter((r) => r.errors.length === 0).length} แถว`}
-            </button>
-          </div>
-        </Modal>
+        <MigrantImportModal
+          fileInputRef={fileInputRef}
+          importRows={importRows}
+          importing={importing}
+          importProgress={importProgress}
+          importDone={importDone}
+          importSuccessCount={importSuccessCount}
+          importErrors={importErrors}
+          onClose={() => setImportOpen(false)}
+          onDownloadTemplate={() => void downloadTemplate()}
+          onImportFile={(e) => void handleImportFile(e)}
+          onRunImport={() => void runImport()}
+        />
       )}
 
       {/* ======================================================== */}

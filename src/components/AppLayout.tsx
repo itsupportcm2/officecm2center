@@ -35,6 +35,8 @@ import {
   ShieldAlert,
   Tags,
   Users,
+  Wifi,
+  WifiOff,
   X,
 } from "lucide-react";
 import { daysUntil, useRenewals } from "../store/RenewalContext";
@@ -220,7 +222,33 @@ export function AppLayout() {
   const [notifyMenuOpen, setNotifyMenuOpen] = useState(false);
   const [paletteMenuOpen, setPaletteMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  const [justReconnected, setJustReconnected] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const handleOffline = () => {
+      if (timer) window.clearTimeout(timer);
+      setIsOnline(false);
+      setJustReconnected(false);
+    };
+    const handleOnline = () => {
+      setIsOnline(true);
+      setJustReconnected(true);
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => setJustReconnected(false), 3500);
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   const notifyWrapRef = useRef<HTMLDivElement>(null);
   const paletteWrapRef = useRef<HTMLDivElement>(null);
   const userWrapRef = useRef<HTMLDivElement>(null);
@@ -1022,6 +1050,20 @@ export function AppLayout() {
           </div>
         </header>
         <main>
+          {(!isOnline || justReconnected) && (
+            <div
+              className={`network-banner ${isOnline ? "is-online" : "is-offline"}`}
+              role="status"
+              aria-live="polite"
+            >
+              {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
+              <span>
+                {isOnline
+                  ? "เชื่อมต่ออินเทอร์เน็ตกลับมาแล้ว"
+                  : "ขาดการเชื่อมต่ออินเทอร์เน็ต — กรุณาตรวจสอบเครือข่ายก่อนบันทึกข้อมูล"}
+              </span>
+            </div>
+          )}
           <Outlet />
         </main>
       </div>

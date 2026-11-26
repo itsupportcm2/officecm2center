@@ -10,6 +10,10 @@ import { AuditProvider } from './store/AuditContext'
 import { PurchaseProvider } from './store/PurchaseContext'
 import { IssueRequestProvider } from './store/IssueRequestContext'
 import './index.css'
+import './styles/migrant.css'
+import './styles/print.css'
+import './styles/dark-mode.css'
+import './styles/themes-2026.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode><ErrorBoundary><BrowserRouter><AuthProvider><AuditProvider><StockProvider><IssueRequestProvider><RenewalProvider><PurchaseProvider><App /></PurchaseProvider></RenewalProvider></IssueRequestProvider></StockProvider></AuditProvider></AuthProvider></BrowserRouter></ErrorBoundary></StrictMode>,
