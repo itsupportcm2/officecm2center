@@ -30,12 +30,12 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ThaiDateInput } from "../components/ThaiDateInput";
 import { MigrantDocHistoryModal } from "../components/migrant/MigrantDocHistoryModal";
 import { MigrantPrintSheet } from "../components/migrant/MigrantPrintSheet";
-import { Confirm, Modal, Toast } from "../components/ui";
+import { Confirm, Modal, TableSkeleton, Toast } from "../components/ui";
 import { DEPARTMENTS } from "../constants/departments";
 import { isoToThaiDisplay } from "../utils/thaiDateInput";
 import {
@@ -202,6 +202,7 @@ export function MigrantWorkerDocumentsPage() {
 
   // Filter toolbar
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [deptFilter, setDeptFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState<"all" | "MALE" | "FEMALE">("all");
   const [docTypeFilter, setDocTypeFilter] = useState("all");
@@ -422,8 +423,8 @@ export function MigrantWorkerDocumentsPage() {
         if (docTypeFilter !== "all") {
           if (!wDocs.some((d) => d.documentType === docTypeFilter)) return false;
         }
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
+        if (deferredSearchQuery.trim()) {
+          const q = deferredSearchQuery.toLowerCase().trim();
           const matchDoc = wDocs.some(
             (d) =>
               d.documentNumber.toLowerCase().includes(q) ||
@@ -441,7 +442,7 @@ export function MigrantWorkerDocumentsPage() {
         return true;
       })
       .sort((a, b) => compareEmployeeCode(a.employeeCode, b.employeeCode));
-  }, [workers, activeDocsByWorkerId, deptFilter, genderFilter, docTypeFilter, searchQuery]);
+  }, [workers, activeDocsByWorkerId, deptFilter, genderFilter, docTypeFilter, deferredSearchQuery]);
 
   // Filtered Expiry Rows
   const filteredExpiryRows = useMemo(() => {
@@ -459,8 +460,8 @@ export function MigrantWorkerDocumentsPage() {
       if (genderFilter !== "all" && getWorkerGender(worker) !== genderFilter) return false;
       if (docTypeFilter !== "all" && row.doc.documentType !== docTypeFilter) return false;
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
+      if (deferredSearchQuery.trim()) {
+        const q = deferredSearchQuery.toLowerCase().trim();
         const match =
           worker.fullName.toLowerCase().includes(q) ||
           worker.employeeCode.toLowerCase().includes(q) ||
@@ -473,7 +474,7 @@ export function MigrantWorkerDocumentsPage() {
       }
       return true;
     });
-  }, [expiryRows, workerMap, expirySubFilter, deptFilter, genderFilter, docTypeFilter, searchQuery]);
+  }, [expiryRows, workerMap, expirySubFilter, deptFilter, genderFilter, docTypeFilter, deferredSearchQuery]);
 
   // Filtered All Documents list
   const filteredAllDocs = useMemo(() => {
@@ -486,8 +487,8 @@ export function MigrantWorkerDocumentsPage() {
         if (genderFilter !== "all" && getWorkerGender(worker) !== genderFilter) return false;
         if (docTypeFilter !== "all" && doc.documentType !== docTypeFilter) return false;
 
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
+        if (deferredSearchQuery.trim()) {
+          const q = deferredSearchQuery.toLowerCase().trim();
           const match =
             worker.fullName.toLowerCase().includes(q) ||
             worker.employeeCode.toLowerCase().includes(q) ||
@@ -504,7 +505,7 @@ export function MigrantWorkerDocumentsPage() {
           workerMap.get(b.workerId)?.employeeCode,
         ),
       );
-  }, [documents, workerMap, deptFilter, genderFilter, docTypeFilter, searchQuery]);
+  }, [documents, workerMap, deptFilter, genderFilter, docTypeFilter, deferredSearchQuery]);
 
   useEffect(() => {
     setPage(1);
@@ -1277,12 +1278,7 @@ export function MigrantWorkerDocumentsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "40px" }}>
-                      <RefreshCw size={22} className="spin" color="#175cd3" />
-                      <div style={{ marginTop: "8px" }} className="mwp-muted-text">กำลังโหลดข้อมูลพนักงาน...</div>
-                    </td>
-                  </tr>
+                  <TableSkeleton rows={6} columns={6} />
                 ) : filteredWorkers.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: "center", padding: "40px" }}>
@@ -1672,12 +1668,7 @@ export function MigrantWorkerDocumentsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
-                      <RefreshCw size={22} className="spin" color="#175cd3" />
-                      <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดข้อมูลวันครบกำหนด...</div>
-                    </td>
-                  </tr>
+                  <TableSkeleton rows={6} columns={9} />
                 ) : filteredExpiryRows.length === 0 ? (
                   <tr>
                     <td colSpan={9} style={{ textAlign: "center", padding: "40px" }}>
@@ -1840,12 +1831,7 @@ export function MigrantWorkerDocumentsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={10} style={{ textAlign: "center", padding: "40px" }}>
-                      <RefreshCw size={22} className="spin" color="#175cd3" />
-                      <div style={{ marginTop: "8px", color: "#64748b" }}>กำลังโหลดเอกสาร...</div>
-                    </td>
-                  </tr>
+                  <TableSkeleton rows={6} columns={10} />
                 ) : filteredAllDocs.length === 0 ? (
                   <tr>
                     <td colSpan={10} style={{ textAlign: "center", padding: "40px" }}>

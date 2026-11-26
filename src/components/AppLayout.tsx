@@ -43,6 +43,7 @@ import { bangkokDateKey, formatThaiDate } from "../utils/date";
 import { defaultSettings, settingsService } from "../services/settingsService";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { useIssueRequests } from "../store/IssueRequestContext";
+import { prefetchRoute } from "../utils/routePrefetch";
 import { formatThaiDateTime } from "../utils/date";
 import { issueRequestService } from "../services/issueRequestService";
 import { migrantWorkerService } from "../services/migrantWorkerService";
@@ -511,7 +512,21 @@ export function AppLayout() {
             <X size={20} />
           </button>
         </div>
-        <nav className="ops-nav">
+        <nav
+          className="ops-nav"
+          onMouseOver={(event) => {
+            const href = (event.target as HTMLElement | null)
+              ?.closest("a")
+              ?.getAttribute("href");
+            if (href) prefetchRoute(href);
+          }}
+          onFocus={(event) => {
+            const href = (event.target as HTMLElement | null)
+              ?.closest("a")
+              ?.getAttribute("href");
+            if (href) prefetchRoute(href);
+          }}
+        >
           {isEmployeeDocumentOfficer && (
             <>
               <span className="nav-section-label">ต่อภาษีพนักงานต่างด้าว</span>

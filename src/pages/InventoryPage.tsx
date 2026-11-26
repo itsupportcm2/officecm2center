@@ -12,7 +12,7 @@ import {
   Search,
   Upload,
 } from "lucide-react";
-import { useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import { useDeferredValue, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Confirm, Empty, Modal, StatusBadge, Toast, stockStatus } from "../components/ui";
 import { useStock } from "../store/StockContext";
@@ -84,6 +84,7 @@ export function InventoryPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [q, setQ] = useState(params.get("search") ?? "");
+  const deferredQ = useDeferredValue(q);
   const [cat, setCat] = useState("");
   const [loc, setLoc] = useState("");
   const [status, setStatus] = useState("");
@@ -115,12 +116,14 @@ export function InventoryPage() {
     () =>
       items.filter(
         (item) =>
-          `${item.name} ${item.sku} ${item.barcode}`.toLowerCase().includes(q.toLowerCase()) &&
+          `${item.name} ${item.sku} ${item.barcode}`
+            .toLowerCase()
+            .includes(deferredQ.toLowerCase()) &&
           (!cat || item.categoryId === cat) &&
           (!loc || item.locationId === loc) &&
           (!status || stockStatus(item) === status),
       ),
-    [items, q, cat, loc, status],
+    [items, deferredQ, cat, loc, status],
   );
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));

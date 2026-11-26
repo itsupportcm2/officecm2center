@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PanelSkeleton } from "../components/ui";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -88,6 +89,7 @@ export function MigrantDashboardPage() {
   // Filter & pagination states
   const [activeTab, setActiveTab] = useState<"urgent" | "expired" | "due" | "ten_year_wp" | "all">("urgent");
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [deptFilter, setDeptFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState<"all" | "MALE" | "FEMALE">("all");
   const [watchPage, setWatchPage] = useState(1);
@@ -336,8 +338,8 @@ export function MigrantDashboardPage() {
       list = list.filter((r) => getWorkerGender(r.worker) === genderFilter);
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
+    if (deferredSearchQuery.trim()) {
+      const q = deferredSearchQuery.toLowerCase().trim();
       list = list.filter(
         (r) =>
           r.worker.fullName.toLowerCase().includes(q) ||
@@ -354,7 +356,7 @@ export function MigrantDashboardPage() {
     activeTab,
     deptFilter,
     genderFilter,
-    searchQuery,
+    deferredSearchQuery,
     expired,
     passportDueSoon30,
     tenYearWorkPermitRows,
@@ -459,7 +461,7 @@ export function MigrantDashboardPage() {
             <span style={{ fontWeight: 600 }} className="mdb-kpi-subtext">
               👨 ชาย {genderStats.male} • 👩 หญิง {genderStats.female}
             </span>
-            <span className="mdb-kpi-pill" style={{ background: "#eff6ff", color: "#175cd3" }}>
+            <span className="mdb-kpi-pill mdb-pill-info">
               ใช้งานอยู่
             </span>
           </div>
@@ -490,7 +492,7 @@ export function MigrantDashboardPage() {
           </div>
           <div className="mdb-kpi-footer">
             <span>เอกสารสถานะปกติ</span>
-            <span className="mdb-kpi-pill" style={{ background: "#f0fdfa", color: "#0d9488" }}>
+            <span className="mdb-kpi-pill mdb-pill-teal">
               Active
             </span>
           </div>
@@ -527,7 +529,7 @@ export function MigrantDashboardPage() {
           </div>
           <div className="mdb-kpi-footer">
             <span>เกินกำหนดระยะเวลา</span>
-            <span className="mdb-kpi-pill" style={{ background: "#fef2f2", color: "#dc2626" }}>
+            <span className="mdb-kpi-pill mdb-pill-danger">
               ต้องต่ออายุด่วน
             </span>
           </div>
@@ -612,16 +614,15 @@ export function MigrantDashboardPage() {
                 : "ไม่มีข้อมูลพาสแดง/เขียว"}
             </span>
             <span
-              className="mdb-kpi-pill"
-              style={
+              className={`mdb-kpi-pill ${
                 !passportDueSummary.nearest
-                  ? { background: "#f1f5f9", color: "#64748b" }
+                  ? "mdb-pill-neutral"
                   : passportDueSummary.nearest.days < 0
-                    ? { background: "#fef2f2", color: "#dc2626" }
+                    ? "mdb-pill-danger"
                     : passportDueSummary.nearest.days <= 30
-                      ? { background: "#fff7ed", color: "#ea580c" }
-                      : { background: "#f0fdf4", color: "#16a34a" }
-              }
+                      ? "mdb-pill-warning"
+                      : "mdb-pill-success"
+              }`}
             >
               {!passportDueSummary.nearest
                 ? "ไม่มีข้อมูล"
@@ -689,16 +690,15 @@ export function MigrantDashboardPage() {
                   : "วันหมดอายุใบอนุญาตทำงาน"}
             </span>
             <span
-              className="mdb-kpi-pill"
-              style={
+              className={`mdb-kpi-pill ${
                 !tenYearWorkPermitSummary.nearest
-                  ? { background: "#f1f5f9", color: "#64748b" }
+                  ? "mdb-pill-neutral"
                   : tenYearWorkPermitSummary.nearest.days < 0
-                    ? { background: "#fef2f2", color: "#dc2626" }
+                    ? "mdb-pill-danger"
                     : tenYearWorkPermitSummary.nearest.days <= 30
-                      ? { background: "#fff7ed", color: "#ea580c" }
-                      : { background: "#f0fdf4", color: "#16a34a" }
-              }
+                      ? "mdb-pill-warning"
+                      : "mdb-pill-success"
+              }`}
             >
               {!tenYearWorkPermitSummary.nearest
                 ? "ไม่มีข้อมูล"
@@ -1047,10 +1047,7 @@ export function MigrantDashboardPage() {
         {/* Watchlist Table */}
         <div className="mdb-table-wrap">
           {loading ? (
-            <div className="mdb-loading-wrap">
-              <RefreshCw size={24} className="spin" color="#175cd3" />
-              <span>กำลังโหลดข้อมูลเอกสาร...</span>
-            </div>
+            <PanelSkeleton rows={6} />
           ) : filteredRows.length === 0 ? (
             <div className="mdb-empty-state">
               <div className="mdb-empty-icon">

@@ -1,5 +1,5 @@
 import { Download, Search } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ThaiDateInput } from '../components/ThaiDateInput'
 import { Empty, TxBadge } from '../components/ui'
@@ -13,6 +13,7 @@ export function StockHistoryPage(){
  const {transactions,items,categories,locations,loadHistory,historyLoading}=useStock();const [params]=useSearchParams();const itemFilter=params.get('item')??''
  const [type,setType]=useState('')
  const [q,setQ]=useState('')
+ const deferredQ=useDeferredValue(q)
  const [loc,setLoc]=useState('')
  const [category,setCategory]=useState('')
  const [dateFrom,setDateFrom]=useState('')
@@ -30,8 +31,8 @@ export function StockHistoryPage(){
    &&(!category||item?.categoryId===category)
    &&(!dateFrom||transactionDate>=dateFrom)
    &&(!dateTo||transactionDate<=dateTo)
-   &&(!q||searchable.includes(q.trim().toLowerCase()))
- }),[transactions,items,type,q,loc,category,dateFrom,dateTo,itemFilter])
+   &&(!deferredQ||searchable.includes(deferredQ.trim().toLowerCase()))
+ }),[transactions,items,type,deferredQ,loc,category,dateFrom,dateTo,itemFilter])
 
  const exportCsv=()=>{
   const header=['รหัส','วันที่','สินค้า','SKU','ประเภท','จำนวน','ก่อน','หลัง','ตำแหน่ง','ผู้ดำเนินการ','เลขอ้างอิง','หมายเหตุ']

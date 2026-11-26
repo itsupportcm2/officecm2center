@@ -11240,4 +11240,171 @@ button.top-user.ops-user {
   [data-theme="dark"] .thai-date-pop-footer {
     border-top-color: #334155;
   }
+
+  /* ============================================================== */
+  /* PHASE 1: SKELETON LOADERS, STICKY HEADERS & SEMANTIC PILLS     */
+  /* ============================================================== */
+
+  @keyframes shimmer-slide {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .skeleton-bar {
+    display: inline-block;
+    height: 13px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer-slide 1.4s ease-in-out infinite;
+    vertical-align: middle;
+  }
+
+  .skeleton-row td {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .panel-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 20px;
+  }
+
+  .panel-skeleton-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(248, 250, 252, 0.85);
+    border: 1px solid #f1f5f9;
+  }
+
+  [data-theme="dark"] .skeleton-bar {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+  }
+
+  [data-theme="dark"] .panel-skeleton-row {
+    background: rgba(15, 23, 42, 0.55);
+    border-color: rgba(51, 65, 85, 0.5);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-bar {
+      animation: none;
+    }
+  }
+
+  /* Sticky table headers (screen only) */
+  .mwp-table-wrap,
+  .mdb-table-wrap {
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  .mwp-table thead th,
+  .mdb-table thead th,
+  .table-wrap thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.9);
+  }
+
+  .mwp-table thead th,
+  .mdb-table thead th {
+    background: #f8fafc;
+  }
+
+  .table-wrap thead th {
+    background: var(--bg-soft, #f8fafc);
+  }
+
+  [data-theme="dark"] .mwp-table thead th,
+  [data-theme="dark"] .mdb-table thead th,
+  [data-theme="dark"] .table-wrap thead th {
+    background: #131d2f;
+    box-shadow: inset 0 -1px 0 rgba(51, 65, 85, 0.75);
+  }
+
+  /* Dark-mode-safe semantic KPI pills */
+  .mdb-pill-info {
+    background: #eff6ff;
+    color: #175cd3;
+    border: 1px solid #dbeafe;
+  }
+
+  .mdb-pill-teal {
+    background: #f0fdfa;
+    color: #0d9488;
+    border: 1px solid #ccfbf1;
+  }
+
+  .mdb-pill-danger {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+  }
+
+  .mdb-pill-warning {
+    background: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #fed7aa;
+  }
+
+  .mdb-pill-success {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+  }
+
+  .mdb-pill-neutral {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+  }
+
+  [data-theme="dark"] .mdb-pill-info {
+    background: rgba(59, 130, 246, 0.18);
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.35);
+  }
+
+  [data-theme="dark"] .mdb-pill-teal {
+    background: rgba(20, 184, 166, 0.18);
+    color: #5eead4;
+    border-color: rgba(20, 184, 166, 0.35);
+  }
+
+  [data-theme="dark"] .mdb-pill-danger {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.35);
+  }
+
+  [data-theme="dark"] .mdb-pill-warning {
+    background: rgba(249, 115, 22, 0.18);
+    color: #fdba74;
+    border-color: rgba(249, 115, 22, 0.35);
+  }
+
+  [data-theme="dark"] .mdb-pill-success {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.35);
+  }
+
+  [data-theme="dark"] .mdb-pill-neutral {
+    background: rgba(148, 163, 184, 0.16);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.3);
+  }
 }

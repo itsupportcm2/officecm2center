@@ -62,3 +62,43 @@ export function Toast({ message, kind }: { message: string; kind?: "success" | "
     </div>
   );
 }
+
+const SKELETON_WIDTHS = ["42%", "78%", "62%", "50%", "70%", "46%", "66%", "54%"] as const;
+
+export function TableSkeleton({ rows = 6, columns = 6 }: { rows?: number; columns?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }, (_, rIdx) => (
+        <tr key={`skeleton-row-${rIdx}`} className="skeleton-row" aria-hidden="true">
+          {Array.from({ length: columns }, (__, cIdx) => (
+            <td key={`skeleton-cell-${rIdx}-${cIdx}`}>
+              <span
+                className="skeleton-bar"
+                style={{ width: SKELETON_WIDTHS[(rIdx + cIdx) % SKELETON_WIDTHS.length] }}
+              />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+export function PanelSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="panel-skeleton" role="status" aria-label="กำลังโหลดข้อมูล">
+      {Array.from({ length: rows }, (_, idx) => (
+        <div key={`panel-skeleton-${idx}`} className="panel-skeleton-row">
+          <span
+            className="skeleton-bar"
+            style={{ width: SKELETON_WIDTHS[idx % SKELETON_WIDTHS.length] }}
+          />
+          <span
+            className="skeleton-bar"
+            style={{ width: SKELETON_WIDTHS[(idx + 3) % SKELETON_WIDTHS.length] }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
