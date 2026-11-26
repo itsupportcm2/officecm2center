@@ -260,7 +260,6 @@ export function ThaiDateInput({
         type="text"
         inputMode="numeric"
         autoComplete="off"
-        maxLength={10}
         disabled={disabled}
         required={required}
         aria-label={ariaLabel}

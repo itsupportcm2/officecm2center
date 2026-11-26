@@ -164,6 +164,31 @@ describe("thaiDateInput", () => {
   it("formats typed digits and checks ISO bounds", () => {
     expect(formatTypingThaiDate("26112569")).toBe("26/11/2569");
     expect(formatTypingThaiDate("26-11-2569")).toBe("26/11/2569");
+
+    // Simulate continuous keystroke-by-keystroke typing without manually pressing '/'
+    let typed = "";
+    const steps: string[] = [];
+    for (const ch of "26112569") {
+      typed = formatTypingThaiDate(typed + ch);
+      steps.push(typed);
+    }
+    expect(steps).toEqual([
+      "2",
+      "26",
+      "26/1",
+      "26/11",
+      "26/11/2",
+      "26/11/25",
+      "26/11/256",
+      "26/11/2569",
+    ]);
+
+    // Manual slash entry and smooth backspace progression
+    expect(formatTypingThaiDate("5/3/2569")).toBe("5/3/2569");
+    expect(formatTypingThaiDate("26/11/")).toBe("26/11/");
+    expect(formatTypingThaiDate("26/11")).toBe("26/11");
+    expect(formatTypingThaiDate("26/1")).toBe("26/1");
+
     expect(isIsoInRange("2026-11-26", "2026-11-01", "2026-11-30")).toBe(true);
     expect(isIsoInRange("2026-10-31", "2026-11-01", "2026-11-30")).toBe(false);
   });

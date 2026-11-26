@@ -104,11 +104,19 @@ export function formatTypingThaiDate(raw: string): string {
   }
 
   const collapsed = cleaned.replace(/\/{2,}/g, "/");
-  const parts = collapsed.split("/").slice(0, 3);
-  if (parts[0]) parts[0] = parts[0].slice(0, 2);
-  if (parts[1]) parts[1] = parts[1].slice(0, 2);
-  if (parts[2]) parts[2] = parts[2].slice(0, 4);
-  return parts.join("/").slice(0, 10);
+  const parts = collapsed.split("/");
+  if (parts.length === 2) {
+    const [p0, p1] = parts;
+    if (p0.length > 2) {
+      return `${p0.slice(0, 2)}/${p0.slice(2, 4)}/${p1.slice(0, 4)}`;
+    }
+    if (p1.length > 2) {
+      return `${p0.slice(0, 2)}/${p1.slice(0, 2)}/${p1.slice(2, 6)}`;
+    }
+    return `${p0.slice(0, 2)}/${p1}`;
+  }
+
+  return `${parts[0].slice(0, 2)}/${parts[1].slice(0, 2)}/${parts.slice(2).join("").slice(0, 4)}`;
 }
 
 /** Check whether an ISO YYYY-MM-DD date falls within optional min/max ISO bounds. */
