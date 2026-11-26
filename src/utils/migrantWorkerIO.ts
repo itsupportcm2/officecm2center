@@ -6,6 +6,12 @@ import {
   type MigrantDocumentType,
   type MigrantWorkerDocument,
 } from "../services/migrantWorkerService";
+import {
+  THAI_MONTHS_FULL,
+  THAI_MONTHS_SHORT,
+  buildValidIsoDate,
+  isoToThaiDisplay,
+} from "./thaiDateInput";
 
 const loadXlsx = () => import("xlsx");
 
@@ -98,18 +104,18 @@ function toRows(
       w.nationality,
       w.department,
       w.nationalId,
-      w.birthDate ?? "",
+      isoToThaiDisplay(w.birthDate),
       DOC_TYPE_MAP[doc.documentType] ?? doc.documentType,
       doc.documentNumber,
-      doc.issuedOn ?? "",
-      doc.expiresOn ?? "",
-      doc.visaIssuedOn ?? "",
-      doc.visaExpiresOn ?? "",
-      doc.areaPermitIssuedOn ?? "",
-      doc.areaPermitExpiresOn ?? "",
+      isoToThaiDisplay(doc.issuedOn),
+      isoToThaiDisplay(doc.expiresOn),
+      isoToThaiDisplay(doc.visaIssuedOn),
+      isoToThaiDisplay(doc.visaExpiresOn),
+      isoToThaiDisplay(doc.areaPermitIssuedOn),
+      isoToThaiDisplay(doc.areaPermitExpiresOn),
       doc.workPermitNumber ?? "",
-      doc.workPermitIssuedOn ?? "",
-      doc.workPermitExpiresOn ?? "",
+      isoToThaiDisplay(doc.workPermitIssuedOn),
+      isoToThaiDisplay(doc.workPermitExpiresOn),
       String(doc.remindDays),
       doc.note,
     ]);
@@ -126,7 +132,7 @@ function toRows(
         w.nationality,
         w.department,
         w.nationalId,
-        w.birthDate ?? "",
+        isoToThaiDisplay(w.birthDate),
         "", "", "", "", "", "", "", "", "", "", "", "", "",
       ]);
     }
@@ -230,30 +236,18 @@ export interface ImportRow {
   errors: string[];
 }
 
-function toGregorianYear(year: number): number {
-  return year >= 2400 ? year - 543 : year;
-}
-
-function buildValidIsoDate(year: number, month: number, day: number): string | null {
-  const gy = toGregorianYear(year);
-  if (!Number.isInteger(gy) || !Number.isInteger(month) || !Number.isInteger(day)) {
-    return null;
-  }
-  if (gy < 1900 || gy > 2200 || month < 1 || month > 12 || day < 1 || day > 31) {
-    return null;
-  }
-  const dt = new Date(Date.UTC(gy, month - 1, day));
-  if (
-    dt.getUTCFullYear() !== gy ||
-    dt.getUTCMonth() !== month - 1 ||
-    dt.getUTCDate() !== day
-  ) {
-    return null;
-  }
-  return `${gy}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
 const EXCEL_EPOCH_UTC_MS = Date.UTC(1899, 11, 30);
+
+const THAI_MONTH_MAP: Record<string, number> = (() => {
+  const map: Record<string, number> = {};
+  THAI_MONTHS_FULL.forEach((name, idx) => {
+    map[name] = idx + 1;
+  });
+  THAI_MONTHS_SHORT.forEach((name, idx) => {
+    map[name.replace(/\./g, "")] = idx + 1;
+  });
+  return map;
+})();
 
 function parseExcelSerial(serial: number): string | null {
   if (!Number.isFinite(serial) || serial < 1 || serial > 2958465) return null;
@@ -263,34 +257,64 @@ function parseExcelSerial(serial: number): string | null {
   return buildValidIsoDate(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
 }
 
-/** Parse Excel serial numbers, ISO dates, or Thai B.E. DD/MM/YYYY strings to YYYY-MM-DD. */
+/** Parse Excel serials, ISO dates, Thai B.E. DD/MM/YYYY, MM/DD/YYYY fallback, or Thai month names into YYYY-MM-DD. */
 export function parseDate(val: unknown): string | null {
   if (val == null || val === "") return null;
   if (val instanceof Date && !isNaN(val.getTime())) {
     return buildValidIsoDate(val.getFullYear(), val.getMonth() + 1, val.getDate());
   }
-
-  const s = String(val).trim();
-  if (!s) return null;
-
-  // YYYY-MM-DD or YYYY/MM/DD (supports Thai B.E. years like 2569-03-15)
-  const ymd = s.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
-  if (ymd) {
-    return buildValidIsoDate(Number(ymd[1]), Number(ymd[2]), Number(ymd[3]));
+  if (typeof val === "number") {
+    return parseExcelSerial(val);
   }
 
-  // Excel serial number
+  const raw = String(val).trim();
+  if (!raw) return null;
+
+  // Strip trailing time part (e.g. "2026-03-15T00:00:00Z" or "15/03/2569 00:00:00")
+  const s = raw
+    .replace(/(?:T|\s+)\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/i, "")
+    .trim();
+  if (!s) return null;
+
+  // Excel serial number (supports both C.E. serials like 46096 and B.E.-typed serials like 244421)
   if (/^\d+(\.\d+)?$/.test(s)) {
     return parseExcelSerial(Number(s));
   }
 
-  // DD/MM/YYYY or DD-MM-YYYY (supports Thai B.E. years like 15/03/2569)
-  const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (dmy) {
-    return buildValidIsoDate(Number(dmy[3]), Number(dmy[2]), Number(dmy[1]));
+  // YYYY-MM-DD, YYYY/MM/DD, or YYYY.MM.DD (supports Thai B.E. years like 2569-03-15)
+  const ymd = s.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/);
+  if (ymd) {
+    return buildValidIsoDate(Number(ymd[1]), Number(ymd[2]), Number(ymd[3]));
   }
 
-  // Fallback native date string parsing
+  // DD/MM/YYYY, DD-MM-YYYY, or DD.MM.YYYY (prioritizes DD/MM, falls back to MM/DD when p1 <= 12 && p2 > 12)
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (dmy) {
+    const p1 = Number(dmy[1]);
+    const p2 = Number(dmy[2]);
+    const yr = Number(dmy[3]);
+    if (p1 <= 12 && p2 > 12) {
+      return buildValidIsoDate(yr, p1, p2);
+    }
+    return buildValidIsoDate(yr, p2, p1);
+  }
+
+  // Thai month strings: "15 มี.ค. 2569", "15 มีนาคม 2569", "15-มี.ค.-69", "5 ก.พ. 2569"
+  const thaiMonthMatch = s.match(
+    /^(\d{1,2})[\s./-]*([\u0E01-\u0E4E.]+)[\s./-]*(?:พ\.ศ\.\s*)?(\d{2}|\d{4})$/,
+  );
+  if (thaiMonthMatch) {
+    const day = Number(thaiMonthMatch[1]);
+    const monthKey = thaiMonthMatch[2].replace(/\./g, "").trim();
+    const month = THAI_MONTH_MAP[monthKey];
+    const yrNum = Number(thaiMonthMatch[3]);
+    const fullYear = thaiMonthMatch[3].length === 2 ? 2500 + yrNum : yrNum;
+    if (month) {
+      return buildValidIsoDate(fullYear, month, day);
+    }
+  }
+
+  // Fallback native date string parsing (e.g. "15 Mar 2026")
   const parsed = new Date(s);
   if (!isNaN(parsed.getTime())) {
     return buildValidIsoDate(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate());
@@ -445,17 +469,17 @@ export async function downloadTemplate(): Promise<void> {
     EXPORT_HEADERS,
     [
       "CM-0001", "นาย", "สมชาย ใจดี", "081-234-5678", "เมียนมา", "PR",
-      "1-2345-67890-12-3", "2000-01-15",
-      "พาสปอร์ตสีแดง", "ME123456", "2022-03-01", "2027-03-01",
-      "2023-01-01", "2024-01-01", "", "",
-      "WP-998877", "2023-01-01", "2025-01-01", "30", "ฝ่ายผลิต (PR)",
+      "1-2345-67890-12-3", "15/01/2543",
+      "พาสปอร์ตสีแดง", "ME123456", "01/03/2565", "01/03/2570",
+      "01/01/2566", "01/01/2567", "", "",
+      "WP-998877", "01/01/2566", "01/01/2568", "30", "ฝ่ายผลิต (PR)",
     ],
     [
       "CM-0002", "นางสาว", "มะลิ สวยงาม", "089-876-5432", "ลาว", "PA",
-      "0-0506-51005-43-4", "1998-05-20",
-      "บัตรชมพู", "PK-554433", "2023-02-15", "2025-02-15",
+      "0-0506-51005-43-4", "20/05/2541",
+      "บัตรชมพู", "PK-554433", "15/02/2566", "15/02/2568",
       "", "", "", "",
-      "WP-112233", "2023-02-15", "2025-02-15", "30", "ฝ่ายแพ็ค (PA)",
+      "WP-112233", "15/02/2566", "15/02/2568", "30", "ฝ่ายแพ็ค (PA)",
     ],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);

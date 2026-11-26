@@ -1,5 +1,6 @@
 import { Download, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { ThaiDateInput } from '../components/ThaiDateInput'
 import { DEPARTMENTS } from '../constants/departments'
 import { useStock } from '../store/StockContext'
 import { csvCell } from '../utils/csv'
@@ -71,8 +72,8 @@ export function ReportsPage(){
           <button className={activePreset==='month'?'active':''} onClick={()=>applyPreset('month')}>เดือนนี้</button>
           <button className={activePreset==='quarter'?'active':''} onClick={()=>applyPreset('quarter')}>ไตรมาสนี้</button>
         </div>
-        <label>ตั้งแต่<input type="date" value={dateFrom} max={dateTo} onChange={event=>{setDateFrom(event.target.value);setActivePreset(null)}}/></label>
-        <label>ถึง<input type="date" value={dateTo} min={dateFrom} max={bangkokDateKey()} onChange={event=>{setDateTo(event.target.value);setActivePreset(null)}}/></label>
+        <label>ตั้งแต่<ThaiDateInput value={dateFrom} max={dateTo} onChange={val=>{setDateFrom(val);setActivePreset(null)}}/></label>
+        <label>ถึง<ThaiDateInput value={dateTo} min={dateFrom} max={bangkokDateKey()} onChange={val=>{setDateTo(val);setActivePreset(null)}}/></label>
         <label>แผนก<select value={department} onChange={event=>setDepartment(event.target.value)}><option value="">ทุกแผนก</option>{DEPARTMENTS.map(value=><option value={value} key={value}>{value}</option>)}</select></label>
         <label className="employee-filter">ผู้รับสินค้า<span><Search/><input value={employeeQuery} onChange={event=>setEmployeeQuery(event.target.value)} placeholder="ค้นหาชื่อผู้รับ"/></span></label>
         <button className="btn secondary" onClick={exportReport} disabled={!issues.length}><Download size={17}/>ส่งออก CSV</button>

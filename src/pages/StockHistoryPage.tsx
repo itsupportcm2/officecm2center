@@ -1,6 +1,7 @@
 import { Download, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { ThaiDateInput } from '../components/ThaiDateInput'
 import { Empty, TxBadge } from '../components/ui'
 import { useAuth } from '../store/AuthContext'
 import { useStock } from '../store/StockContext'
@@ -55,8 +56,8 @@ export function StockHistoryPage(){
    <button className="btn secondary" onClick={exportCsv} disabled={!filtered.length}><Download size={18}/>ส่งออก CSV</button>
   </div>
   <section className="filters history-filters">
-   <input type="date" aria-label="วันที่เริ่มต้น" value={dateFrom} max={dateTo||undefined} onChange={event=>setDateFrom(event.target.value)}/>
-   <input type="date" aria-label="วันที่สิ้นสุด" value={dateTo} min={dateFrom||undefined} onChange={event=>setDateTo(event.target.value)}/>
+   <ThaiDateInput aria-label="วันที่เริ่มต้น" value={dateFrom} max={dateTo||undefined} onChange={val=>setDateFrom(val)}/>
+   <ThaiDateInput aria-label="วันที่สิ้นสุด" value={dateTo} min={dateFrom||undefined} onChange={val=>setDateTo(val)}/>
    {!isIssuer&&<select aria-label="ประเภทรายการ" value={type} onChange={event=>setType(event.target.value)}><option value="">ทุกประเภทรายการ</option><option value="IN">รับเข้า</option><option value="OUT">เบิกออก</option><option value="ADJUST">ปรับยอด</option><option value="TRANSFER">โอนย้าย</option></select>}
    {!isIssuer&&<select aria-label="หมวดหมู่" value={category} onChange={event=>setCategory(event.target.value)}><option value="">ทุกหมวดหมู่</option>{categories.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}</select>}
    <select aria-label="ตำแหน่งจัดเก็บ" value={loc} onChange={event=>setLoc(event.target.value)}><option value="">ทุกตำแหน่ง</option>{locations.map(item=><option value={item.id} key={item.id}>{item.name}</option>)}</select>

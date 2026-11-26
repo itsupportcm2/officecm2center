@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ThaiDateInput } from "../components/ThaiDateInput";
 import { Confirm, Empty, Modal, Toast } from "../components/ui";
 import { daysUntil, useRenewals } from "../store/RenewalContext";
 import type { RenewalActionInput, RenewalItem } from "../types";
@@ -503,10 +504,9 @@ export function RenewalsPage() {
             </label>
             <label>
               วันครบกำหนด *
-              <input
-                type="date"
+              <ThaiDateInput
                 value={form.expiryDate}
-                onChange={(event) => setForm({ ...form, expiryDate: event.target.value })}
+                onChange={(val) => setForm({ ...form, expiryDate: val })}
               />
             </label>
             <label>
@@ -605,16 +605,15 @@ export function RenewalsPage() {
           <div className="modal-body form-grid">
             <label>
               วันครบกำหนดเดิม
-              <input type="date" value={renewTarget.expiryDate} disabled />
+              <ThaiDateInput value={renewTarget.expiryDate} onChange={() => {}} disabled />
             </label>
             <label>
               วันครบกำหนดใหม่ *
-              <input
-                type="date"
+              <ThaiDateInput
                 min={renewTarget.expiryDate}
                 value={renewForm.newExpiryDate}
-                onChange={(event) =>
-                  setRenewForm({ ...renewForm, newExpiryDate: event.target.value })
+                onChange={(val) =>
+                  setRenewForm({ ...renewForm, newExpiryDate: val })
                 }
               />
             </label>

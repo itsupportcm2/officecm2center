@@ -32,10 +32,12 @@ import {
 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ThaiDateInput } from "../components/ThaiDateInput";
 import { MigrantDocHistoryModal } from "../components/migrant/MigrantDocHistoryModal";
 import { MigrantPrintSheet } from "../components/migrant/MigrantPrintSheet";
 import { Confirm, Modal, Toast } from "../components/ui";
 import { DEPARTMENTS } from "../constants/departments";
+import { isoToThaiDisplay } from "../utils/thaiDateInput";
 import {
   migrantWorkerService,
   getWorkerGender,
@@ -847,10 +849,9 @@ export function MigrantWorkerDocumentsPage() {
   ) => (
     <label>
       {label}
-      <input
-        type="date"
+      <ThaiDateInput
         value={docForm[key] ?? ""}
-        onChange={(e) => setDocForm({ ...docForm, [key]: e.target.value || null })}
+        onChange={(val) => setDocForm({ ...docForm, [key]: val || null })}
       />
     </label>
   );
@@ -2096,13 +2097,12 @@ export function MigrantWorkerDocumentsPage() {
                 </label>
                 <label>
                   วันเกิด
-                  <input
-                    type="date"
+                  <ThaiDateInput
                     value={workerForm.birthDate ?? ""}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       setWorkerForm({
                         ...workerForm,
-                        birthDate: e.target.value || null,
+                        birthDate: val || null,
                       })
                     }
                   />
@@ -2243,24 +2243,22 @@ export function MigrantWorkerDocumentsPage() {
                             </label>
                             <label>
                               {isPassport ? "วันออกเล่มพาสปอร์ต *" : "วันออกบัตร *"}
-                              <input
-                                type="date"
+                              <ThaiDateInput
                                 value={doc.issuedOn ?? ""}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   updateDocRow(doc.id, {
-                                    issuedOn: e.target.value || null,
+                                    issuedOn: val || null,
                                   })
                                 }
                               />
                             </label>
                             <label>
                               {isPassport ? "วันหมดอายุเล่มพาสปอร์ต *" : "วันหมดอายุบัตร *"}
-                              <input
-                                type="date"
+                              <ThaiDateInput
                                 value={doc.expiresOn ?? ""}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   updateDocRow(doc.id, {
-                                    expiresOn: e.target.value || null,
+                                    expiresOn: val || null,
                                   })
                                 }
                               />
@@ -2269,24 +2267,22 @@ export function MigrantWorkerDocumentsPage() {
                               <>
                                 <label>
                                   วันออกวีซ่า
-                                  <input
-                                    type="date"
+                                  <ThaiDateInput
                                     value={doc.visaIssuedOn ?? ""}
-                                    onChange={(e) =>
+                                    onChange={(val) =>
                                       updateDocRow(doc.id, {
-                                        visaIssuedOn: e.target.value || null,
+                                        visaIssuedOn: val || null,
                                       })
                                     }
                                   />
                                 </label>
                                 <label>
                                   วันหมดอายุวีซ่า *
-                                  <input
-                                    type="date"
+                                  <ThaiDateInput
                                     value={doc.visaExpiresOn ?? ""}
-                                    onChange={(e) =>
+                                    onChange={(val) =>
                                       updateDocRow(doc.id, {
-                                        visaExpiresOn: e.target.value || null,
+                                        visaExpiresOn: val || null,
                                       })
                                     }
                                   />
@@ -2297,24 +2293,22 @@ export function MigrantWorkerDocumentsPage() {
                               <>
                                 <label>
                                   วันออกใบออกนอกพื้นที่ (ไม่บังคับ)
-                                  <input
-                                    type="date"
+                                  <ThaiDateInput
                                     value={doc.areaPermitIssuedOn ?? ""}
-                                    onChange={(e) =>
+                                    onChange={(val) =>
                                       updateDocRow(doc.id, {
-                                        areaPermitIssuedOn: e.target.value || null,
+                                        areaPermitIssuedOn: val || null,
                                       })
                                     }
                                   />
                                 </label>
                                 <label>
                                   วันหมดอายุใบออกนอกพื้นที่ (ไม่บังคับ)
-                                  <input
-                                    type="date"
+                                  <ThaiDateInput
                                     value={doc.areaPermitExpiresOn ?? ""}
-                                    onChange={(e) =>
+                                    onChange={(val) =>
                                       updateDocRow(doc.id, {
-                                        areaPermitExpiresOn: e.target.value || null,
+                                        areaPermitExpiresOn: val || null,
                                       })
                                     }
                                   />
@@ -2335,24 +2329,22 @@ export function MigrantWorkerDocumentsPage() {
                             </label>
                             <label>
                               วันออกใบอนุญาตทำงาน
-                              <input
-                                type="date"
+                              <ThaiDateInput
                                 value={doc.workPermitIssuedOn ?? ""}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   updateDocRow(doc.id, {
-                                    workPermitIssuedOn: e.target.value || null,
+                                    workPermitIssuedOn: val || null,
                                   })
                                 }
                               />
                             </label>
                             <label>
                               วันหมดอายุใบอนุญาตทำงาน
-                              <input
-                                type="date"
+                              <ThaiDateInput
                                 value={doc.workPermitExpiresOn ?? ""}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   updateDocRow(doc.id, {
-                                    workPermitExpiresOn: e.target.value || null,
+                                    workPermitExpiresOn: val || null,
                                   })
                                 }
                               />
@@ -2585,7 +2577,7 @@ export function MigrantWorkerDocumentsPage() {
             <div className="import-step">
               <h3 className="import-step-title">1. ดาวน์โหลด Template</h3>
               <p className="import-hint">
-                ดาวน์โหลดไฟล์ตัวอย่างเพื่อกรอกข้อมูล แล้วอัปโหลดกลับมา
+                ดาวน์โหลดไฟล์ตัวอย่างเพื่อกรอกข้อมูล แล้วอัปโหลดกลับมา (รองรับวันที่ทั้งแบบ วว/ดด/พ.ศ. เช่น 15/03/2569 และ ค.ศ. ระบบแปลงปีให้อัตโนมัติ)
               </p>
               <button
                 className="btn secondary compact"
@@ -2651,7 +2643,7 @@ export function MigrantWorkerDocumentsPage() {
                           <td>{row.fullName || <em className="text-muted">-</em>}</td>
                           <td>{row.department || <em className="text-muted">-</em>}</td>
                           <td>{row.documentType ?? <em className="text-muted">ไม่มีเอกสาร</em>}</td>
-                          <td className="mono">{row.expiresOn ?? "-"}</td>
+                          <td className="mono">{isoToThaiDisplay(row.expiresOn) || "-"}</td>
                           <td>
                             {row.errors.length ? (
                               <span className="status status-expired" title={row.errors.join(", ")}>

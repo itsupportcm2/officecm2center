@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { formatNationalId, validateMigrantDocument } from "../services/migrantWorkerService";
 import { EXPORT_HEADERS, parseDate } from "./migrantWorkerIO";
+import {
+  formatTypingThaiDate,
+  isIsoInRange,
+  isoToThaiDisplay,
+  parseThaiInputToIso,
+} from "./thaiDateInput";
 
 describe("formatNationalId", () => {
   it("formats 13 digits with standard Thai ID hyphens and caps length", () => {
@@ -113,12 +119,53 @@ describe("parseDate", () => {
   it("converts Thai Buddhist Era years (>= 2400) to Gregorian", () => {
     expect(parseDate("2569-03-15")).toBe("2026-03-15");
     expect(parseDate("15/03/2569")).toBe("2026-03-15");
+    expect(parseDate("15.03.2569")).toBe("2026-03-15");
+    expect(parseDate("15.03.2026")).toBe("2026-03-15");
+  });
+
+  it("strips trailing timestamps and parses Thai month names and Excel serials", () => {
+    expect(parseDate("15/03/2569 00:00:00")).toBe("2026-03-15");
+    expect(parseDate("2026-03-15T00:00:00Z")).toBe("2026-03-15");
+    expect(parseDate("15 มี.ค. 2569")).toBe("2026-03-15");
+    expect(parseDate("15 มีนาคม 2569")).toBe("2026-03-15");
+    expect(parseDate("15-มี.ค.-69")).toBe("2026-03-15");
+    expect(parseDate("5 ก.พ. 2569")).toBe("2026-02-05");
+    expect(parseDate(46096)).toBe("2026-03-15");
+    expect(parseDate("46096")).toBe("2026-03-15");
+    const beSerial = Math.round((Date.UTC(2569, 2, 15) - Date.UTC(1899, 11, 30)) / 86_400_000);
+    expect(parseDate(beSerial)).toBe("2026-03-15");
+    expect(parseDate("03/25/2026")).toBe("2026-03-25");
+    expect(parseDate("29/02/2567")).toBe("2024-02-29");
   });
 
   it("rejects invalid calendar dates", () => {
     expect(parseDate("31/02/2026")).toBeNull();
+    expect(parseDate("29/02/2568")).toBeNull();
     expect(parseDate("2026-13-01")).toBeNull();
     expect(parseDate("")).toBeNull();
+  });
+});
+
+describe("thaiDateInput", () => {
+  it("converts between ISO C.E. and Thai DD/MM/BBBB formats", () => {
+    expect(isoToThaiDisplay("2026-11-26")).toBe("26/11/2569");
+    expect(isoToThaiDisplay("")).toBe("");
+    expect(isoToThaiDisplay(null)).toBe("");
+
+    expect(parseThaiInputToIso("26/11/2569")).toBe("2026-11-26");
+    expect(parseThaiInputToIso("26/11/2026")).toBe("2026-11-26");
+    expect(parseThaiInputToIso("26112569")).toBe("2026-11-26");
+    expect(parseThaiInputToIso("26112026")).toBe("2026-11-26");
+    expect(parseThaiInputToIso("5/3/2569")).toBe("2026-03-05");
+    expect(parseThaiInputToIso("2026-03-15")).toBe("2026-03-15");
+    expect(parseThaiInputToIso("29/02/2568")).toBeNull();
+  });
+
+  it("formats typed digits and checks ISO bounds", () => {
+    expect(formatTypingThaiDate("26112569")).toBe("26/11/2569");
+    expect(formatTypingThaiDate("26-11-2569")).toBe("26/11/2569");
+    expect(isIsoInRange("2026-11-26", "2026-11-01", "2026-11-30")).toBe(true);
+    expect(isIsoInRange("2026-10-31", "2026-11-01", "2026-11-30")).toBe(false);
   });
 });
 
